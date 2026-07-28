@@ -1,0 +1,8 @@
+# CentOS deployment artifacts must retain LF when checked out or copied to Linux.
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.py text eol=lf
+*.sql text eol=lf
+.env.example text eol=lf

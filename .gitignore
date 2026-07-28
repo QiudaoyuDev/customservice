@@ -1,0 +1,6 @@
+.env
+infra/.env
+infra/data/
+infra/backups/
+__pycache__/
+*.pyc

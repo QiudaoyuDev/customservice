@@ -1,0 +1,122 @@
+name: hardware-ai-support
+
+services:
+  postgres:
+    image: postgres:18.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${INFRA_BIND_ADDRESS}:${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro,Z
+      - ./backups/postgres:/backups:Z
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [backend]
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "${INFRA_BIND_ADDRESS}:${MINIO_API_PORT}:9000"
+      - "${INFRA_BIND_ADDRESS}:${MINIO_CONSOLE_PORT}:9001"
+    volumes:
+      - minio_data:/data
+    networks: [backend]
+
+  minio-init:
+    image: minio/mc:latest
+    restart: "no"
+    depends_on:
+      - minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET_ASSETS: ${MINIO_BUCKET_ASSETS}
+      MINIO_BUCKET_BACKUPS: ${MINIO_BUCKET_BACKUPS}
+    entrypoint: >
+      /bin/sh -c '
+      until mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"; do sleep 2; done;
+      mc mb --ignore-existing local/"$$MINIO_BUCKET_ASSETS";
+      mc mb --ignore-existing local/"$$MINIO_BUCKET_BACKUPS";
+      mc anonymous set none local/"$$MINIO_BUCKET_ASSETS";
+      mc anonymous set none local/"$$MINIO_BUCKET_BACKUPS";
+      '
+    networks: [backend]
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY}
+      QDRANT__SERVICE__ENABLE_TLS: "false"
+    ports:
+      - "${INFRA_BIND_ADDRESS}:${QDRANT_HTTP_PORT}:6333"
+      - "${INFRA_BIND_ADDRESS}:${QDRANT_GRPC_PORT}:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks: [backend]
+
+  ocr:
+    build:
+      context: ./ocr
+    restart: unless-stopped
+    environment:
+      OCR_LANGUAGE: ${OCR_LANGUAGE}
+      OCR_DEVICE: ${OCR_DEVICE}
+      MODEL_CACHE_DIR: /models
+    volumes:
+      - ocr_models:/models
+    ports:
+      - "${INFRA_BIND_ADDRESS}:${OCR_PORT}:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 20s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    networks: [backend]
+
+  embedding:
+    build:
+      context: ./embedding
+    restart: unless-stopped
+    environment:
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL}
+      RERANK_MODEL: ${RERANK_MODEL}
+      MODEL_CACHE_DIR: /models
+      HF_HOME: /models/huggingface
+      EMBEDDING_DEVICE: ${EMBEDDING_DEVICE}
+    volumes:
+      - embedding_models:/models
+    ports:
+      - "${INFRA_BIND_ADDRESS}:${EMBEDDING_PORT}:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 20s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
+    networks: [backend]
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  minio_data:
+  qdrant_data:
+  ocr_models:
+  embedding_models:
