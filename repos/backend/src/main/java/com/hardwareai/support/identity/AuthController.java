@@ -1,10 +1,15 @@
 package com.hardwareai.support.identity;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
-import org.springframework.http.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Size;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Authentication boundary for the management console.
@@ -12,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final UserAccountRepository users;
     private final PasswordEncoder encoder;
@@ -26,13 +33,14 @@ public class AuthController {
     @PostMapping("/login")
     public Token login(@Valid @RequestBody Login request) {
         var u = users
-            .findByEmail(request.email())
-            .filter(UserAccount::enabled)
-            .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
-        if (!encoder.matches(request.password(), u.passwordHash())) throw new IllegalArgumentException(
-            "Invalid email or password"
-        );
-        return new Token(jwt.issue(u), u.email(), u.role().name());
+                .findByEmail(request.email())
+                .filter(UserAccount::enabled);
+        if (u.isEmpty() || !encoder.matches(request.password(), u.get().passwordHash())) {
+            log.warn("Login failed email={} (userFound={})", request.email(), u.isPresent());
+            throw new IllegalArgumentException("Invalid email or password");
+        }
+        log.info("Login succeeded email={} role={}", request.email(), u.get().role().name());
+        return new Token(jwt.issue(u.get()), u.get().email(), u.get().role().name());
     }
 
     record Login(@Email String email, @Size(min = 8, max = 128) String password) {

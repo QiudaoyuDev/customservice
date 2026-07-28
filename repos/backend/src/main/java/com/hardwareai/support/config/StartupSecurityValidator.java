@@ -8,7 +8,9 @@ import org.springframework.stereotype.Component;
 import java.util.Arrays;
 import java.util.List;
 
-/** Refuses unsafe bootstrap values outside the explicitly local development profile. */
+/**
+ * Refuses unsafe bootstrap values outside the explicitly local development profile.
+ */
 @Component
 class StartupSecurityValidator implements ApplicationRunner {
     private final AppProperties properties;
@@ -23,7 +25,7 @@ class StartupSecurityValidator implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         boolean development = Arrays.asList(environment.getActiveProfiles()).contains("dev");
         List<String> secrets = List.of(properties.security().jwtSecret(), properties.qr().secret(),
-            properties.storage().secretKey(), properties.qdrantApiKey(), properties.bootstrap().adminPassword());
+                properties.storage().secretKey(), properties.qdrantApiKey(), properties.bootstrap().adminPassword());
         if (!development && secrets.stream().anyMatch(this::isDefaultOrWeak)) {
             throw new IllegalStateException("Refusing startup with default or weak secret outside the dev profile");
         }

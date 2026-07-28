@@ -1,6 +1,7 @@
 package com.hardwareai.support.knowledge;
 
-import org.slf4j.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -21,12 +22,12 @@ class KnowledgeProcessingWorker {
     private final KnowledgeChunker chunker;
 
     KnowledgeProcessingWorker(
-        ProcessingJobRepository jobs,
-        KnowledgeRevisionRepository revisions,
-        KnowledgeDocumentRepository documents,
-        ObjectStorage storage,
-        DocumentTextExtractor extractor,
-        VectorIndex vectorIndex, KnowledgeChunkRepository chunks, KnowledgeChunker chunker
+            ProcessingJobRepository jobs,
+            KnowledgeRevisionRepository revisions,
+            KnowledgeDocumentRepository documents,
+            ObjectStorage storage,
+            DocumentTextExtractor extractor,
+            VectorIndex vectorIndex, KnowledgeChunkRepository chunks, KnowledgeChunker chunker
     ) {
         this.jobs = jobs;
         this.revisions = revisions;
@@ -43,17 +44,17 @@ class KnowledgeProcessingWorker {
         jobs.claimNext().ifPresent((job) -> {
             try {
                 var revision = revisions
-                    .findById(job.revisionId())
-                    .orElseThrow(() -> new IllegalStateException("Revision not found"));
+                        .findById(job.revisionId())
+                        .orElseThrow(() -> new IllegalStateException("Revision not found"));
                 if (job.jobType() == ProcessingJob.Type.PARSE) {
                     revision.beginParsing();
                     revisions.save(revision);
                     var document = documents
-                        .findById(revision.documentId())
-                        .orElseThrow(() -> new IllegalStateException("Document not found"));
+                            .findById(revision.documentId())
+                            .orElseThrow(() -> new IllegalStateException("Document not found"));
                     // One extractor entry point keeps PDF/DOCX/OCR parsing inside the same durable retry flow.
                     revision.setExtractedText(
-                        extractor.extract(document.contentType(), storage.get(document.objectKey())).strip()
+                            extractor.extract(document.contentType(), storage.get(document.objectKey())).strip()
                     );
                     revisions.save(revision);
                     chunks.deleteAllByRevisionId(revision.id());
@@ -69,10 +70,10 @@ class KnowledgeProcessingWorker {
                 job.fail(e);
                 jobs.save(job);
                 log.warn(
-                    "Knowledge job failed jobId={} type={} error={}",
-                    job.id(),
-                    job.jobType(),
-                    e.getMessage()
+                        "Knowledge job failed jobId={} type={} error={}",
+                        job.id(),
+                        job.jobType(),
+                        e.getMessage()
                 );
             }
         });

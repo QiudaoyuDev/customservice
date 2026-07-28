@@ -32,9 +32,9 @@ class DocumentTextExtractor {
                 }
             }
             if (
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document".equals(
-                    contentType
-                )
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document".equals(
+                            contentType
+                    )
             ) {
                 try (var doc = new XWPFDocument(source); var extractor = new XWPFWordExtractor(doc)) {
                     return extractor.getText();

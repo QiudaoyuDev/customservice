@@ -84,35 +84,36 @@ public class KnowledgeRevision {
      * Parser is the only path that writes normalized source text.
      */
     public void setExtractedText(
-        String text
+            String text
     ) {
         extractedText = text;
         status = Status.DRAFT;
     }
 
     public void beginParsing() {
-        if (status != Status.UPLOADED && status != Status.PARSING) throw new IllegalStateException("Only an uploaded revision can be parsed");
+        if (status != Status.UPLOADED && status != Status.PARSING)
+            throw new IllegalStateException("Only an uploaded revision can be parsed");
         status = Status.PARSING;
     }
 
     public void submit() {
         if (status != Status.DRAFT) throw new IllegalStateException(
-            "Only a draft revision can be submitted"
+                "Only a draft revision can be submitted"
         );
         if (extractedText == null || extractedText.isBlank()) throw new IllegalStateException(
-            "The document must be parsed before review"
+                "The document must be parsed before review"
         );
         status = Status.REVIEW;
     }
 
     public void publish(UUID user) {
         if (status != Status.APPROVED) throw new IllegalStateException(
-            "Only an approved revision can be published"
+                "Only an approved revision can be published"
         );
         if (
-            productModelId == null || region == null || region.isBlank()
+                productModelId == null || region == null || region.isBlank()
         ) throw new IllegalStateException(
-            "Published knowledge requires product and region applicability"
+                "Published knowledge requires product and region applicability"
         );
         status = Status.PUBLISHED;
         reviewedBy = user;
@@ -131,7 +132,9 @@ public class KnowledgeRevision {
         deprecatedAt = Instant.now();
     }
 
-    /** Restores an explicitly deprecated immutable revision; its content is never overwritten. */
+    /**
+     * Restores an explicitly deprecated immutable revision; its content is never overwritten.
+     */
     public void restore(UUID user) {
         if (status != Status.DEPRECATED) throw new IllegalStateException("Only deprecated knowledge can be restored");
         status = Status.PUBLISHED;
@@ -141,7 +144,8 @@ public class KnowledgeRevision {
     }
 
     public void archive() {
-        if (status != Status.PUBLISHED && status != Status.DEPRECATED) throw new IllegalStateException("Only published or deprecated revision can be archived");
+        if (status != Status.PUBLISHED && status != Status.DEPRECATED)
+            throw new IllegalStateException("Only published or deprecated revision can be archived");
         status = Status.ARCHIVED;
     }
 

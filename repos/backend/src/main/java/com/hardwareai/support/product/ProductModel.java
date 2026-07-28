@@ -25,9 +25,12 @@ public class ProductModel {
 
     private String region;
 
-    @Column(name = "hardware_version") private String hardwareVersion;
-    @Column(name = "firmware_min") private String firmwareMin;
-    @Column(name = "firmware_max") private String firmwareMax;
+    @Column(name = "hardware_version")
+    private String hardwareVersion;
+    @Column(name = "firmware_min")
+    private String firmwareMin;
+    @Column(name = "firmware_max")
+    private String firmwareMax;
 
     @Enumerated(EnumType.STRING)
     private Status status;
@@ -78,9 +81,18 @@ public class ProductModel {
     public Status status() {
         return status;
     }
-    public String hardwareVersion() { return hardwareVersion; }
-    public String firmwareMin() { return firmwareMin; }
-    public String firmwareMax() { return firmwareMax; }
+
+    public String hardwareVersion() {
+        return hardwareVersion;
+    }
+
+    public String firmwareMin() {
+        return firmwareMin;
+    }
+
+    public String firmwareMax() {
+        return firmwareMax;
+    }
 
     public enum Status {
         ACTIVE,

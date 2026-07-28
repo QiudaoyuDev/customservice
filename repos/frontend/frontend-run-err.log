@@ -1,0 +1,200 @@
+[2m22:21:54[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/login[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m22:21:57[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/login[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m22:23:13[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/login[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m22:23:18[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/login[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m22:23:55[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/login[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m22:24:19[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/login[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m22:26:44[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/login[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m22:26:46[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/login[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m22:27:05[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/login[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m22:29:21[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/login[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m22:30:07[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: C:\myproject\customservice\repos\frontend\src\main.tsx: Unterminated JSX contents. (36:17)
+
+[0m [90m 34 |[39m             [33m<[39m[33m/[39m[33mRoutes[39m[33m>[39m
+ [90m 35 |[39m         [33m<[39m[33m/[39m[33mBrowserRouter[39m[33m>[39m
+[31m[1m>[22m[39m[90m 36 |[39m     [33m<[39m[33m/[39m[33mStrictMode[39m[33m>[39m[33m,[39m
+ [90m    |[39m                  [31m[1m^[22m[39m
+ [90m 37 |[39m )[33m;[39m
+ [90m 38 |[39m[0m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/myproject/customservice/repos/frontend/src/main.tsx[39m:36:17
+[2m22:30:07[22m [31m[1m[vite][22m[39m [31mInternal server error: C:\myproject\customservice\repos\frontend\src\main.tsx: Unterminated JSX contents. (36:17)
+
+[0m [90m 34 |[31m             [33m<[31m[33m/[31m[33mRoutes[31m[33m>[31m
+ [90m 35 |[31m         [33m<[31m[33m/[31m[33mBrowserRouter[31m[33m>[31m
+[31m[1m>[22m[31m[90m 36 |[31m     [33m<[31m[33m/[31m[33mStrictMode[31m[33m>[31m[33m,[31m
+ [90m    |[31m                  [31m[1m^[22m[31m
+ [90m 37 |[31m )[33m;[31m
+ [90m 38 |[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/myproject/customservice/repos/frontend/src/main.tsx[39m:36:17
+      at constructor (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.jsxReadToken (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:4460:20)
+      at TypeScriptParserMixin.getTokenFromCode (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:4786:12)
+      at TypeScriptParserMixin.getTokenFromCode (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10004:11)
+      at TypeScriptParserMixin.nextToken (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:5799:10)
+      at TypeScriptParserMixin.next (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:5709:10)
+      at TypeScriptParserMixin.eat (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:5713:12)
+      at TypeScriptParserMixin.expect (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:6915:15)
+      at TypeScriptParserMixin.jsxParseClosingElementAt (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:4692:10)
+      at TypeScriptParserMixin.jsxParseElementAt (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:4707:37)
+      at TypeScriptParserMixin.jsxParseElementAt (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:4710:32)
+      at TypeScriptParserMixin.jsxParseElement (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:4761:17)
+      at TypeScriptParserMixin.parseExprAtom (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:4771:19)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10848:21)
+      at C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:9792:39
+      at TypeScriptParserMixin.tryParse (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:6924:20)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:9792:18)
+      at C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseExprListItem (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:12192:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11269:22)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11203:29)
+      at TypeScriptParserMixin.parseSubscript (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11137:19)
+      at TypeScriptParserMixin.parseSubscript (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:9289:18)
+      at TypeScriptParserMixin.parseSubscripts (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11111:19)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11102:17)
+      at TypeScriptParserMixin.parseUpdate (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10801:23)
+      at C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseExpression (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseStatementContent (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:12912:23)
+      at TypeScriptParserMixin.parseStatementContent (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:9525:18)
+[2m22:30:07[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: C:\myproject\customservice\repos\frontend\src\main.tsx: Unterminated JSX contents. (36:17)
+
+[0m [90m 34 |[39m             [33m<[39m[33m/[39m[33mRoutes[39m[33m>[39m
+ [90m 35 |[39m         [33m<[39m[33m/[39m[33mBrowserRouter[39m[33m>[39m
+[31m[1m>[22m[39m[90m 36 |[39m     [33m<[39m[33m/[39m[33mStrictMode[39m[33m>[39m[33m,[39m
+ [90m    |[39m                  [31m[1m^[22m[39m
+ [90m 37 |[39m )[33m;[39m
+ [90m 38 |[39m[0m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/myproject/customservice/repos/frontend/src/main.tsx[39m:36:17
+[2m22:30:36[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: C:\myproject\customservice\repos\frontend\src\main.tsx: Unterminated JSX contents. (37:17)
+
+[0m [90m 35 |[39m             [33m<[39m[33m/[39m[33mRoutes[39m[33m>[39m
+ [90m 36 |[39m         [33m<[39m[33m/[39m[33mBrowserRouter[39m[33m>[39m
+[31m[1m>[22m[39m[90m 37 |[39m     [33m<[39m[33m/[39m[33mStrictMode[39m[33m>[39m[33m,[39m
+ [90m    |[39m                  [31m[1m^[22m[39m
+ [90m 38 |[39m )[33m;[39m
+ [90m 39 |[39m[0m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/myproject/customservice/repos/frontend/src/main.tsx[39m:37:17
+[2m22:30:36[22m [31m[1m[vite][22m[39m [31mInternal server error: C:\myproject\customservice\repos\frontend\src\main.tsx: Unterminated JSX contents. (37:17)
+
+[0m [90m 35 |[31m             [33m<[31m[33m/[31m[33mRoutes[31m[33m>[31m
+ [90m 36 |[31m         [33m<[31m[33m/[31m[33mBrowserRouter[31m[33m>[31m
+[31m[1m>[22m[31m[90m 37 |[31m     [33m<[31m[33m/[31m[33mStrictMode[31m[33m>[31m[33m,[31m
+ [90m    |[31m                  [31m[1m^[22m[31m
+ [90m 38 |[31m )[33m;[31m
+ [90m 39 |[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/myproject/customservice/repos/frontend/src/main.tsx[39m:37:17
+      at constructor (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.jsxReadToken (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:4460:20)
+      at TypeScriptParserMixin.getTokenFromCode (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:4786:12)
+      at TypeScriptParserMixin.getTokenFromCode (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10004:11)
+      at TypeScriptParserMixin.nextToken (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:5799:10)
+      at TypeScriptParserMixin.next (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:5709:10)
+      at TypeScriptParserMixin.eat (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:5713:12)
+      at TypeScriptParserMixin.expect (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:6915:15)
+      at TypeScriptParserMixin.jsxParseClosingElementAt (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:4692:10)
+      at TypeScriptParserMixin.jsxParseElementAt (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:4707:37)
+      at TypeScriptParserMixin.jsxParseElementAt (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:4710:32)
+      at TypeScriptParserMixin.jsxParseElement (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:4761:17)
+      at TypeScriptParserMixin.parseExprAtom (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:4771:19)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10848:21)
+      at C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:9792:39
+      at TypeScriptParserMixin.tryParse (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:6924:20)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:9792:18)
+      at C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseExprListItem (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:12192:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11269:22)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11203:29)
+      at TypeScriptParserMixin.parseSubscript (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11137:19)
+      at TypeScriptParserMixin.parseSubscript (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:9289:18)
+      at TypeScriptParserMixin.parseSubscripts (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11111:19)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11102:17)
+      at TypeScriptParserMixin.parseUpdate (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10801:23)
+      at C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseExpression (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseStatementContent (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:12912:23)
+      at TypeScriptParserMixin.parseStatementContent (C:\myproject\customservice\repos\frontend\node_modules\@babel\parser\lib\index.js:9525:18)
+[2m22:30:36[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: C:\myproject\customservice\repos\frontend\src\main.tsx: Unterminated JSX contents. (37:17)
+
+[0m [90m 35 |[39m             [33m<[39m[33m/[39m[33mRoutes[39m[33m>[39m
+ [90m 36 |[39m         [33m<[39m[33m/[39m[33mBrowserRouter[39m[33m>[39m
+[31m[1m>[22m[39m[90m 37 |[39m     [33m<[39m[33m/[39m[33mStrictMode[39m[33m>[39m[33m,[39m
+ [90m    |[39m                  [31m[1m^[22m[39m
+ [90m 38 |[39m )[33m;[39m
+ [90m 39 |[39m[0m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/myproject/customservice/repos/frontend/src/main.tsx[39m:37:17

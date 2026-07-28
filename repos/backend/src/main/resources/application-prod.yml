@@ -7,3 +7,14 @@ management:
 server:
   error:
     include-message: never
+logging:
+  # Keep business/debug logging quiet in production; the access log and exceptions still emit.
+  level:
+    com.hardwareai.support.conversation: INFO
+    com.hardwareai.support.identity: INFO
+    com.hardwareai.support.troubleshoot: INFO
+    com.hardwareai.support.knowledge: INFO
+    com.hardwareai.support.llm: INFO
+    com.hardwareai.support.qr: INFO
+    com.hardwareai.support.handoff: INFO
+    com.hardwareai.support.product: INFO

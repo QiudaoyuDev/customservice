@@ -2,7 +2,8 @@ package com.hardwareai.support.knowledge;
 
 import com.hardwareai.support.config.AppProperties;
 import io.minio.*;
-import org.slf4j.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,17 +25,17 @@ public class ObjectStorage {
     public void put(String key, MultipartFile file) {
         try {
             if (
-                !client.bucketExists(
-                    BucketExistsArgs.builder().bucket(properties.storage().bucket()).build()
-                )
+                    !client.bucketExists(
+                            BucketExistsArgs.builder().bucket(properties.storage().bucket()).build()
+                    )
             ) client.makeBucket(MakeBucketArgs.builder().bucket(properties.storage().bucket()).build());
             client.putObject(
-                PutObjectArgs.builder()
-                    .bucket(properties.storage().bucket())
-                    .object(key)
-                    .stream(file.getInputStream(), file.getSize(), -1)
-                    .contentType(file.getContentType())
-                    .build()
+                    PutObjectArgs.builder()
+                            .bucket(properties.storage().bucket())
+                            .object(key)
+                            .stream(file.getInputStream(), file.getSize(), -1)
+                            .contentType(file.getContentType())
+                            .build()
             );
             log.info("Stored knowledge source object {} ({} bytes)", key, file.getSize());
         } catch (Exception e) {
@@ -49,7 +50,7 @@ public class ObjectStorage {
     java.io.InputStream get(String key) {
         try {
             return client.getObject(
-                GetObjectArgs.builder().bucket(properties.storage().bucket()).object(key).build()
+                    GetObjectArgs.builder().bucket(properties.storage().bucket()).object(key).build()
             );
         } catch (Exception e) {
             throw new IllegalStateException("Unable to read knowledge source object", e);

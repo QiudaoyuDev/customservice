@@ -11,6 +11,7 @@ import org.springframework.web.client.RestClient;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Calls the local OCR adapter using its {@code file} multipart contract.
@@ -24,9 +25,11 @@ class OcrClient {
 
     private static final Logger log = LoggerFactory.getLogger(OcrClient.class);
     private final RestClient client;
+    private final String ocrUrl;
 
     OcrClient(AppProperties properties) {
-        this.client = RestClient.builder().baseUrl(properties.ocrUrl()).build();
+        this.ocrUrl = properties.ocrUrl();
+        this.client = RestClient.builder().baseUrl(ocrUrl).build();
     }
 
     String extract(String contentType, InputStream source) {
@@ -42,23 +45,26 @@ class OcrClient {
 
         var body = new MultipartBodyBuilder();
         body.part("file", new NamedImageResource(bytes, filenameFor(contentType)))
-            .contentType(MediaType.parseMediaType(contentType));
+                .contentType(MediaType.parseMediaType(contentType));
+        long start = System.nanoTime();
         try {
             var response = client
-                .post()
-                .uri("/v1/ocr")
-                .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(body.build())
-                .retrieve()
-                .body(OcrResponse.class);
+                    .post()
+                    .uri("/v1/ocr")
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body.build())
+                    .retrieve()
+                    .body(OcrResponse.class);
             if (response == null) {
                 throw new IllegalStateException("OCR adapter returned an empty response");
             }
             var text = response.text() == null ? "" : response.text();
-            log.info("OCR completed for {} image ({} bytes, {} characters)", contentType, bytes.length, text.length());
+            log.info("OCR completed url={} type={} bytes={} chars={} in {}ms", ocrUrl, contentType, bytes.length, text.length(),
+                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
             return text;
         } catch (Exception e) {
-            log.warn("OCR adapter request failed for {} image ({} bytes): {}", contentType, bytes.length, e.getMessage());
+            log.warn("OCR adapter request failed url={} type={} bytes={} in {}ms: {}", ocrUrl, contentType, bytes.length,
+                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), e.getMessage());
             throw new IllegalStateException("OCR adapter request failed", e);
         }
     }
@@ -67,9 +73,12 @@ class OcrClient {
         return MediaType.IMAGE_JPEG_VALUE.equals(contentType) ? "source.jpg" : "source.png";
     }
 
-    private record OcrResponse(String text) {}
+    private record OcrResponse(String text) {
+    }
 
-    /** Supplies a filename because FastAPI's UploadFile uses it to choose a safe suffix. */
+    /**
+     * Supplies a filename because FastAPI's UploadFile uses it to choose a safe suffix.
+     */
     private static final class NamedImageResource extends ByteArrayResource {
         private final String filename;
 

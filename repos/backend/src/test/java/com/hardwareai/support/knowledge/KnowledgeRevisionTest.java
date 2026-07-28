@@ -1,8 +1,11 @@
 package com.hardwareai.support.knowledge;
 
 import org.junit.jupiter.api.Test;
+
 import java.util.UUID;
-import static org.junit.jupiter.api.Assertions.*;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class KnowledgeRevisionTest {
     @Test
@@ -22,7 +25,9 @@ class KnowledgeRevisionTest {
     @Test
     void rejectsPublishBeforeApproval() {
         var revision = new KnowledgeRevision(UUID.randomUUID(), UUID.randomUUID(), "US");
-        revision.beginParsing(); revision.setExtractedText("guide"); revision.submit();
+        revision.beginParsing();
+        revision.setExtractedText("guide");
+        revision.submit();
         assertThrows(IllegalStateException.class, () -> revision.publish(UUID.randomUUID()));
     }
 }

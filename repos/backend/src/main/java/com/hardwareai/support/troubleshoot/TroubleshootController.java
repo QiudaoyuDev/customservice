@@ -1,0 +1,288 @@
+package com.hardwareai.support.troubleshoot;
+
+import com.hardwareai.support.common.CurrentUser;
+import com.hardwareai.support.llm.Intent;
+import com.hardwareai.support.troubleshoot.TroubleshootTypes.NodeType;
+import com.hardwareai.support.troubleshoot.TroubleshootTypes.Risk;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * Tenant-scoped diagnostic flow administration. The runtime orchestration that consumes
+ * published flows lives in ConversationController; this controller only manages content.
+ */
+@RestController
+@RequestMapping("/api/flows")
+public class TroubleshootController {
+
+    private static final Logger log = LoggerFactory.getLogger(TroubleshootController.class);
+
+    private final TroubleshootFlowRepository flows;
+    private final TroubleshootNodeRepository nodes;
+    private final CurrentUser current;
+
+    TroubleshootController(TroubleshootFlowRepository flows, TroubleshootNodeRepository nodes, CurrentUser current) {
+        this.flows = flows;
+        this.nodes = nodes;
+        this.current = current;
+    }
+
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public FlowView create(@Valid @RequestBody Create c) {
+        var f = new TroubleshootFlow(current.tenantId(), c.title(), c.triggerIntent(), c.productModelId(), c.region(), c.locale());
+        var saved = flows.save(f);
+        log.info("Flow created id={} tenant={} title={} triggerIntent={} product={}", saved.id(), current.tenantId(), c.title(), c.triggerIntent(), c.productModelId());
+        return FlowView.of(saved);
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
+    public List<FlowView> list() {
+        return flows.findAllByTenantIdOrderByCreatedAtDesc(current.tenantId()).stream().map(FlowView::of).toList();
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
+    public FlowDetail get(@PathVariable UUID id) {
+        var f = flows.findByIdAndTenantId(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Flow not found"));
+        var ns = nodes.findAllByFlowIdOrderByOrderIndexAsc(id);
+        return new FlowDetail(FlowView.of(f), ns.stream().map(NodeView::of).toList());
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void update(@PathVariable UUID id, @Valid @RequestBody UpdateMeta u) {
+        var f = flows.findByIdAndTenantId(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Flow not found"));
+        f.update(u.title(), u.triggerIntent(), u.productModelId(), u.region(), u.locale(), u.firmwareMin(), u.firmwareMax());
+        flows.save(f);
+    }
+
+    @PostMapping("/{id}/nodes")
+    @PreAuthorize("hasRole('ADMIN')")
+    public NodeView addNode(@PathVariable UUID id, @Valid @RequestBody NodeCreate c) {
+        flows.findByIdAndTenantId(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Flow not found"));
+        if (nodes.findByFlowIdAndNodeKey(id, c.nodeKey()).isPresent())
+            throw new IllegalStateException("nodeKey already exists in this flow");
+        var n = new TroubleshootNode(id, c.nodeKey());
+        n.apply(c.nodeType(), c.prompt(), c.risk(), c.expectedInput(), c.branchYes(), c.branchNo(), c.branchUnknown(), c.branchNext(), c.safetyStop(), c.sourceRefs());
+        return NodeView.of(nodes.save(n));
+    }
+
+    @PutMapping("/{id}/nodes/{key}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void updateNode(@PathVariable UUID id, @PathVariable String key, @Valid @RequestBody NodeUpdate u) {
+        var n = nodes.findByFlowIdAndNodeKey(id, key).orElseThrow(() -> new IllegalArgumentException("Node not found"));
+        n.apply(u.nodeType(), u.prompt(), u.risk(), u.expectedInput(), u.branchYes(), u.branchNo(), u.branchUnknown(), u.branchNext(), u.safetyStop(), u.sourceRefs());
+        nodes.save(n);
+    }
+
+    @DeleteMapping("/{id}/nodes/{key}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void deleteNode(@PathVariable UUID id, @PathVariable String key) {
+        nodes.deleteByFlowIdAndNodeKey(id, key);
+        nodes.findAllByFlowIdOrderByOrderIndexAsc(id).forEach(n -> {
+            if (n.branchYes() != null && n.branchYes().equals(key)
+                    || n.branchNo() != null && n.branchNo().equals(key)
+                    || n.branchUnknown() != null && n.branchUnknown().equals(key)
+                    || n.branchNext() != null && n.branchNext().equals(key)) {
+                n.clearBranch(key);
+                nodes.save(n);
+            }
+        });
+    }
+
+    @PostMapping("/{id}/submit")
+    @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
+    public void submit(@PathVariable UUID id) {
+        var f = owned(id);
+        f.submit();
+        flows.save(f);
+        log.info("Flow submitted id={}", id);
+    }
+
+    @PostMapping("/{id}/approve")
+    @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
+    public void approve(@PathVariable UUID id) {
+        var f = owned(id);
+        f.approve(current.userId());
+        flows.save(f);
+        log.info("Flow approved id={} by={}", id, current.userId());
+    }
+
+    @PostMapping("/{id}/publish")
+    @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
+    public void publish(@PathVariable UUID id) {
+        var f = owned(id);
+        f.publish(current.userId());
+        flows.save(f);
+        log.info("Flow published id={} by={}", id, current.userId());
+    }
+
+    @PostMapping("/{id}/deprecate")
+    @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
+    public void deprecate(@PathVariable UUID id) {
+        var f = owned(id);
+        f.deprecate();
+        flows.save(f);
+        log.info("Flow deprecated id={}", id);
+    }
+
+    @PostMapping("/{id}/restore")
+    @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
+    public void restore(@PathVariable UUID id) {
+        var f = owned(id);
+        f.restore(current.userId());
+        flows.save(f);
+        log.info("Flow restored id={} by={}", id, current.userId());
+    }
+
+    @PostMapping("/{id}/simulate")
+    @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
+    public SimulateResponse simulate(@PathVariable UUID id) {
+        var f = owned(id);
+        return simulate(f, nodes.findAllByFlowIdOrderByOrderIndexAsc(id));
+    }
+
+    private TroubleshootFlow owned(UUID id) {
+        return flows.findByIdAndTenantId(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Flow not found"));
+    }
+
+    private SimulateResponse simulate(TroubleshootFlow flow, List<TroubleshootNode> ns) {
+        var byKey = ns.stream().collect(Collectors.toMap(TroubleshootNode::nodeKey, n -> n));
+        var start = ns.isEmpty() ? null : ns.get(0);
+        var reachable = new HashSet<String>();
+        if (start != null) {
+            var q = new ArrayDeque<String>();
+            q.add(start.nodeKey());
+            reachable.add(start.nodeKey());
+            while (!q.isEmpty()) {
+                var k = q.poll();
+                var n = byKey.get(k);
+                if (n == null) continue;
+                for (String b : new String[]{n.branchYes(), n.branchNo(), n.branchUnknown(), n.branchNext()}) {
+                    if (b != null && !reachable.contains(b)) {
+                        reachable.add(b);
+                        q.add(b);
+                    }
+                }
+            }
+        }
+        var unreachable = ns.stream().map(TroubleshootNode::nodeKey).filter(k -> !reachable.contains(k)).collect(Collectors.toList());
+        var transcript = new ArrayList<SimStep>();
+        var seen = new HashSet<String>();
+        var cur = start;
+        boolean escalated = false;
+        while (cur != null && !seen.contains(cur.nodeKey()) && transcript.size() < 100) {
+            seen.add(cur.nodeKey());
+            boolean isEsc = cur.nodeType() == NodeType.HUMAN_ESCALATION || cur.risk() == Risk.HIGH;
+            transcript.add(new SimStep(cur.nodeKey(), cur.nodeType().name(), cur.prompt(), cur.expectedInput(), cur.risk().name(), isEsc));
+            if (isEsc) {
+                escalated = true;
+                break;
+            }
+            if (cur.nodeType() == NodeType.END) break;
+            String next = null;
+            if (cur.branchYes() != null) next = cur.branchYes();
+            else if (cur.branchNext() != null) next = cur.branchNext();
+            else if (cur.branchNo() != null) next = cur.branchNo();
+            else if (cur.branchUnknown() != null) next = cur.branchUnknown();
+            cur = next == null ? null : byKey.get(next);
+        }
+        return new SimulateResponse(transcript, escalated, new Coverage(ns.size(), reachable.size(), unreachable));
+    }
+
+    /* ---------- records ---------- */
+
+    record Create(
+            @NotBlank @Size(max = 200) String title,
+            Intent triggerIntent,
+            @NotNull UUID productModelId,
+            @NotBlank @Size(max = 16) String region,
+            @NotBlank @Size(max = 16) String locale
+    ) {
+    }
+
+    record UpdateMeta(
+            @NotBlank @Size(max = 200) String title,
+            Intent triggerIntent,
+            @NotNull UUID productModelId,
+            @NotBlank @Size(max = 16) String region,
+            @NotBlank @Size(max = 16) String locale,
+            String firmwareMin,
+            String firmwareMax
+    ) {
+    }
+
+    record NodeCreate(
+            @NotBlank @Size(max = 80) String nodeKey,
+            NodeType nodeType,
+            String prompt,
+            Risk risk,
+            String expectedInput,
+            String branchYes,
+            String branchNo,
+            String branchUnknown,
+            String branchNext,
+            boolean safetyStop,
+            List<String> sourceRefs
+    ) {
+    }
+
+    record NodeUpdate(
+            NodeType nodeType,
+            String prompt,
+            Risk risk,
+            String expectedInput,
+            String branchYes,
+            String branchNo,
+            String branchUnknown,
+            String branchNext,
+            boolean safetyStop,
+            List<String> sourceRefs
+    ) {
+    }
+
+    record FlowView(
+            UUID id, String title, String triggerIntent, UUID productModelId, String region, String locale,
+            String firmwareMin, String firmwareMax, String status, String owner
+    ) {
+        static FlowView of(TroubleshootFlow f) {
+            return new FlowView(f.id(), f.title(), f.triggerIntent().name(), f.productModelId(), f.region(), f.locale(),
+                    f.firmwareMin(), f.firmwareMax(), f.status().name(), f.owner());
+        }
+    }
+
+    record NodeView(
+            UUID id, String nodeKey, String nodeType, String prompt, String risk, String expectedInput,
+            String branchYes, String branchNo, String branchUnknown, String branchNext, boolean safetyStop,
+            List<String> sourceRefs, int orderIndex
+    ) {
+        static NodeView of(TroubleshootNode n) {
+            return new NodeView(n.id(), n.nodeKey(), n.nodeType().name(), n.prompt(), n.risk().name(), n.expectedInput(),
+                    n.branchYes(), n.branchNo(), n.branchUnknown(), n.branchNext(), n.safetyStop(), n.sourceRefs(), n.orderIndex());
+        }
+    }
+
+    record FlowDetail(FlowView flow, List<NodeView> nodes) {
+    }
+
+    record SimStep(String nodeKey, String nodeType, String prompt, String expectedInput, String risk,
+                   boolean escalated) {
+    }
+
+    record Coverage(int nodes, int visited, List<String> unreachable) {
+    }
+
+    record SimulateResponse(List<SimStep> transcript, boolean escalated, Coverage coverage) {
+    }
+}

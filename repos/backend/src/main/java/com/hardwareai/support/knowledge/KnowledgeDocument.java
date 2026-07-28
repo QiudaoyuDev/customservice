@@ -36,12 +36,12 @@ public class KnowledgeDocument {
     }
 
     KnowledgeDocument(
-        UUID tenantId,
-        String title,
-        String locale,
-        String key,
-        String contentType,
-        UUID userId
+            UUID tenantId,
+            String title,
+            String locale,
+            String key,
+            String contentType,
+            UUID userId
     ) {
         id = UUID.randomUUID();
         this.tenantId = tenantId;

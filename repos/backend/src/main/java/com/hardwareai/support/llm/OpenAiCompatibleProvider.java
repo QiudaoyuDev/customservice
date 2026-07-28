@@ -1,17 +1,43 @@
 package com.hardwareai.support.llm;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-import java.time.Duration;
-import java.util.*;
-/** Minimal OpenAI-compatible provider; credentials are supplied at call time and never logged. */
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Minimal OpenAI-compatible provider; credentials are supplied at call time and never logged.
+ */
 @Component
 public class OpenAiCompatibleProvider {
- public String complete(String baseUrl,String apiKey,String model,String system,String prompt){
-  var response=RestClient.builder().baseUrl(baseUrl).defaultHeader("Authorization","Bearer "+apiKey).build().post().uri("/v1/chat/completions").contentType(MediaType.APPLICATION_JSON)
-   .body(Map.of("model",model,"temperature",0,"messages",List.of(Map.of("role","system","content",system),Map.of("role","user","content",prompt))))
-   .retrieve().body(Map.class);
-  var choices=(List<?>)response.get("choices"); if(choices==null||choices.isEmpty()) throw new IllegalStateException("LLM returned no choice");
-  return String.valueOf(((Map<?,?>)((Map<?,?>)choices.getFirst()).get("message")).get("content"));
- }
+
+    private static final Logger log = LoggerFactory.getLogger(OpenAiCompatibleProvider.class);
+
+    public String complete(String baseUrl, String apiKey, String model, String system, String prompt) {
+        long start = System.nanoTime();
+        try {
+            var response = RestClient.builder().baseUrl(baseUrl).defaultHeader("Authorization", "Bearer " + apiKey).build().post().uri("/v1/chat/completions").contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("model", model, "temperature", 0, "messages", List.of(Map.of("role", "system", "content", system), Map.of("role", "user", "content", prompt))))
+                    .retrieve().body(Map.class);
+            var choices = (List<?>) response.get("choices");
+            if (choices == null || choices.isEmpty()) {
+                log.error("LLM returned no choice baseUrl={} model={} in {}ms", baseUrl, model,
+                        TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
+                throw new IllegalStateException("LLM returned no choice");
+            }
+            var content = String.valueOf(((Map<?, ?>) ((Map<?, ?>) choices.getFirst()).get("message")).get("content"));
+            log.info("LLM completion ok baseUrl={} model={} promptLen={} replyLen={} in {}ms", baseUrl, model,
+                    prompt.length(), content.length(), TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
+            return content;
+        } catch (Exception e) {
+            log.error("LLM completion failed baseUrl={} model={} in {}ms: {}", baseUrl, model,
+                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), e.getMessage(), e);
+            throw e;
+        }
+    }
 }

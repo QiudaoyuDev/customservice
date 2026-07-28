@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logging configuration for the support API.
+
+  - Every line carries the correlation id (MDC "requestId") injected by RequestContextFilter /
+    AccessLogFilter so a single client request can be traced across controllers, services and
+    external dependency calls.
+  - Per-package levels keep runtime debugging verbose in dev while staying quiet in prod (override
+    via logging.level.* in the profile-specific yml).
+  - Secrets and user content are never logged by the application code; package levels below are set
+    to avoid Spring's client libraries echoing Authorization headers (kept at INFO/WARN).
+-->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p [requestId:%X{requestId:-}] [%t] %logger{36} - %msg%n"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Runtime debugging: verbose for our own business packages. -->
+    <logger name="com.hardwareai.support.conversation" level="DEBUG"/>
+    <logger name="com.hardwareai.support.identity" level="DEBUG"/>
+    <logger name="com.hardwareai.support.troubleshoot" level="DEBUG"/>
+    <logger name="com.hardwareai.support.knowledge" level="DEBUG"/>
+    <logger name="com.hardwareai.support.llm" level="DEBUG"/>
+    <logger name="com.hardwareai.support.qr" level="DEBUG"/>
+    <logger name="com.hardwareai.support.handoff" level="DEBUG"/>
+    <logger name="com.hardwareai.support.product" level="DEBUG"/>
+
+    <!-- Connection noise: keep external HTTP client quiet to avoid leaking headers/secrets. -->
+    <logger name="org.springframework.web.client" level="WARN"/>
+    <logger name="io.minio" level="INFO"/>
+    <logger name="com.zaxxer.hikari" level="INFO"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

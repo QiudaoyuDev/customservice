@@ -3,7 +3,11 @@ package com.hardwareai.support.qr;
 import com.hardwareai.support.common.CurrentUser;
 import com.hardwareai.support.product.ProductRepository;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +20,8 @@ import java.util.UUID;
 
 @RestController
 public class QrController {
+
+    private static final Logger log = LoggerFactory.getLogger(QrController.class);
 
     private final QrBindingRepository bindings;
     private final ProductRepository products;
@@ -31,31 +37,33 @@ public class QrController {
     @PreAuthorize("hasRole('ADMIN')")
     public Created create(@Valid @RequestBody Create r) {
         var p = products
-            .findByIdAndTenantId(r.productModelId(), current.tenantId())
-            .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+                .findByIdAndTenantId(r.productModelId(), current.tenantId())
+                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
         var token = UUID.randomUUID() + "." + UUID.randomUUID();
         var b = bindings.save(
-            new QrBinding(
-                current.tenantId(),
-                p.id(),
-                hash(token),
-                r.batch(),
-                r.serialNumber(),
-                r.expiresAt()
-            )
+                new QrBinding(
+                        current.tenantId(),
+                        p.id(),
+                        hash(token),
+                        r.batch(),
+                        r.serialNumber(),
+                        r.expiresAt()
+                )
         );
+        log.info("QR binding created id={} tenant={} product={}", b.id(), current.tenantId(), p.id());
         return new Created(b.id(), token);
     }
 
     @PostMapping("/public/qr/resolve")
     public PublicContext resolve(@Valid @RequestBody Resolve r) {
         var b = bindings
-            .findByTokenHash(hash(r.token()))
-            .filter(QrBinding::valid)
-            .orElseThrow(() -> new IllegalArgumentException("QR token is invalid or expired"));
+                .findByTokenHash(hash(r.token()))
+                .filter(QrBinding::valid)
+                .orElseThrow(() -> new IllegalArgumentException("QR token is invalid or expired"));
         var p = products
-            .findById(b.productModelId())
-            .orElseThrow(() -> new IllegalArgumentException("Product is unavailable"));
+                .findById(b.productModelId())
+                .orElseThrow(() -> new IllegalArgumentException("Product is unavailable"));
+        log.info("QR resolved binding={} product={} region={}", b.id(), p.id(), p.region());
         return new PublicContext(p.id(), p.displayName(), p.model(), p.region(), b.batch());
     }
 
@@ -69,13 +77,15 @@ public class QrController {
     @PreAuthorize("hasRole('ADMIN')")
     public void revoke(@PathVariable UUID id, @Valid @RequestBody Revoke request) {
         var binding = bindings.findByIdAndTenantId(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("QR binding not found"));
-        binding.revoke(request.reason()); bindings.save(binding);
+        binding.revoke(request.reason());
+        bindings.save(binding);
+        log.info("QR binding revoked id={} reasonLen={}", id, request.reason().length());
     }
 
     private static String hash(String s) {
         try {
             return HexFormat.of().formatHex(
-                MessageDigest.getInstance("SHA-256").digest(s.getBytes(StandardCharsets.UTF_8))
+                    MessageDigest.getInstance("SHA-256").digest(s.getBytes(StandardCharsets.UTF_8))
             );
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
@@ -83,10 +93,10 @@ public class QrController {
     }
 
     record Create(
-        @NotNull UUID productModelId,
-        @Size(max = 100) String batch,
-        @Size(max = 100) String serialNumber,
-        Instant expiresAt
+            @NotNull UUID productModelId,
+            @Size(max = 100) String batch,
+            @Size(max = 100) String serialNumber,
+            Instant expiresAt
     ) {
     }
 
@@ -95,17 +105,22 @@ public class QrController {
 
     record Resolve(@NotBlank String token) {
     }
-    record Revoke(@NotBlank @Size(max = 300) String reason) {}
+
+    record Revoke(@NotBlank @Size(max = 300) String reason) {
+    }
+
     record View(UUID id, UUID productModelId, String batch, String serialNumber, String status, Instant expiresAt) {
-        static View of(QrBinding binding) { return new View(binding.id(), binding.productModelId(), binding.batch(), binding.serialNumber(), binding.status().name(), binding.expiresAt()); }
+        static View of(QrBinding binding) {
+            return new View(binding.id(), binding.productModelId(), binding.batch(), binding.serialNumber(), binding.status().name(), binding.expiresAt());
+        }
     }
 
     record PublicContext(
-        UUID productModelId,
-        String displayName,
-        String model,
-        String region,
-        String batch
+            UUID productModelId,
+            String displayName,
+            String model,
+            String region,
+            String batch
     ) {
     }
 }

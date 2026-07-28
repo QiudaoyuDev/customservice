@@ -366,3 +366,101 @@ type FlowNode = {
 ## 13. 设计稿
 
 交互式高保真设计稿见 `prototype/ui-prototype.html`，本地静态服务预览，包含：终端支持页、管理后台总览、知识中心、诊断流程编辑器（可点选节点 + 模拟走查）、人工坐席工作台。
+
+---
+
+## 14. P1 实施规格：诊断流程后端 + 编辑器 + 运行时接入
+
+> 目标：复用已有 `TroubleshootStateMachine` / `TroubleshootTypes`，补齐实体、仓储、Controller 与 `answers()` 接入，并落地前端编辑器与对话步骤卡。
+
+### 14.1 后端新增文件（`repos/backend/.../troubleshoot/`）
+
+| 文件 | 内容 |
+|---|---|
+| `TroubleshootFlow.java` | JPA 实体：id, tenantId, title, `Intent triggerIntent`, productModelId, region, locale, firmwareMin, firmwareMax, `Status status`, owner, publishedAt。生命周期方法 `submit/approve(UUID)/publish(UUID)/deprecate/restore(UUID)`，状态 `DRAFT→REVIEW→APPROVED→PUBLISHED→DEPRECATED→ARCHIVED`（对齐 `KnowledgeRevision`）。 |
+| `TroubleshootNode.java` | JPA 实体：id, flowId, `nodeKey`（流程内唯一）, `NodeType nodeType`（复用枚举）, `Risk risk`（复用枚举）, prompt(text), expectedInput(`yes_no_unknown`/`free_text`/`code`), branchYes/branchNo/branchUnknown/branchNext(String), safetyStop(bool), `List<String> sourceRefs`(ElementCollection), orderIndex。 |
+| `TroubleshootRepositories.java` | `TroubleshootFlowRepository`、`TroubleshootNodeRepository`（含 `findAllByTenantIdOrderByCreatedAtDesc`、`findByIdAndTenantId`、`findPublishedMatch(tenant,product,region,locale,trigger,firmware)`、`findAllByFlowIdOrderByOrderIndexAsc`、`findByFlowIdAndNodeKey`、`deleteByFlowIdAndNodeKey`）。 |
+| `TroubleshootController.java` | `@RequestMapping("/api/flows")`，见 14.2。 |
+
+**`Conversation` 实体扩展**：新增 `currentFlowId UUID`、`currentNodeKey String`、`flowFailures int`（驱动对话内流程状态）。若 `spring.jpa.hibernate.ddl-auto=update` 则自动建表，否则需补迁移。
+
+### 14.2 Controller 端点（`/api/flows`，权限对齐知识模块）
+
+| 方法 | 路径 | 权限 | 说明 |
+|---|---|---|---|
+| POST | `/api/flows` | ADMIN | 新建流程（DRAFT），返回 `FlowView(id,status)` |
+| GET | `/api/flows` | ADMIN/REVIEWER | 租户内列表（含状态/适用范围） |
+| GET | `/api/flows/{id}` | ADMIN/REVIEWER | 流程 meta + 节点全量（编辑器加载） |
+| PUT | `/api/flows/{id}` | ADMIN | 改标题/触发意图/适用范围 |
+| POST | `/api/flows/{id}/nodes` | ADMIN | 新增节点（校验 nodeKey 唯一） |
+| PUT | `/api/flows/{id}/nodes/{nodeKey}` | ADMIN | 改节点（含分支/risk/safetyStop/sourceRefs） |
+| DELETE | `/api/flows/{id}/nodes/{nodeKey}` | ADMIN | 删节点并清理指向它的分支 |
+| POST | `/api/flows/{id}/submit` | ADMIN/REVIEWER | DRAFT→REVIEW |
+| POST | `/api/flows/{id}/approve` | ADMIN/REVIEWER | REVIEW→APPROVED |
+| POST | `/api/flows/{id}/publish` | ADMIN/REVIEWER | APPROVED→PUBLISHED（强制适用范围） |
+| POST | `/api/flows/{id}/deprecate` | ADMIN/REVIEWER | PUBLISHED→DEPRECATED |
+| POST | `/api/flows/{id}/restore` | ADMIN/REVIEWER | DEPRECATED→PUBLISHED（回滚） |
+| POST | `/api/flows/{id}/simulate` | ADMIN/REVIEWER | 模拟走查，返回 transcript + coverage |
+
+**`simulate` 契约**
+```json
+POST /api/flows/{id}/simulate   →
+{ "transcript":[ {"nodeKey","nodeType","prompt","expectedInput","risk","escalated"} … ],
+  "escalated": false,
+  "coverage": { "nodes":8, "visited":6, "unreachable":["image-request-01"] } }
+```
+实现：从首节点做分支图可达性遍历得 `coverage`；`transcript` 取一条代表路径（优先 yes/next）直到 END 或 escalation。
+
+### 14.3 运行时接入 `ConversationController.answers()`
+
+保持"意图路由优先于生成"；复用已有 `TroubleshootStateMachine.next(type,risk,reply,yes,no,unknown,failures)`。
+
+```
+intent = intents.classify(lastUserText)
+if SAFETY_RISK / HUMAN_REQUEST → 现有处理（HUMAN_REQUEST 仍走转人工）
+if intent in {TROUBLESHOOTING, ERROR_CODE}:
+    flow = flows.findPublishedMatch(tenant, productModelId, region, locale, intent)  // 取适用范围命中的已发布流程
+    if flow != null:
+        if conversation.currentNodeKey == null:
+            node = 首节点(flow)                       // 用户首条消息是问题描述，不解析为回复
+        else:
+            node = nodeByKey(flow, currentNodeKey)
+            reply = normalize(lastUserText, node)      // yes_no_unknown→YES/NO/UNKNOWN/REFUSE；free_text→已解决=YES(失败计数不增)/未解决=NO(失败+1)
+            t = stateMachine.next(node.nodeType, node.risk, reply, node.branchYes, node.branchNo, node.branchUnknown, conversation.flowFailures)
+            if t.escalated: 自动创建 HandoffRequest；conversation.currentNodeKey=null；返回 escalation 回答(含 handoffId)
+            else: next = nodeByKey(flow, t.nextNodeKey); conversation.currentNodeKey = next.key; conversation.flowFailures = (未解决?+1:0)
+        return Answer(intent=TROUBLESHOOTING, content=node.prompt, citationChunkIds=node.sourceRefs,
+                      expectedInput=node.expectedInput, risk=node.risk.name(),
+                      flowControl={flowId, nodeKey, nodeType, path, totalSteps, end=(END), escalated=false})
+    else: 退回 RAG（证据不足按现有逻辑转人工）
+else: RAG（带引用）
+```
+说明：OPERATION 节点的 branchYes/branchNo 均设为 `branchNext`；"未解决"使 `flowFailures+1`，`stateMachine` 在 `failures>=2` 或 `risk==HIGH` 或 `REFUSE` 时返回 escalation。固件区间匹配为可选（上下文无固件时跳过）。
+
+### 14.4 前端新增/修改
+
+**新增 `src/console/FlowsPage.tsx`（诊断流程编辑器）**
+- 左：流程列表（GET /api/flows）；中：自动布局画布（节点来自 GET /api/flows/{id}，按分支图分层定位，SVG 连线 branchYes=绿/branchNo=红/branchUnknown=橙/next=灰）；右：Inspector（nodeType/prompt/risk/safetyStop/分支下拉(同流程节点)/sourceRefs）。
+- 操作：新建流程、新建节点(POST)、保存节点(PUT)、删除(DELETE)、生命周期按钮（送审/批准/发布/下架/回滚）、**模拟会话**（POST simulate → 步骤走查弹窗 + unreachable 告警）。
+- 自动布局基于分支图，无需后端存坐标（手动拖拽为本地增强，不在 P1）。
+
+**修改 `src/pages/SupportPage.tsx`**
+- `Answer` 类型扩展 `expectedInput?`、`risk?`、`flowControl?`。
+- 当回答含 `flowControl` 且非 escalation → 渲染 `StepCard`（步骤号 + prompt + 按 expectedInput 渲染按钮：yes/no/unknown 或 已解决/未解决，或自由文本输入），按钮点击即发送该回复触发下一步。
+- 右侧进度侧栏 `FlowProgress`：依据 `flowControl.path` 渲染已访问节点链（当前高亮、安全节点红点）。
+- escalation（flowControl.escalated 或 intent=HUMAN_ESCALATION）→ 复用现有安全停机红条 + 转人工（交接包已自动创建）。
+
+**修改 `src/lib/types.ts` / `api.ts`**：补充 `FlowView`、`NodeView`、`SimulateResponse` 类型与 `/api/flows` 调用封装。
+
+### 14.5 实施顺序（建议）
+1. 后端实体 + 仓储 + Controller（CRUD/生命周期/simulate），`Conversation` 扩展字段。
+2. `answers()` 运行时接入（意图分流 + 状态机 + 自动转人工 + flowControl 返回）。
+3. 前端 `FlowsPage` 编辑器（含模拟）。
+4. 前端 `SupportPage` 步骤卡 + 进度侧栏。
+5. 类型检查 + 构建 + 联调（后端需跑起来；用已有二维码令牌进入 `/support/:token` 走通"提问→步骤→解决/转人工"）。
+
+### 14.6 验收
+- 专家可在编辑器新建/编辑/模拟/发布流程；simulate 报告未覆盖节点。
+- 终端用户扫码后进入故障流程，AI 一次只问一个关键步骤；连续两次未解决或安全风险自动转人工并附交接包。
+- 模型不能跳过安全节点或篡改分支（跳转由后端状态机决定）。
+- 流程下架后新会话不再使用该版本。

@@ -1,5 +1,45 @@
-CREATE TABLE operational_events (id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES tenants(id), conversation_id uuid REFERENCES conversations(id), event_type varchar(64) NOT NULL, attributes jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now());
-CREATE TABLE evaluation_cases (id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES tenants(id), name varchar(200) NOT NULL, question text NOT NULL, expected_outcome varchar(64) NOT NULL, expected_citations integer NOT NULL DEFAULT 0, model_scope varchar(120), region varchar(16), language varchar(16), risk_level varchar(32), active boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now());
-CREATE TABLE evaluation_runs (id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES tenants(id), label varchar(200) NOT NULL, knowledge_version varchar(120), model_version varchar(120), retrieval_version varchar(120), created_at timestamptz NOT NULL DEFAULT now());
-CREATE TABLE evaluation_results (id uuid PRIMARY KEY, evaluation_run_id uuid NOT NULL REFERENCES evaluation_runs(id), evaluation_case_id uuid NOT NULL REFERENCES evaluation_cases(id), outcome varchar(64) NOT NULL, score numeric(6,3), details jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now());
-CREATE INDEX idx_operational_events_tenant_type ON operational_events(tenant_id,event_type,created_at);
+CREATE TABLE operational_events
+(
+    id              uuid PRIMARY KEY,
+    tenant_id       uuid        NOT NULL REFERENCES tenants (id),
+    conversation_id uuid REFERENCES conversations (id),
+    event_type      varchar(64) NOT NULL,
+    attributes      jsonb       NOT NULL DEFAULT '{}'::jsonb,
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE evaluation_cases
+(
+    id                 uuid PRIMARY KEY,
+    tenant_id          uuid         NOT NULL REFERENCES tenants (id),
+    name               varchar(200) NOT NULL,
+    question           text         NOT NULL,
+    expected_outcome   varchar(64)  NOT NULL,
+    expected_citations integer      NOT NULL DEFAULT 0,
+    model_scope        varchar(120),
+    region             varchar(16),
+    language           varchar(16),
+    risk_level         varchar(32),
+    active             boolean      NOT NULL DEFAULT true,
+    created_at         timestamptz  NOT NULL DEFAULT now()
+);
+CREATE TABLE evaluation_runs
+(
+    id                uuid PRIMARY KEY,
+    tenant_id         uuid         NOT NULL REFERENCES tenants (id),
+    label             varchar(200) NOT NULL,
+    knowledge_version varchar(120),
+    model_version     varchar(120),
+    retrieval_version varchar(120),
+    created_at        timestamptz  NOT NULL DEFAULT now()
+);
+CREATE TABLE evaluation_results
+(
+    id                 uuid PRIMARY KEY,
+    evaluation_run_id  uuid        NOT NULL REFERENCES evaluation_runs (id),
+    evaluation_case_id uuid        NOT NULL REFERENCES evaluation_cases (id),
+    outcome            varchar(64) NOT NULL,
+    score              numeric(6, 3),
+    details            jsonb       NOT NULL DEFAULT '{}'::jsonb,
+    created_at         timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_operational_events_tenant_type ON operational_events (tenant_id, event_type, created_at);

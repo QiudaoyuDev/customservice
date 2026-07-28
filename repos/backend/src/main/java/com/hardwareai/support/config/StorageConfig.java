@@ -12,8 +12,8 @@ public class StorageConfig {
     @Bean
     MinioClient minioClient(AppProperties p) {
         return MinioClient.builder()
-            .endpoint(p.storage().endpoint())
-            .credentials(p.storage().accessKey(), p.storage().secretKey())
-            .build();
+                .endpoint(p.storage().endpoint())
+                .credentials(p.storage().accessKey(), p.storage().secretKey())
+                .build();
     }
 }
