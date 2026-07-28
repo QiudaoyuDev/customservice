@@ -1,0 +1,1 @@
+package com.hardwareai.support.qr; import java.util.*; import org.springframework.data.jpa.repository.JpaRepository; interface QrBindingRepository extends JpaRepository<QrBinding,UUID>{Optional<QrBinding> findByTokenHash(String hash);}

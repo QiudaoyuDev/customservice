@@ -1,0 +1,1 @@
+package com.hardwareai.support.product; import java.util.*; import org.springframework.data.jpa.repository.JpaRepository; public interface ProductRepository extends JpaRepository<ProductModel,UUID>{List<ProductModel> findAllByTenantIdOrderByCreatedAtDesc(UUID tenantId); Optional<ProductModel> findByIdAndTenantId(UUID id,UUID tenantId);}

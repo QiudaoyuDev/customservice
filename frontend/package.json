@@ -1,0 +1,1 @@
+{"name":"hardware-ai-support-console","version":"0.1.0","private":true,"type":"module","scripts":{"dev":"vite","build":"tsc -b && vite build"},"dependencies":{"react":"latest","react-dom":"latest"},"devDependencies":{"@types/react":"latest","@types/react-dom":"latest","typescript":"latest","vite":"latest"}}

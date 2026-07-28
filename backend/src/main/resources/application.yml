@@ -1,0 +1,23 @@
+spring:
+  application.name: hardware-ai-support-api
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://127.0.0.1:5432/hardware_ai_support}
+    username: ${DATABASE_USERNAME:hardware_ai_app}
+    password: ${DATABASE_PASSWORD:CHANGE_ME_POSTGRES_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate.ddl-auto: validate
+  servlet.multipart.max-file-size: 20MB
+  servlet.multipart.max-request-size: 20MB
+app:
+  security.jwt-secret: ${JWT_SECRET:CHANGE_ME_USE_A_32_BYTE_SECRET_AT_MINIMUM}
+  storage.endpoint: ${MINIO_ENDPOINT:http://127.0.0.1:9000}
+  storage.access-key: ${MINIO_ACCESS_KEY:hardware-ai-minio}
+  storage.secret-key: ${MINIO_SECRET_KEY:CHANGE_ME_MINIO_PASSWORD}
+  storage.bucket: ${MINIO_BUCKET:support-assets}
+  qr.secret: ${QR_TOKEN_SECRET:CHANGE_ME_QR_SECRET}
+  bootstrap:
+    admin-email: ${BOOTSTRAP_ADMIN_EMAIL:admin@example.local}
+    admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:CHANGE_ME_BEFORE_USE}
+    tenant-name: ${BOOTSTRAP_TENANT_NAME:Demo tenant}
+server.error.include-message: never

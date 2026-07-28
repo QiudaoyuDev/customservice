@@ -32,4 +32,6 @@
 
 ## 当前状态
 
-本仓库已包含本地基础设施部署基线：PostgreSQL、MinIO、Qdrant、本地 OCR 与本地 Embedding/Rerank 服务均通过 Docker Compose 管理。业务应用、知识索引任务和人工渠道集成将在下一阶段实现。
+本仓库已包含本地基础设施部署基线：PostgreSQL、MinIO、Qdrant、本地 OCR 与本地 Embedding/Rerank 服务均通过 Docker Compose 管理。
+
+初版业务代码位于 `backend/`（Java/Spring Boot）与 `frontend/`（React/TypeScript）。本轮的范围与决策记录见 [初版开发记录](./docs/2026-07-28-initial-development-plan.md)。在配置 JDK 21、Maven 3.9+、Node.js 和 `infra/.env` 后，可分别在两个目录执行构建；正式运行前必须设置 `BOOTSTRAP_ADMIN_PASSWORD`、`JWT_SECRET` 和各存储密码。
