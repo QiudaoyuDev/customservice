@@ -9,3 +9,4 @@ repos/frontend/dist/
 repos/frontend/*.tsbuildinfo
 repos/backend/target/
 docs/tmp
+/repos/node_modules/
