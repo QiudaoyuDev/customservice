@@ -110,6 +110,39 @@ services:
       start_period: 120s
     networks: [backend]
 
+  api:
+    build:
+      context: ../repos/backend
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      DATABASE_USERNAME: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET_ASSETS}
+      OCR_URL: http://ocr:8080
+      EMBEDDING_URL: http://embedding:8080
+      RERANK_URL: http://embedding:8080
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_API_KEY: ${QDRANT_API_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      QR_TOKEN_SECRET: ${QR_TOKEN_SECRET}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD}
+    ports: ["${INFRA_BIND_ADDRESS}:8080:8080"]
+    depends_on: [postgres, minio-init, qdrant, ocr, embedding]
+    networks: [backend]
+
+  web:
+    build:
+      context: ../repos/frontend
+    restart: unless-stopped
+    ports: ["${INFRA_BIND_ADDRESS}:8088:80"]
+    depends_on: [api]
+    networks: [backend]
+
 networks:
   backend:
     driver: bridge
