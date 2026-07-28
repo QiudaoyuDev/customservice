@@ -150,3 +150,42 @@ article h2 {
     padding: 34px 24px;
   }
 }
+.login {
+  grid-template-columns: 1fr;
+  place-items: center;
+}
+.login form {
+  width: min(360px, 100%);
+  background: #f5f4ec;
+  border: 1px solid #a9aea3;
+  box-shadow: 6px 6px 0 #ccd0c4;
+  padding: 34px;
+  display: grid;
+  gap: 14px;
+}
+.login h1 {
+  font: 700 30px/1 Fraunces, serif;
+  margin: 0;
+}
+.login label {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: #657067;
+}
+.login input {
+  font: inherit;
+  padding: 12px;
+  border: 1px solid #a9aea3;
+  background: #fff;
+}
+.login .error {
+  color: #c0392b;
+  font-size: 12px;
+  min-height: 16px;
+}
+.logout {
+  margin-top: auto;
+  align-self: flex-start;
+  border-color: #56655a;
+  color: #acb5aa;
+}

@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>海外硬件 AI 智能客服平台 · 交互设计稿</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --brand:#0F4C5C; --brand-soft:#E6F0F2; --ai:#1FB6A6; --human:#E8833A;
+  --ink:#0F172A; --ink-2:#475569; --line:#E2E8F0; --bg:#F8FAFC;
+  --ok:#16A34A; --warn:#D97706; --danger:#DC2626; --info:#2563EB;
+  --r:12px; --sh:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.06);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,'PingFang SC','Microsoft YaHei',sans-serif;color:var(--ink);background:var(--bg);font-size:14px;line-height:1.5}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+/* topbar */
+.topbar{display:flex;align-items:center;gap:22px;padding:0 22px;height:58px;background:#0B3A45;color:#fff;position:sticky;top:0;z-index:50}
+.topbar .logo{font-weight:700;letter-spacing:.04em;display:flex;align-items:center;gap:10px}
+.topbar .logo .dot{width:10px;height:10px;border-radius:3px;background:var(--ai)}
+.topbar nav{display:flex;gap:4px;margin-left:10px}
+.topbar nav button{color:#9FB6BC;padding:8px 14px;border-radius:8px;font-weight:500;font-size:13px}
+.topbar nav button.active,.topbar nav button:hover{color:#fff;background:rgba(255,255,255,.10)}
+.topbar .who{margin-left:auto;font-size:12px;color:#9FB6BC}
+.screen{display:none;padding:26px;max-width:1280px;margin:0 auto;animation:fade .25s ease}
+.screen.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* generic */
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh)}
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px}
+.tag.ok{background:#DCFCE7;color:var(--ok)} .tag.warn{background:#FEF3C7;color:var(--warn)}
+.tag.danger{background:#FEE2E2;color:var(--danger)} .tag.info{background:#DBEAFE;color:var(--info)}
+.tag.ai{background:#D7F5F1;color:#0E7C70} .tag.human{background:#FDEBDD;color:#B25E1E}
+.tag.mute{background:#EEF2F5;color:var(--ink-2)}
+.btn{padding:10px 16px;border-radius:9px;font-weight:600;font-size:13px;border:1px solid var(--line);background:#fff;color:var(--ink)}
+.btn:hover{border-color:#cbd5e1}
+.btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn.primary:hover{background:#0c3d49}
+.btn.ai{background:var(--ai);color:#fff;border-color:var(--ai)}
+.btn.danger{background:var(--danger);color:#fff;border-color:var(--danger)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:6px 11px;font-size:12px}
+h1,h2,h3{margin:0;font-weight:700}
+.section-title{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--ink-2);text-transform:uppercase;margin-bottom:12px}
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--sh)}
+.kpi .v{font-size:24px;font-weight:700;margin-top:6px}
+.kpi .l{font-size:12px;color:var(--ink-2)}
+.kpi .d{font-size:11px;margin-top:4px}
+.up{color:var(--ok)} .down{color:var(--danger)}
+.row{display:flex;gap:18px}
+.col{flex:1;min-width:0}
+
+/* ===== SUPPORT ===== */
+.support-wrap{display:grid;grid-template-columns:1fr 300px;gap:18px;max-width:1100px;margin:0 auto}
+.device-banner{display:flex;gap:14px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh)}
+.device-banner .pic{width:54px;height:54px;border-radius:10px;background:linear-gradient(135deg,#0F4C5C,#1FB6A6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px}
+.device-banner .meta{display:flex;flex-direction:column;gap:2px}
+.device-banner .meta b{font-size:15px}
+.device-banner .meta span{font-size:12px;color:var(--ink-2)}
+.lang{margin-left:auto;font-size:12px;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+.chat{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);display:flex;flex-direction:column;height:560px}
+.chat .head{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;font-weight:600}
+.chat .body{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:14px;background:#FBFCFD}
+.bubble{max-width:82%;padding:11px 14px;border-radius:14px;font-size:14px}
+.bubble.user{align-self:flex-end;background:var(--brand);color:#fff;border-bottom-right-radius:4px}
+.bubble.ai{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px}
+.bubble.ai .who{font-size:11px;color:var(--ai);font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:5px}
+.cite{margin-top:8px;border-top:1px dashed var(--line);padding-top:8px;font-size:12px;color:var(--ink-2)}
+.cite a{color:var(--info);text-decoration:none;font-weight:600}
+.step{margin-top:8px;border:1px solid #cdeee9;background:#F2FBFA;border-radius:10px;padding:11px}
+.step .n{font-size:11px;font-weight:700;color:#0E7C70;letter-spacing:.05em}
+.step .act{margin:6px 0;font-weight:600}
+.step .exp{font-size:12px;color:var(--ink-2)}
+.step .btns{display:flex;gap:8px;margin-top:9px}
+.step .btns button{flex:1;padding:8px;border-radius:8px;border:1px solid #b9e2dc;background:#fff;font-weight:600;font-size:12px}
+.step .btns button:hover{background:#e6f7f4}
+.safety{background:#FEE2E2;border:1px solid #f3b4b4;color:#991b1b;border-radius:12px;padding:14px;display:flex;gap:10px;align-items:flex-start}
+.safety b{display:block;margin-bottom:3px}
+.chat .input{padding:12px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.chat .input .quick{display:flex;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--ink-2)}
+.chat .input .quick button{border:1px solid var(--line);border-radius:999px;padding:5px 11px;background:#fff;color:var(--ink-2)}
+.chat .input .bar{display:flex;gap:8px;align-items:center}
+.chat .input textarea{flex:1;resize:none;height:42px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px}
+.privacy{font-size:11px;color:var(--ink-2)}
+/* progress rail */
+.rail{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:16px}
+.node-mini{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px dashed var(--line)}
+.node-mini:last-child{border-bottom:none}
+.node-mini .led{width:10px;height:10px;border-radius:50%;margin-top:4px;flex:none;background:var(--line)}
+.node-mini.done .led{background:var(--ok)}
+.node-mini.cur .led{background:var(--ai);box-shadow:0 0 0 4px #d7f5f1}
+.node-mini.risk .led{background:var(--danger)}
+.node-mini .t{font-size:13px;font-weight:600}
+.node-mini .s{font-size:11px;color:var(--ink-2)}
+
+/* ===== CONSOLE ===== */
+.dash-grid{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-top:18px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:18px}
+.chart{width:100%;height:160px}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--ink-2);margin-top:10px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:5px}
+.list-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed var(--line);font-size:13px}
+.list-row:last-child{border-bottom:none}
+.list-row .x{flex:1;min-width:0}
+.bar-track{height:7px;background:#EEF2F5;border-radius:999px;overflow:hidden;margin-top:5px}
+.bar-fill{height:100%;background:var(--brand);border-radius:999px}
+
+/* ===== KNOWLEDGE ===== */
+.knav{display:flex;gap:6px;margin-bottom:16px}
+.knav button{padding:8px 14px;border-radius:9px;border:1px solid var(--line);background:#fff;font-weight:600;font-size:13px;color:var(--ink-2)}
+.knav button.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.doc-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r);background:#fff;margin-bottom:12px;box-shadow:var(--sh)}
+.doc-row .x{flex:1}
+.flowbar{display:flex;align-items:center;gap:0;margin-top:8px}
+.fb-step{font-size:10px;font-weight:700;padding:3px 7px;border-radius:6px;background:#EEF2F5;color:var(--ink-2)}
+.fb-step.on{background:var(--ai);color:#fff}
+.fb-step.done{background:var(--ok);color:#fff}
+.fb-line{width:14px;height:2px;background:var(--line)}
+
+/* ===== FLOW EDITOR ===== */
+.flow-wrap{display:grid;grid-template-columns:200px 1fr 300px;gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh);background:#fff;height:620px}
+.flow-list{border-right:1px solid var(--line);padding:14px;background:#FBFCFD;overflow:auto}
+.flow-list .fi{padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:#fff;margin-bottom:10px;cursor:pointer}
+.flow-list .fi.active{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.flow-list .fi b{font-size:13px}
+.flow-list .fi span{font-size:11px;color:var(--ink-2);display:block;margin-top:2px}
+.canvas{position:relative;overflow:auto;background:
+  radial-gradient(circle, #E7EDF1 1px, transparent 1px) 0 0/22px 22px;padding:0}
+.canvas svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.fnode{position:absolute;width:172px;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:9px 11px;box-shadow:var(--sh);cursor:pointer;font-size:12px}
+.fnode:hover{border-color:#94a3b8}
+.fnode.sel{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.fnode .nt{font-weight:700;font-size:11px;display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.fnode .nk{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-2)}
+.fnode.risk{border-color:var(--danger)} .fnode.risk .nt{color:var(--danger)}
+.fnode.human{border-color:var(--human)} .fnode.human .nt{color:var(--human)}
+.fnode.end{border-style:dashed}
+.inspector{border-left:1px solid var(--line);padding:16px;overflow:auto;background:#FBFCFD}
+.inspector label{font-size:11px;font-weight:700;color:var(--ink-2);display:block;margin:12px 0 5px;letter-spacing:.04em}
+.inspector input,.inspector textarea,.inspector select{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px;background:#fff}
+.inspector textarea{resize:vertical;min-height:62px}
+.toolbar{display:flex;gap:10px;margin-bottom:14px;align-items:center}
+.toolbar .sp{margin-left:auto}
+
+/* ===== AGENT ===== */
+.agent-wrap{display:grid;grid-template-columns:260px 1fr 300px;gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh);background:#fff;height:640px}
+.qlist{border-right:1px solid var(--line);overflow:auto}
+.qitem{padding:13px 15px;border-bottom:1px solid var(--line);cursor:pointer}
+.qitem.active{background:var(--brand-soft)}
+.qitem .t{font-weight:600;font-size:13px;display:flex;justify-content:space-between}
+.qitem .s{font-size:11px;color:var(--ink-2);margin-top:3px}
+.conv{padding:16px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.handoff-box{background:#FFF7ED;border:1px solid #FCD9B6;border-radius:10px;padding:12px;font-size:12px;margin-bottom:6px}
+.handoff-box h4{margin:0 0 6px;font-size:13px;color:#B25E1E}
+.copilot{border-left:1px solid var(--line);background:#FBFCFD;padding:16px;overflow:auto}
+.copilot .sug{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px;font-size:12px;margin-bottom:10px}
+.copilot .sug button{margin-top:8px}
+
+/* modal */
+.mask{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.mask.show{display:flex}
+.modal{background:#fff;border-radius:16px;max-width:560px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}
+.modal .mh{padding:16px 20px;border-bottom:1px solid var(--line);font-weight:700;display:flex;align-items:center;justify-content:space-between}
+.modal .mb{padding:20px}
+.modal .mf{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end}
+.close{font-size:20px;color:var(--ink-2);cursor:pointer;line-height:1}
+.sim-step{background:#F2FBFA;border:1px solid #cdeee9;border-radius:10px;padding:12px;margin-bottom:10px}
+.sim-step .n{font-size:11px;font-weight:700;color:#0E7C70}
+.sim-step .p{font-weight:600;margin:5px 0}
+.sim-btns{display:flex;gap:8px;margin-top:8px}
+.sim-btns button{flex:1;padding:9px;border-radius:8px;border:1px solid var(--line);background:#fff;font-weight:600}
+.sim-btns button:hover{background:#eef2f5}
+.note{font-size:12px;color:var(--ink-2);margin-top:8px;background:#F1F5F9;padding:9px 11px;border-radius:8px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo"><span class="dot"></span> HARDWARE AI · Support</div>
+  <nav id="tabs">
+    <button data-s="support" class="active">终端支持页</button>
+    <button data-s="console">管理后台</button>
+    <button data-s="knowledge">知识中心</button>
+    <button data-s="flow">诊断流程编辑器</button>
+    <button data-s="agent">人工坐席工作台</button>
+  </nav>
+  <div class="who">厂商管理员 · Acme Box EU</div>
+</div>
+
+<!-- ============ SUPPORT ============ -->
+<section class="screen active" id="support">
+  <div class="support-wrap">
+    <div>
+      <div class="device-banner">
+        <div class="pic">▣</div>
+        <div class="meta">
+          <b>X100 Android TV Box</b>
+          <span>地区 EU · 固件 2.1.0 · 硬件 rev.B</span>
+        </div>
+        <div class="lang">🌐
+          <select style="border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-family:inherit">
+            <option>English</option><option>简体中文</option><option>Deutsch</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="chat" style="margin-top:14px">
+        <div class="head"><span class="tag ai">AI</span> 设备支持 · 会话 #a1f3</div>
+        <div class="body">
+          <div class="bubble user">Wi‑Fi 连不上，搜得到别的网络但连不上。</div>
+          <div class="bubble ai">
+            <div class="who">● AI 诊断</div>
+            我先确认一个关键问题，请一步步来。
+            <div class="step">
+              <div class="n">步骤 1 / 4 · 决策</div>
+              <div class="act">设备能搜索到其它 Wi‑Fi 网络吗？</div>
+              <div class="exp">预期：能看到邻居网络列表。</div>
+              <div class="btns"><button>是</button><button>否</button><button>不清楚</button></div>
+            </div>
+            <div class="cite">来源：<a>MANUAL-X100 §3.2 网络</a> · 知识版本 v3</div>
+          </div>
+
+          <div class="bubble user">能搜到，但点连接没反应。</div>
+          <div class="bubble ai">
+            <div class="who">● AI 诊断</div>
+            <div class="step">
+              <div class="n">步骤 2 / 4 · 操作</div>
+              <div class="act">请重启路由器与机顶盒，等待 30 秒再试。</div>
+              <div class="exp">预期：指示灯由红转绿，可正常获取 IP。</div>
+              <div class="btns"><button>已解决</button><button>未解决</button></div>
+            </div>
+            <div class="cite">来源：<a>KB-102 网络排查</a> · 知识版本 v3</div>
+          </div>
+
+          <div class="safety">
+            <div style="font-size:20px">⚠️</div>
+            <div><b>安全停机：请立即停止操作</b>
+            你提到设备有烧焦气味 / 电源接口损坏。请勿自行拆机或通电，立即联系人工客服处理。
+            <div style="margin-top:8px"><button class="btn danger sm" onclick="openHandoff()">转人工支持</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="input">
+          <div class="quick">
+            <span>快捷：</span>
+            <button>⌨ 输入错误码</button>
+            <button>📷 上传图片</button>
+            <button>🛠 更换产品</button>
+            <button class="tag human" style="cursor:pointer" onclick="openHandoff()">转人工</button>
+          </div>
+          <div class="bar">
+            <textarea placeholder="描述问题，或粘贴错误码（如 E102）…"></textarea>
+            <button class="btn primary">发送</button>
+          </div>
+          <div class="privacy">🔒 图片仅用于识别错误码/接口/标签，请勿上传身份证、银行卡等无关信息。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rail">
+      <div class="section-title">诊断进度</div>
+      <div class="node-mini done"><div class="led"></div><div><div class="t">wifi-check-01</div><div class="s">能搜到网络？· 已完成</div></div></div>
+      <div class="node-mini cur"><div class="led"></div><div><div class="t">wifi-check-02</div><div class="s">重启路由器 · 进行中</div></div></div>
+      <div class="node-mini"><div class="led"></div><div><div class="t">network-reset-01</div><div class="s">重置网络设置</div></div></div>
+      <div class="node-mini risk"><div class="led"></div><div><div class="t">safety-stop</div><div class="s">发热/烧焦 → 停机</div></div></div>
+      <div class="node-mini"><div class="led"></div><div><div class="t">END</div><div class="s">确认恢复</div></div></div>
+      <div class="note">流程由售后专家审核发布，AI 不能跳过安全节点或自行改步骤。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONSOLE ============ -->
+<section class="screen" id="console">
+  <h1>运营总览</h1>
+  <div class="kpi-grid" style="margin-top:16px">
+    <div class="kpi"><div class="l">今日扫码</div><div class="v">1,284</div><div class="d up">▲ 8.2%</div></div>
+    <div class="kpi"><div class="l">会话数</div><div class="v">642</div><div class="d up">▲ 5.1%</div></div>
+    <div class="kpi"><div class="l">自主解决率</div><div class="v">71%</div><div class="d up">▲ 3.4%</div></div>
+    <div class="kpi"><div class="l">转人工</div><div class="v">128</div><div class="d down">▲ 2.0%</div></div>
+    <div class="kpi"><div class="l">待审核知识</div><div class="v">9</div><div class="d">—</div></div>
+    <div class="kpi"><div class="l">风险拦截</div><div class="v">17</div><div class="d up">▲ 1.1%</div></div>
+  </div>
+
+  <div class="dash-grid">
+    <div class="panel">
+      <div class="section-title">会话趋势（近 14 天）</div>
+      <svg class="chart" viewBox="0 0 600 160" preserveAspectRatio="none">
+        <polyline fill="none" stroke="#1FB6A6" stroke-width="2.5"
+          points="0,120 50,110 100,118 150,90 200,96 250,70 300,80 350,60 400,66 450,48 500,54 550,38 600,44"/>
+        <polyline fill="none" stroke="#E8833A" stroke-width="2.5" stroke-dasharray="5 4"
+          points="0,140 50,138 100,132 150,128 200,122 250,118 300,112 350,108 400,104 450,98 500,94 550,90 600,86"/>
+      </svg>
+      <div class="legend"><span><i style="background:#1FB6A6"></i>自主解决</span><span><i style="background:#E8833A"></i>转人工</span></div>
+    </div>
+    <div class="panel">
+      <div class="section-title">意图分布</div>
+      <div class="list-row"><div class="x">故障排查 <div class="bar-track"><div class="bar-fill" style="width:42%"></div></div></div><span class="mono">42%</span></div>
+      <div class="list-row"><div class="x">产品咨询 <div class="bar-track"><div class="bar-fill" style="width:24%"></div></div></div><span class="mono">24%</span></div>
+      <div class="list-row"><div class="x">错误码 <div class="bar-track"><div class="bar-fill" style="width:16%"></div></div></div><span class="mono">16%</span></div>
+      <div class="list-row"><div class="x">保修/退换 <div class="bar-track"><div class="bar-fill" style="width:11%"></div></div></div><span class="mono">11%</span></div>
+      <div class="list-row"><div class="x">其它 <div class="bar-track"><div class="bar-fill" style="width:7%"></div></div></div><span class="mono">7%</span></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:18px">
+    <div class="section-title">未解决 Top 问题</div>
+    <div class="list-row"><div class="x">X100 蓝牙遥控器偶发失灵 <div class="bar-track"><div class="bar-fill" style="width:68%;background:var(--warn)"></div></div></div><span class="tag warn">23 次</span></div>
+    <div class="list-row"><div class="x">EU 版 HDMI 无信号 <div class="bar-track"><div class="bar-fill" style="width:54%;background:var(--warn)"></div></div></div><span class="tag warn">18 次</span></div>
+    <div class="list-row"><div class="x">固件 2.0 升级后卡开机 <div class="bar-track"><div class="bar-fill" style="width:40%;background:var(--warn)"></div></div></div><span class="tag warn">13 次</span></div>
+  </div>
+</section>
+
+<!-- ============ KNOWLEDGE ============ -->
+<section class="screen" id="knowledge">
+  <h1>知识中心</h1>
+  <div class="knav">
+    <button class="active">文档</button><button>FAQ</button><button>诊断流程</button>
+  </div>
+  <div class="doc-row">
+    <div class="x"><b>X100 用户手册</b> <span class="tag mute">en-US</span> <span class="tag mute">EU</span>
+      <div class="flowbar">
+        <span class="fb-step done">DRAFT</span><span class="fb-line"></span>
+        <span class="fb-step done">REVIEW</span><span class="fb-line"></span>
+        <span class="fb-step done">APPROVED</span><span class="fb-line"></span>
+        <span class="fb-step on">PUBLISHED</span>
+      </div>
+    </div>
+    <button class="btn sm">预览</button><button class="btn sm danger">下架</button>
+  </div>
+  <div class="doc-row">
+    <div class="x"><b>错误码表 E1xx</b> <span class="tag mute">en-US</span> <span class="tag mute">EU</span>
+      <div class="flowbar">
+        <span class="fb-step done">DRAFT</span><span class="fb-line"></span>
+        <span class="fb-step on">REVIEW</span><span class="fb-line"></span>
+        <span class="fb-step">APPROVED</span><span class="fb-line"></span>
+        <span class="fb-step">PUBLISHED</span>
+      </div>
+    </div>
+    <button class="btn sm">预览</button><button class="btn sm primary">批准</button>
+  </div>
+  <div class="doc-row">
+    <div class="x"><b>遥控器维修记录</b> <span class="tag mute">en-US</span> <span class="tag mute">Global</span>
+      <div class="flowbar">
+        <span class="fb-step on">DRAFT</span><span class="fb-line"></span>
+        <span class="fb-step">REVIEW</span><span class="fb-line"></span>
+        <span class="fb-step">APPROVED</span><span class="fb-line"></span>
+        <span class="fb-step">PUBLISHED</span>
+      </div>
+    </div>
+    <button class="btn sm">预览</button><button class="btn sm">送审</button>
+  </div>
+  <div class="note">知识生命周期：DRAFT → REVIEW → APPROVED → PUBLISHED → DEPRECATED → ARCHIVED。发布需填写适用范围（型号/地区/语言/版本），未标注范围的内容不进入面向用户的检索。</div>
+</section>
+
+<!-- ============ FLOW EDITOR ============ -->
+<section class="screen" id="flow">
+  <h1>诊断流程编辑器</h1>
+  <div class="toolbar">
+    <button class="btn sm">+ 新建流程</button>
+    <button class="btn sm ai" onclick="openSimulate()">▶ 模拟会话</button>
+    <button class="btn sm primary">发布</button>
+    <div class="sp"></div>
+    <span class="tag ai">触发：TROUBLESHOOTING</span>
+    <span class="tag mute">X100 · EU · 固件≥2.1</span>
+  </div>
+  <div class="flow-wrap">
+    <div class="flow-list">
+      <div class="fi active"><b>Wi‑Fi 无法连接</b><span>X100 · EU · 8 节点</span></div>
+      <div class="fi"><b>无信号 (HDMI)</b><span>X100 · Global · 6 节点</span></div>
+      <div class="fi"><b>遥控器失灵</b><span>X100 · EU · 5 节点</span></div>
+      <div class="fi"><b>错误码 E102</b><span>全系列 · 4 节点</span></div>
+    </div>
+    <div class="canvas" id="canvas">
+      <svg id="edges"></svg>
+      <div class="fnode" data-key="wifi-check-01" style="left:24px;top:30px"><div class="nt">❓ 决策</div><div class="nk">wifi-check-01</div></div>
+      <div class="fnode" data-key="wifi-check-02" style="left:250px;top:30px"><div class="nt">🛠 操作</div><div class="nk">wifi-check-02</div></div>
+      <div class="fnode" data-key="network-reset-01" style="left:250px;top:190px"><div class="nt">🛠 操作</div><div class="nk">network-reset-01</div></div>
+      <div class="fnode human" data-key="image-request-01" style="left:476px;top:190px"><div class="nt">🧑 人工</div><div class="nk">image-request-01</div></div>
+      <div class="fnode end" data-key="END" style="left:476px;top:30px"><div class="nt">✓ 结束</div><div class="nk">END</div></div>
+    </div>
+    <div class="inspector">
+      <div class="section-title">节点属性</div>
+      <label>节点 Key</label><input value="wifi-check-01" />
+      <label>类型</label>
+      <select><option>QUESTION 决策</option><option>OPERATION 操作</option><option>DECISION 判断</option><option>HUMAN_ESCALATION</option><option>END</option></select>
+      <label>提示语（自然语言）</label>
+      <textarea>设备能搜索到其它 Wi‑Fi 网络吗？</textarea>
+      <label>风险级别</label>
+      <select><option>LOW</option><option>MEDIUM</option><option>HIGH</option></select>
+      <label><input type="checkbox" /> 安全停机节点（强制转人工）</label>
+      <label>分支 · 是 →</label><select><option>wifi-check-02</option><option>network-reset-01</option><option>image-request-01</option><option>END</option></select>
+      <label>分支 · 否 →</label><select><option>network-reset-01</option><option>wifi-check-02</option><option>END</option></select>
+      <label>分支 · 不清楚 →</label><select><option>image-request-01</option><option>END</option></select>
+      <label>来源关联</label><input value="MANUAL-X100 §3.2, KB-102" />
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn sm primary" style="flex:1">保存节点</button>
+        <button class="btn sm danger" style="flex:1">删除</button>
+      </div>
+    </div>
+  </div>
+  <div class="note">编辑器与后端 1:1：节点保存至 <span class="mono">POST /api/flows/{id}/nodes</span>，分支更新 <span class="mono">PUT /api/flows/{id}/nodes/{key}</span>，发布走生命周期 <span class="mono">publish</span>。「模拟会话」调用 <span class="mono">/api/flows/{id}/simulate</span>，复用支持页步骤卡走查并报告未覆盖节点。</div>
+</section>
+
+<!-- ============ AGENT ============ -->
+<section class="screen" id="agent">
+  <h1>人工坐席工作台</h1>
+  <div class="agent-wrap" style="margin-top:16px">
+    <div class="qlist">
+      <div class="qitem active"><div class="t">#a1f3 <span class="tag human sm">待处理</span></div><div class="s">X100 · 烧焦气味 · 优先级高</div></div>
+      <div class="qitem"><div class="t">#9c20 <span class="tag warn sm">处理中</span></div><div class="s">HDMI 无信号 · 已尝试 3 步</div></div>
+      <div class="qitem"><div class="t">#77bd <span class="tag mute sm">已关闭</span></div><div class="s">遥控器失灵 · 已解决</div></div>
+    </div>
+    <div class="conv">
+      <div class="handoff-box">
+        <h4>交接包 · #a1f3</h4>
+        型号 X100 · 固件 2.1.0 · 地区 EU · 语言 en-US<br/>
+        已尝试：wifi-check-01(是) → wifi-check-02(未解决) → 用户报告烧焦气味<br/>
+        图片：<a style="color:#B25E1E">IMG_0382.jpg</a> · AI 引用：MANUAL-X100 §3.2, KB-102<br/>
+        转人工原因：<b>安全风险（SAFETY_RISK）</b> · 联系方式已授权
+      </div>
+      <div class="bubble user">连不上 Wi‑Fi，重启也没用，而且有烧焦味。</div>
+      <div class="bubble ai">⚠️ 安全停机：请立即停止使用并联系人工。（系统已自动创建交接包）</div>
+      <div class="bubble user">好的，怎么联系？</div>
+      <textarea style="width:100%;height:70px;border:1px solid var(--line);border-radius:10px;padding:10px;font-family:inherit" placeholder="坐席回复（可由右侧 Copilot 建议）…"></textarea>
+      <div style="display:flex;gap:8px">
+        <button class="btn primary">发送</button>
+        <button class="btn">关闭：已解决</button>
+        <button class="btn">关闭：保修处理</button>
+        <button class="btn ghost">+ 提议知识</button>
+      </div>
+    </div>
+    <div class="copilot">
+      <div class="section-title">AI Copilot</div>
+      <div class="sug">建议回复：您好，已收到您的安全反馈。请先拔掉电源，我们安排 EU 授权维修点 24h 内联系您。<button class="btn sm ai">采纳</button></div>
+      <div class="sug">知识缺口：当前无「烧焦气味」专项流程，建议新增 safety-stop 节点。<button class="btn sm">建草稿</button></div>
+      <div class="sug">相关：MANUAL-X100 §5 安全警告、KB-210 电源故障。<button class="btn sm">查看</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- handoff modal -->
+<div class="mask" id="handoffMask">
+  <div class="modal">
+    <div class="mh">转人工支持 <span class="close" onclick="closeHandoff()">×</span></div>
+    <div class="mb">
+      <p style="margin-top:0">我们将为您创建交接包，包含型号、已尝试步骤、图片与 AI 引用，人工无需重复询问。</p>
+      <label style="font-size:12px;font-weight:700;color:var(--ink-2)">联系方式（邮箱/WhatsApp）</label>
+      <input style="width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;margin:6px 0 12px" placeholder="you@example.com" />
+      <label style="font-size:12px"><input type="checkbox" checked /> 我同意厂商就本次售后与我联系</label>
+      <div class="note">渠道：邮件 · 工作时间：EU 09:00–18:00 CET · 非工作时间将留下信息后回呼。</div>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeHandoff()">取消</button>
+      <button class="btn danger" onclick="submitHandoff()">提交并获取请求编号</button>
+    </div>
+  </div>
+</div>
+
+<!-- simulate modal -->
+<div class="mask" id="simMask">
+  <div class="modal">
+    <div class="mh">模拟会话 · Wi‑Fi 无法连接 <span class="close" onclick="closeSimulate()">×</span></div>
+    <div class="mb" id="simBody">
+      <div class="sim-step"><div class="n">节点 wifi-check-01 · 决策 · LOW</div><div class="p">设备能搜索到其它 Wi‑Fi 网络吗？</div>
+        <div class="sim-btns"><button onclick="sim('yes')">是</button><button onclick="sim('no')">否</button><button onclick="sim('unknown')">不清楚</button></div></div>
+    </div>
+    <div class="mf"><button class="btn" onclick="closeSimulate()">关闭</button><button class="btn ai" onclick="resetSim()">重新开始</button></div>
+  </div>
+</div>
+
+<script>
+// tabs
+const tabs=document.getElementById('tabs');
+tabs.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  tabs.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(b.dataset.s).classList.add('active');
+});
+// flow node select -> prefill inspector
+const NODES={
+  'wifi-check-01':{key:'wifi-check-01',type:'QUESTION 决策',prompt:'设备能搜索到其它 Wi‑Fi 网络吗？',risk:'LOW',yes:'wifi-check-02',no:'network-reset-01',unk:'image-request-01'},
+  'wifi-check-02':{key:'wifi-check-02',type:'OPERATION 操作',prompt:'请重启路由器与机顶盒，等待 30 秒。',risk:'LOW',next:'END'},
+  'network-reset-01':{key:'network-reset-01',type:'OPERATION 操作',prompt:'进入设置→网络→重置网络设置。',risk:'LOW',next:'END'},
+  'image-request-01':{key:'image-request-01',type:'HUMAN_ESCALATION',prompt:'请上传指示灯/接口照片，或由人工确认。',risk:'MEDIUM'},
+  'END':{key:'END',type:'END',prompt:'如已恢复请确认。',risk:'LOW'}
+};
+document.querySelectorAll('.fnode').forEach(n=>{
+  n.addEventListener('click',()=>{
+    document.querySelectorAll('.fnode').forEach(x=>x.classList.remove('sel'));
+    n.classList.add('sel');
+  });
+});
+// edges
+function drawEdges(){
+  const svg=document.getElementById('edges'); const canvas=document.getElementById('canvas');
+  const pos={};
+  document.querySelectorAll('.fnode').forEach(n=>{pos[n.dataset.key]={x:n.offsetLeft+86,y:n.offsetTop+24};});
+  const E=[['wifi-check-01','wifi-check-02','#16A34A'],['wifi-check-01','network-reset-01','#DC2626'],['wifi-check-01','image-request-01','#D97706'],['wifi-check-02','END'],['network-reset-01','END'],['image-request-01','END']];
+  svg.innerHTML=E.map(([a,b,c])=>{if(!pos[a]||!pos[b])return'';return `<line x1="${pos[a].x}" y1="${pos[a].y}" x2="${pos[b].x}" y2="${pos[b].y}" stroke="${c||'#94A3B8'}" stroke-width="2" stroke-dasharray="${c?'0':'5 4'}"/>`;}).join('');
+}
+window.addEventListener('load',drawEdges); window.addEventListener('resize',drawEdges);
+
+// handoff
+function openHandoff(){document.getElementById('handoffMask').classList.add('show');}
+function closeHandoff(){document.getElementById('handoffMask').classList.remove('show');}
+function submitHandoff(){closeHandoff();alert('交接包已创建，请求编号：HAND-a1f3-8821。人工将在服务时间内联系您。');}
+
+// simulate
+let simCur='wifi-check-01', simFail=0;
+function openSimulate(){resetSim();document.getElementById('simMask').classList.add('show');}
+function closeSimulate(){document.getElementById('simMask').classList.remove('show');}
+function resetSim(){simCur='wifi-check-01';simFail=0;renderSim();}
+function renderSim(){
+  const n=NODES[simCur]; const body=document.getElementById('simBody');
+  if(simCur==='END'){body.innerHTML=`<div class="sim-step"><div class="n">结束</div><div class="p">✅ 流程正常结束，请向用户确认是否恢复。</div></div>`;return;}
+  if(!n){body.innerHTML=`<div class="sim-step"><div class="n">人工升级</div><div class="p">⚠️ 已转人工（风险/拒绝/连续失败）。交接包将自动创建。</div></div>`;return;}
+  const btns = n.type.includes('OPERATION')
+    ? `<button onclick="sim('ok')">已解决</button><button onclick="sim('fail')">未解决</button>`
+    : `<button onclick="sim('yes')">是</button><button onclick="sim('no')">否</button><button onclick="sim('unknown')">不清楚</button>`;
+  body.innerHTML=`<div class="sim-step"><div class="n">节点 ${n.key} · ${n.type} · ${n.risk}${n.type.includes('HUMAN')?' · 强制人工':''}</div><div class="p">${n.prompt}</div><div class="sim-btns">${btns}</div></div>`;
+}
+function sim(answer){
+  const n=NODES[simCur];
+  if(n.type.includes('HUMAN')){simCur=null;renderSim();return;}
+  if(n.risk==='HIGH'||answer==='refuse'||simFail>=2){simCur=null;renderSim();return;}
+  if(n.type.includes('OPERATION')){ if(answer==='fail'){simFail++;simCur='END';} else {simCur=n.next;} }
+  else { simCur = answer==='yes'?n.yes : answer==='no'?n.no : n.unk; }
+  renderSim();
+}
+</script>
+</body>
+</html>

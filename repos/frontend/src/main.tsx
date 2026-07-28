@@ -35,6 +35,40 @@ const publicApi = async (path: string, init: RequestInit = {}) => {
   return response.status === 204 ? null : response.json();
 };
 
+function Login({ onLogin }: { onLogin: (token: string) => void }) {
+  const [email, setEmail] = useState('admin@hardwareai.com');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    try {
+      const data = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      }).then((r) => (r.ok ? r.json() : Promise.reject(new Error('邮箱或密码错误'))));
+      localStorage.setItem('accessToken', data.accessToken);
+      onLogin(data.accessToken);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+  return (
+    <main className="login">
+      <form onSubmit={submit}>
+        <h1>登录控制台</h1>
+        <label>邮箱</label>
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <label>密码</label>
+        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <button className="primary" type="submit">登录</button>
+        <small className="error">{error}</small>
+      </form>
+    </main>
+  );
+}
+
 function SupportApp({ qrToken }: { qrToken: string }) {
   const [language, setLanguage] = useState('en-US'); const [conversationId, setConversationId] = useState('');
   const [input, setInput] = useState(''); const [attachment, setAttachment] = useState<File | null>(null); const [messages, setMessages] = useState<{ id: string; content: string; errorCode?: string; citations?: string[] }[]>([]); const [notice, setNotice] = useState('正在识别设备…');
@@ -134,6 +168,7 @@ function App() {
           ))}
         </nav>
         <p className="status">● {message}</p>
+        <button className="logout" onClick={() => { localStorage.removeItem('accessToken'); location.reload(); }}>退出登录</button>
       </aside>
       <section>
         <header>
@@ -187,5 +222,14 @@ function App() {
     </main>
   );
 }
+
+function Root() {
+  const [token, setToken] = useState(localStorage.getItem('accessToken') ?? '');
+  const supportMatch = location.pathname.match(/^\/support\/([^/]+)$/);
+  if (supportMatch) return <SupportApp qrToken={decodeURIComponent(supportMatch[1])} />;
+  if (!token) return <Login onLogin={setToken} />;
+  return <App />;
+}
+
 const supportMatch = location.pathname.match(/^\/support\/([^/]+)$/);
-createRoot(document.getElementById('root')!).render(supportMatch ? <SupportApp qrToken={decodeURIComponent(supportMatch[1])} /> : <App />);
+createRoot(document.getElementById('root')!).render(supportMatch ? <SupportApp qrToken={decodeURIComponent(supportMatch[1])} /> : <Root />);
