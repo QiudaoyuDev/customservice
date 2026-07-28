@@ -34,6 +34,8 @@ public class QrBinding {
 
     @Column(name = "expires_at")
     private Instant expiresAt;
+    @Column(name = "revoked_at") private Instant revokedAt;
+    @Column(name = "revocation_reason") private String revocationReason;
 
     @Column(name = "created_at")
     private final Instant createdAt = Instant.now();
@@ -86,6 +88,7 @@ public class QrBinding {
     public Instant expiresAt() {
         return expiresAt;
     }
+    public void revoke(String reason) { status = Status.REVOKED; revokedAt = Instant.now(); revocationReason = reason; }
 
     /**
      * Public resolution must reject revoked and expired credentials.

@@ -17,10 +17,12 @@ import java.util.UUID;
 public class ProductController {
 
     private final ProductRepository products;
+    private final ProductModelAliasRepository aliases;
     private final CurrentUser current;
 
-    ProductController(ProductRepository p, CurrentUser c) {
+    ProductController(ProductRepository p, ProductModelAliasRepository a, CurrentUser c) {
         products = p;
+        aliases = a;
         current = c;
     }
 
@@ -38,7 +40,7 @@ public class ProductController {
     public View create(@Valid @RequestBody Create r) {
         return View.of(
             products.save(
-                new ProductModel(current.tenantId(), r.family(), r.model(), r.displayName(), r.region())
+                new ProductModel(current.tenantId(), r.family(), r.model(), r.displayName(), r.region(), r.hardwareVersion(), r.firmwareMin(), r.firmwareMax())
             )
         );
     }
@@ -48,6 +50,9 @@ public class ProductController {
         @NotBlank @Size(max = 120) String model,
         @NotBlank @Size(max = 200) String displayName,
         @NotBlank @Size(max = 16) String region
+        , @Size(max = 80) String hardwareVersion
+        , @Size(max = 80) String firmwareMin
+        , @Size(max = 80) String firmwareMax
     ) {
     }
 
@@ -57,6 +62,9 @@ public class ProductController {
         String model,
         String displayName,
         String region,
+        String hardwareVersion,
+        String firmwareMin,
+        String firmwareMax,
         String status
     ) {
         static View of (ProductModel p){
@@ -66,8 +74,20 @@ public class ProductController {
                 p.model(),
                 p.displayName(),
                 p.region(),
+                p.hardwareVersion(),
+                p.firmwareMin(),
+                p.firmwareMax(),
                 p.status().name()
             );
         }
     }
+
+    @PostMapping("/{id}/aliases")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void addAlias(@PathVariable UUID id, @Valid @RequestBody Alias request) {
+        products.findByIdAndTenantId(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Product not found"));
+        aliases.save(new ProductModelAlias(current.tenantId(), id, request.alias()));
+    }
+
+    record Alias(@NotBlank @Size(max = 120) String alias) {}
 }

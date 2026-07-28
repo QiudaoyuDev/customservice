@@ -17,6 +17,8 @@ class KnowledgeProcessingWorker {
     private final ObjectStorage storage;
     private final DocumentTextExtractor extractor;
     private final VectorIndex vectorIndex;
+    private final KnowledgeChunkRepository chunks;
+    private final KnowledgeChunker chunker;
 
     KnowledgeProcessingWorker(
         ProcessingJobRepository jobs,
@@ -24,7 +26,7 @@ class KnowledgeProcessingWorker {
         KnowledgeDocumentRepository documents,
         ObjectStorage storage,
         DocumentTextExtractor extractor,
-        VectorIndex vectorIndex
+        VectorIndex vectorIndex, KnowledgeChunkRepository chunks, KnowledgeChunker chunker
     ) {
         this.jobs = jobs;
         this.revisions = revisions;
@@ -32,6 +34,8 @@ class KnowledgeProcessingWorker {
         this.storage = storage;
         this.extractor = extractor;
         this.vectorIndex = vectorIndex;
+        this.chunks = chunks;
+        this.chunker = chunker;
     }
 
     @Scheduled(fixedDelayString = "${app.worker-delay-ms:2000}")
@@ -42,6 +46,8 @@ class KnowledgeProcessingWorker {
                     .findById(job.revisionId())
                     .orElseThrow(() -> new IllegalStateException("Revision not found"));
                 if (job.jobType() == ProcessingJob.Type.PARSE) {
+                    revision.beginParsing();
+                    revisions.save(revision);
                     var document = documents
                         .findById(revision.documentId())
                         .orElseThrow(() -> new IllegalStateException("Document not found"));
@@ -50,7 +56,12 @@ class KnowledgeProcessingWorker {
                         extractor.extract(document.contentType(), storage.get(document.objectKey())).strip()
                     );
                     revisions.save(revision);
-                } else vectorIndex.upsert(revision);
+                    chunks.deleteAllByRevisionId(revision.id());
+                    chunks.saveAll(chunker.split(revision, document));
+                } else {
+                    var document = documents.findById(revision.documentId()).orElseThrow(() -> new IllegalStateException("Document not found"));
+                    vectorIndex.upsert(revision, document, chunks.findAllByRevisionIdOrderByChunkNo(revision.id()));
+                }
                 job.complete();
                 jobs.save(job);
                 log.info("Completed knowledge job type={} jobId={} revisionId={}", job.jobType(), job.id(), revision.id());

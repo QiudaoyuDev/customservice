@@ -15,6 +15,7 @@ public record AppProperties(
     @Valid Bootstrap bootstrap,
     @NotBlank String embeddingUrl,
     @NotBlank String ocrUrl,
+    @NotBlank String rerankUrl,
     @NotBlank String qdrantUrl,
     @NotBlank String qdrantApiKey,
     String qdrantCollection

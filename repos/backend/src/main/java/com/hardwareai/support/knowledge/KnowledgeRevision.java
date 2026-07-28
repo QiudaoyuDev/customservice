@@ -38,6 +38,9 @@ public class KnowledgeRevision {
     @Column(name = "published_at")
     private Instant publishedAt;
 
+    @Column(name = "deprecated_at")
+    private Instant deprecatedAt;
+
     @Column(name = "created_at")
     private final Instant createdAt = Instant.now();
 
@@ -50,7 +53,7 @@ public class KnowledgeRevision {
         revisionNo = 1;
         productModelId = product;
         this.region = region;
-        status = Status.DRAFT;
+        status = Status.UPLOADED;
     }
 
     public UUID id() {
@@ -84,6 +87,12 @@ public class KnowledgeRevision {
         String text
     ) {
         extractedText = text;
+        status = Status.DRAFT;
+    }
+
+    public void beginParsing() {
+        if (status != Status.UPLOADED && status != Status.PARSING) throw new IllegalStateException("Only an uploaded revision can be parsed");
+        status = Status.PARSING;
     }
 
     public void submit() {
@@ -97,8 +106,8 @@ public class KnowledgeRevision {
     }
 
     public void publish(UUID user) {
-        if (status != Status.REVIEW) throw new IllegalStateException(
-            "Only a review revision can be published"
+        if (status != Status.APPROVED) throw new IllegalStateException(
+            "Only an approved revision can be published"
         );
         if (
             productModelId == null || region == null || region.isBlank()
@@ -110,17 +119,40 @@ public class KnowledgeRevision {
         publishedAt = Instant.now();
     }
 
+    public void approve(UUID user) {
+        if (status != Status.REVIEW) throw new IllegalStateException("Only a review revision can be approved");
+        reviewedBy = user;
+        status = Status.APPROVED;
+    }
+
+    public void deprecate() {
+        if (status != Status.PUBLISHED) throw new IllegalStateException("Only published knowledge can be deprecated");
+        status = Status.DEPRECATED;
+        deprecatedAt = Instant.now();
+    }
+
+    /** Restores an explicitly deprecated immutable revision; its content is never overwritten. */
+    public void restore(UUID user) {
+        if (status != Status.DEPRECATED) throw new IllegalStateException("Only deprecated knowledge can be restored");
+        status = Status.PUBLISHED;
+        reviewedBy = user;
+        publishedAt = Instant.now();
+        deprecatedAt = null;
+    }
+
     public void archive() {
-        if (status != Status.PUBLISHED) throw new IllegalStateException(
-            "Only a published revision can be archived"
-        );
+        if (status != Status.PUBLISHED && status != Status.DEPRECATED) throw new IllegalStateException("Only published or deprecated revision can be archived");
         status = Status.ARCHIVED;
     }
 
     public enum Status {
+        UPLOADED,
+        PARSING,
         DRAFT,
         REVIEW,
+        APPROVED,
         PUBLISHED,
+        DEPRECATED,
         ARCHIVED,
     }
 }

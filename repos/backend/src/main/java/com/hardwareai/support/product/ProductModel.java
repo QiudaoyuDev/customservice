@@ -25,6 +25,10 @@ public class ProductModel {
 
     private String region;
 
+    @Column(name = "hardware_version") private String hardwareVersion;
+    @Column(name = "firmware_min") private String firmwareMin;
+    @Column(name = "firmware_max") private String firmwareMax;
+
     @Enumerated(EnumType.STRING)
     private Status status;
 
@@ -34,13 +38,16 @@ public class ProductModel {
     protected ProductModel() {
     }
 
-    ProductModel(UUID tenantId, String family, String model, String displayName, String region) {
+    ProductModel(UUID tenantId, String family, String model, String displayName, String region, String hardwareVersion, String firmwareMin, String firmwareMax) {
         id = UUID.randomUUID();
         this.tenantId = tenantId;
         this.family = family;
         this.model = model;
         this.displayName = displayName;
         this.region = region;
+        this.hardwareVersion = hardwareVersion;
+        this.firmwareMin = firmwareMin;
+        this.firmwareMax = firmwareMax;
         status = Status.ACTIVE;
     }
 
@@ -71,6 +78,9 @@ public class ProductModel {
     public Status status() {
         return status;
     }
+    public String hardwareVersion() { return hardwareVersion; }
+    public String firmwareMin() { return firmwareMin; }
+    public String firmwareMax() { return firmwareMax; }
 
     public enum Status {
         ACTIVE,

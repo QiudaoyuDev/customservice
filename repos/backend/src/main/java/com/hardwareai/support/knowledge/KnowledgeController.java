@@ -25,6 +25,8 @@ public class KnowledgeController {
     private final ProductRepository products;
     private final ObjectStorage storage;
     private final CurrentUser current;
+    private final KnowledgeChunkRepository chunks;
+    private final VectorIndex vectorIndex;
 
     KnowledgeController(
         KnowledgeDocumentRepository d,
@@ -32,7 +34,7 @@ public class KnowledgeController {
         ProcessingJobRepository j,
         ProductRepository p,
         ObjectStorage s,
-        CurrentUser c
+        CurrentUser c, KnowledgeChunkRepository chunks, VectorIndex vectorIndex
     ) {
         documents = d;
         revisions = r;
@@ -40,6 +42,8 @@ public class KnowledgeController {
         products = p;
         storage = s;
         current = c;
+        this.chunks = chunks;
+        this.vectorIndex = vectorIndex;
     }
 
     @GetMapping("/documents")
@@ -47,7 +51,7 @@ public class KnowledgeController {
         return documents
             .findAllByTenantIdOrderByCreatedAtDesc(current.tenantId())
             .stream()
-            .map(DocumentView::of)
+            .map(d -> revisions.findAllByDocumentIdOrderByRevisionNoDesc(d.id()).stream().findFirst().map(r -> DocumentView.of(d, r)).orElse(new DocumentView(d.id(), null, d.title(), d.locale(), "UPLOADED")))
             .toList();
     }
 
@@ -88,14 +92,14 @@ public class KnowledgeController {
         );
         var revision = revisions.save(new KnowledgeRevision(doc.id(), productModelId, region));
         jobs.save(new ProcessingJob(revision.id(), ProcessingJob.Type.PARSE));
-        return DocumentView.of(doc);
+        return DocumentView.of(doc, revision);
     }
 
     @PostMapping("/knowledge-revisions/{id}/submit")
     @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
     public void submit(@PathVariable UUID id) {
         var r = revisions
-            .findById(id)
+            .findOwned(id, current.tenantId())
             .orElseThrow(() -> new IllegalArgumentException("Revision not found"));
         r.submit();
         revisions.save(r);
@@ -105,16 +109,61 @@ public class KnowledgeController {
     @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
     public void publish(@PathVariable UUID id) {
         var r = revisions
-            .findById(id)
+            .findOwned(id, current.tenantId())
             .orElseThrow(() -> new IllegalArgumentException("Revision not found"));
         r.publish(current.userId());
         revisions.save(r);
         jobs.save(new ProcessingJob(r.id(), ProcessingJob.Type.INDEX));
     }
 
-    record DocumentView(UUID id, String title, String locale, String status) {
-        static DocumentView of (KnowledgeDocument d){
-            return new DocumentView(d.id(), d.title(), d.locale(), d.status().name());
+    @PostMapping("/knowledge-revisions/{id}/approve")
+    @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
+    public void approve(@PathVariable UUID id) {
+        var revision = revisions.findOwned(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Revision not found"));
+        revision.approve(current.userId());
+        revisions.save(revision);
+    }
+
+    @PostMapping("/knowledge-revisions/{id}/deprecate")
+    @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
+    public void deprecate(@PathVariable UUID id) {
+        var revision = revisions.findOwned(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Revision not found"));
+        revision.deprecate();
+        revisions.save(revision);
+        vectorIndex.removeRevision(revision.id());
+    }
+
+    @PostMapping("/knowledge-revisions/{id}/archive")
+    @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
+    public void archive(@PathVariable UUID id) {
+        var revision = revisions.findOwned(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Revision not found"));
+        revision.archive(); revisions.save(revision); vectorIndex.removeRevision(revision.id());
+    }
+
+    @PostMapping("/knowledge-revisions/{id}/restore")
+    @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
+    public void restore(@PathVariable UUID id) {
+        var revision = revisions.findOwned(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Revision not found"));
+        revisions.findAllByDocumentIdOrderByRevisionNoDesc(revision.documentId()).stream()
+            .filter(candidate -> candidate.status() == KnowledgeRevision.Status.PUBLISHED)
+            .forEach(candidate -> { candidate.archive(); revisions.save(candidate); vectorIndex.removeRevision(candidate.id()); });
+        revision.restore(current.userId());
+        revisions.save(revision);
+        jobs.save(new ProcessingJob(revision.id(), ProcessingJob.Type.INDEX));
+    }
+
+    @GetMapping("/documents/{id}/preview")
+    public Preview preview(@PathVariable UUID id) {
+        var document = documents.findByIdAndTenantId(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Document not found"));
+        var revision = revisions.findAllByDocumentIdOrderByRevisionNoDesc(id).stream().findFirst().orElseThrow(() -> new IllegalStateException("Document has no revision"));
+        return new Preview(document.title(), revision.status().name(), revision.extractedText(), chunks.findAllByRevisionIdOrderByChunkNo(revision.id()).stream().map(c -> new ChunkView(c.chunkNo(), c.sourceLabel(), c.content())).toList());
+    }
+
+    record DocumentView(UUID id, UUID revisionId, String title, String locale, String status) {
+        static DocumentView of (KnowledgeDocument d, KnowledgeRevision revision){
+            return new DocumentView(d.id(), revision.id(), d.title(), d.locale(), revision.status().name());
         }
     }
+    record Preview(String title, String status, String text, List<ChunkView> chunks) {}
+    record ChunkView(int chunkNo, String source, String text) {}
 }

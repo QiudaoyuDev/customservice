@@ -59,6 +59,19 @@ public class QrController {
         return new PublicContext(p.id(), p.displayName(), p.model(), p.region(), b.batch());
     }
 
+    @GetMapping("/api/qr-bindings")
+    @PreAuthorize("hasRole('ADMIN')")
+    public java.util.List<View> list() {
+        return bindings.findAllByTenantIdOrderByCreatedAtDesc(current.tenantId()).stream().map(View::of).toList();
+    }
+
+    @PostMapping("/api/qr-bindings/{id}/revoke")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void revoke(@PathVariable UUID id, @Valid @RequestBody Revoke request) {
+        var binding = bindings.findByIdAndTenantId(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("QR binding not found"));
+        binding.revoke(request.reason()); bindings.save(binding);
+    }
+
     private static String hash(String s) {
         try {
             return HexFormat.of().formatHex(
@@ -81,6 +94,10 @@ public class QrController {
     }
 
     record Resolve(@NotBlank String token) {
+    }
+    record Revoke(@NotBlank @Size(max = 300) String reason) {}
+    record View(UUID id, UUID productModelId, String batch, String serialNumber, String status, Instant expiresAt) {
+        static View of(QrBinding binding) { return new View(binding.id(), binding.productModelId(), binding.batch(), binding.serialNumber(), binding.status().name(), binding.expiresAt()); }
     }
 
     record PublicContext(

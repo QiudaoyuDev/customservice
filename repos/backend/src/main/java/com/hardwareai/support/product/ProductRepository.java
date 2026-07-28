@@ -11,3 +11,7 @@ public interface ProductRepository extends JpaRepository<ProductModel, UUID> {
 
     Optional<ProductModel> findByIdAndTenantId(UUID id, UUID tenantId);
 }
+
+interface ProductModelAliasRepository extends JpaRepository<ProductModelAlias, UUID> {
+    List<ProductModelAlias> findAllByProductModelId(UUID productModelId);
+}
