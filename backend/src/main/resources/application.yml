@@ -15,6 +15,11 @@ app:
   storage.access-key: ${MINIO_ACCESS_KEY:hardware-ai-minio}
   storage.secret-key: ${MINIO_SECRET_KEY:CHANGE_ME_MINIO_PASSWORD}
   storage.bucket: ${MINIO_BUCKET:support-assets}
+  embedding-url: ${EMBEDDING_URL:http://127.0.0.1:18082}
+  ocr-url: ${OCR_URL:http://127.0.0.1:18081}
+  qdrant-url: ${QDRANT_URL:http://127.0.0.1:6333}
+  qdrant-api-key: ${QDRANT_API_KEY:CHANGE_ME_QDRANT_API_KEY}
+  qdrant-collection: ${QDRANT_COLLECTION:knowledge_chunks}
   qr.secret: ${QR_TOKEN_SECRET:CHANGE_ME_QR_SECRET}
   bootstrap:
     admin-email: ${BOOTSTRAP_ADMIN_EMAIL:admin@example.local}
