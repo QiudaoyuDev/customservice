@@ -68,6 +68,7 @@ public class QrBinding {
     public UUID productModelId() {
         return productModelId;
     }
+    public UUID tenantId() { return tenantId; }
 
     public String tokenHash() {
         return tokenHash;

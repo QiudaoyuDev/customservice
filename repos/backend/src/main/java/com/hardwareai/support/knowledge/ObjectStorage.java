@@ -10,7 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
  * Private-object-storage adapter. Logs object identifiers, never document content.
  */
 @Service
-class ObjectStorage {
+public class ObjectStorage {
 
     private static final Logger log = LoggerFactory.getLogger(ObjectStorage.class);
     private final MinioClient client;
@@ -21,7 +21,7 @@ class ObjectStorage {
         properties = p;
     }
 
-    void put(String key, MultipartFile file) {
+    public void put(String key, MultipartFile file) {
         try {
             if (
                 !client.bucketExists(
