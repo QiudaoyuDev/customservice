@@ -7,5 +7,6 @@ import java.time.Instant; import java.util.UUID;
  @Column(name="hardware_version") private String hardwareVersion; @Column(name="firmware_version") private String firmwareVersion; private String source; private boolean active=true; @Column(name="created_at") private Instant createdAt=Instant.now();
  protected ConversationProductContext(){} ConversationProductContext(UUID conversationId,UUID productModelId,String hardware,String firmware,String source){id=UUID.randomUUID();this.conversationId=conversationId;this.productModelId=productModelId;hardwareVersion=hardware;firmwareVersion=firmware;this.source=source;}
  UUID productModelId(){return productModelId;}
+ String hardwareVersion(){return hardwareVersion;}
  void close(){active=false;}
 }
