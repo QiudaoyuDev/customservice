@@ -1,0 +1,28 @@
+# 依赖
+node_modules
+**/node_modules
+
+# 构建产物
+dist
+**/dist
+target
+**/target
+build
+**/build
+
+# Source maps
+**/*.map
+
+# 锁文件与缓存
+**/package-lock.json
+**/tsconfig.tsbuildinfo
+
+# 文档与二进制资源
+**/*.md
+**/*.png
+**/*.jpg
+**/*.pdf
+
+# 第三方/生成
+**/.vite
+**/coverage

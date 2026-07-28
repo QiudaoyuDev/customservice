@@ -1,0 +1,4 @@
+SQL formatted: D:\CRRC\aicoding\customservice\repos\backend\src\main\resources\db\migration\V1__initial_domain.sql
+SQL formatted: D:\CRRC\aicoding\customservice\repos\backend\src\main\resources\db\migration\V2__knowledge_processing_jobs.sql
+XML formatted: D:\CRRC\aicoding\customservice\repos\backend\pom.xml
+Done. SQL: 2 file(s), XML: 1 file(s).
