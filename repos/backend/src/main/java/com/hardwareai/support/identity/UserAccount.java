@@ -1,6 +1,7 @@
 package com.hardwareai.support.identity;
 
 import jakarta.persistence.*;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -12,65 +13,66 @@ import java.util.UUID;
 @Table(name = "users")
 public class UserAccount {
 
-  @Id
-  private UUID id;
+    @Id
+    private UUID id;
 
-  @Column(name = "tenant_id", nullable = false)
-  private UUID tenantId;
+    @Column(name = "tenant_id", nullable = false)
+    private UUID tenantId;
 
-  @Column(nullable = false)
-  private String email;
+    @Column(nullable = false)
+    private String email;
 
-  @Column(name = "password_hash", nullable = false)
-  private String passwordHash;
+    @Column(name = "password_hash", nullable = false)
+    private String passwordHash;
 
-  @Column(nullable = false)
-  @Enumerated(EnumType.STRING)
-  private Role role;
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private Role role;
 
-  @Column(nullable = false)
-  private boolean enabled = true;
+    @Column(nullable = false)
+    private final boolean enabled = true;
 
-  @Column(name = "created_at", nullable = false)
-  private Instant createdAt = Instant.now();
+    @Column(name = "created_at", nullable = false)
+    private final Instant createdAt = Instant.now();
 
-  protected UserAccount() {}
+    protected UserAccount() {
+    }
 
-  public UserAccount(UUID id, UUID tenantId, String email, String passwordHash, Role role) {
-    this.id = id;
-    this.tenantId = tenantId;
-    this.email = email;
-    this.passwordHash = passwordHash;
-    this.role = role;
-  }
+    public UserAccount(UUID id, UUID tenantId, String email, String passwordHash, Role role) {
+        this.id = id;
+        this.tenantId = tenantId;
+        this.email = email;
+        this.passwordHash = passwordHash;
+        this.role = role;
+    }
 
-  public UUID id() {
-    return id;
-  }
+    public UUID id() {
+        return id;
+    }
 
-  public UUID tenantId() {
-    return tenantId;
-  }
+    public UUID tenantId() {
+        return tenantId;
+    }
 
-  public String email() {
-    return email;
-  }
+    public String email() {
+        return email;
+    }
 
-  public String passwordHash() {
-    return passwordHash;
-  }
+    public String passwordHash() {
+        return passwordHash;
+    }
 
-  public Role role() {
-    return role;
-  }
+    public Role role() {
+        return role;
+    }
 
-  public boolean enabled() {
-    return enabled;
-  }
+    public boolean enabled() {
+        return enabled;
+    }
 
-  public enum Role {
-    ADMIN,
-    KNOWLEDGE_REVIEWER,
-    ANALYST,
-  }
+    public enum Role {
+        ADMIN,
+        KNOWLEDGE_REVIEWER,
+        ANALYST,
+    }
 }

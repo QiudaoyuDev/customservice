@@ -1,23 +1,26 @@
 package com.hardwareai.support.common;
 
 import io.jsonwebtoken.Claims;
-import java.util.UUID;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-/** Reads the tenant boundary only from the verified security context, never from request input. */
+import java.util.UUID;
+
+/**
+ * Reads the tenant boundary only from the verified security context, never from request input.
+ */
 @Component
 public class CurrentUser {
 
-  public UUID tenantId() {
-    var d = SecurityContextHolder.getContext().getAuthentication().getDetails();
-    if (!(d instanceof Claims c)) throw new IllegalStateException(
-      "Authenticated tenant context is required"
-    );
-    return UUID.fromString(c.get("tenantId", String.class));
-  }
+    public UUID tenantId() {
+        var d = SecurityContextHolder.getContext().getAuthentication().getDetails();
+        if (!(d instanceof Claims c)) throw new IllegalStateException(
+            "Authenticated tenant context is required"
+        );
+        return UUID.fromString(c.get("tenantId", String.class));
+    }
 
-  public UUID userId() {
-    return UUID.fromString(SecurityContextHolder.getContext().getAuthentication().getName());
-  }
+    public UUID userId() {
+        return UUID.fromString(SecurityContextHolder.getContext().getAuthentication().getName());
+    }
 }

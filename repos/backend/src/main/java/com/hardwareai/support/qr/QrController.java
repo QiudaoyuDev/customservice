@@ -1,87 +1,94 @@
 package com.hardwareai.support.qr;
 
 import com.hardwareai.support.common.CurrentUser;
-import com.hardwareai.support.product.*;
+import com.hardwareai.support.product.ProductRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
-import java.nio.charset.StandardCharsets;
-import java.security.*;
-import java.time.*;
-import java.util.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
+import java.util.HexFormat;
+import java.util.UUID;
 
 @RestController
 public class QrController {
 
-  private final QrBindingRepository bindings;
-  private final ProductRepository products;
-  private final CurrentUser current;
+    private final QrBindingRepository bindings;
+    private final ProductRepository products;
+    private final CurrentUser current;
 
-  QrController(QrBindingRepository b, ProductRepository p, CurrentUser c) {
-    bindings = b;
-    products = p;
-    current = c;
-  }
-
-  @PostMapping("/api/qr-bindings")
-  @PreAuthorize("hasRole('ADMIN')")
-  public Created create(@Valid @RequestBody Create r) {
-    var p = products
-      .findByIdAndTenantId(r.productModelId(), current.tenantId())
-      .orElseThrow(() -> new IllegalArgumentException("Product not found"));
-    var token = UUID.randomUUID() + "." + UUID.randomUUID();
-    var b = bindings.save(
-      new QrBinding(
-        current.tenantId(),
-        p.id(),
-        hash(token),
-        r.batch(),
-        r.serialNumber(),
-        r.expiresAt()
-      )
-    );
-    return new Created(b.id(), token);
-  }
-
-  @PostMapping("/public/qr/resolve")
-  public PublicContext resolve(@Valid @RequestBody Resolve r) {
-    var b = bindings
-      .findByTokenHash(hash(r.token()))
-      .filter(QrBinding::valid)
-      .orElseThrow(() -> new IllegalArgumentException("QR token is invalid or expired"));
-    var p = products
-      .findById(b.productModelId())
-      .orElseThrow(() -> new IllegalArgumentException("Product is unavailable"));
-    return new PublicContext(p.id(), p.displayName(), p.model(), p.region(), b.batch());
-  }
-
-  private static String hash(String s) {
-    try {
-      return HexFormat.of().formatHex(
-        MessageDigest.getInstance("SHA-256").digest(s.getBytes(StandardCharsets.UTF_8))
-      );
-    } catch (NoSuchAlgorithmException e) {
-      throw new IllegalStateException(e);
+    QrController(QrBindingRepository b, ProductRepository p, CurrentUser c) {
+        bindings = b;
+        products = p;
+        current = c;
     }
-  }
 
-  record Create(
-    @NotNull UUID productModelId,
-    @Size(max = 100) String batch,
-    @Size(max = 100) String serialNumber,
-    Instant expiresAt
-  ) {}
+    @PostMapping("/api/qr-bindings")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Created create(@Valid @RequestBody Create r) {
+        var p = products
+            .findByIdAndTenantId(r.productModelId(), current.tenantId())
+            .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+        var token = UUID.randomUUID() + "." + UUID.randomUUID();
+        var b = bindings.save(
+            new QrBinding(
+                current.tenantId(),
+                p.id(),
+                hash(token),
+                r.batch(),
+                r.serialNumber(),
+                r.expiresAt()
+            )
+        );
+        return new Created(b.id(), token);
+    }
 
-  record Created(UUID id, String token) {}
+    @PostMapping("/public/qr/resolve")
+    public PublicContext resolve(@Valid @RequestBody Resolve r) {
+        var b = bindings
+            .findByTokenHash(hash(r.token()))
+            .filter(QrBinding::valid)
+            .orElseThrow(() -> new IllegalArgumentException("QR token is invalid or expired"));
+        var p = products
+            .findById(b.productModelId())
+            .orElseThrow(() -> new IllegalArgumentException("Product is unavailable"));
+        return new PublicContext(p.id(), p.displayName(), p.model(), p.region(), b.batch());
+    }
 
-  record Resolve(@NotBlank String token) {}
+    private static String hash(String s) {
+        try {
+            return HexFormat.of().formatHex(
+                MessageDigest.getInstance("SHA-256").digest(s.getBytes(StandardCharsets.UTF_8))
+            );
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
 
-  record PublicContext(
-    UUID productModelId,
-    String displayName,
-    String model,
-    String region,
-    String batch
-  ) {}
+    record Create(
+        @NotNull UUID productModelId,
+        @Size(max = 100) String batch,
+        @Size(max = 100) String serialNumber,
+        Instant expiresAt
+    ) {
+    }
+
+    record Created(UUID id, String token) {
+    }
+
+    record Resolve(@NotBlank String token) {
+    }
+
+    record PublicContext(
+        UUID productModelId,
+        String displayName,
+        String model,
+        String region,
+        String batch
+    ) {
+    }
 }

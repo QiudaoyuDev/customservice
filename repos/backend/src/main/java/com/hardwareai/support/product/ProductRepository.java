@@ -1,9 +1,13 @@
 package com.hardwareai.support.product;
 
-import java.util.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 public interface ProductRepository extends JpaRepository<ProductModel, UUID> {
-  List<ProductModel> findAllByTenantIdOrderByCreatedAtDesc(UUID tenantId);
-  Optional<ProductModel> findByIdAndTenantId(UUID id, UUID tenantId);
+    List<ProductModel> findAllByTenantIdOrderByCreatedAtDesc(UUID tenantId);
+
+    Optional<ProductModel> findByIdAndTenantId(UUID id, UUID tenantId);
 }
