@@ -1,29 +1,33 @@
 package com.hardwareai.support.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 
 @ConfigurationProperties(prefix = "app")
+@Validated
 /** External configuration; credentials are supplied only through environment variables. */
 public record AppProperties(
-    Security security,
-    Storage storage,
-    Qr qr,
-    Bootstrap bootstrap,
-    String embeddingUrl,
-    String ocrUrl,
-    String qdrantUrl,
-    String qdrantApiKey,
+    @Valid Security security,
+    @Valid Storage storage,
+    @Valid Qr qr,
+    @Valid Bootstrap bootstrap,
+    @NotBlank String embeddingUrl,
+    @NotBlank String ocrUrl,
+    @NotBlank String qdrantUrl,
+    @NotBlank String qdrantApiKey,
     String qdrantCollection
 ) {
-    public record Security (String jwtSecret){
+    public record Security (@NotBlank String jwtSecret){
     }
 
-    public record Storage (String endpoint, String accessKey, String secretKey, String bucket){
+    public record Storage (@NotBlank String endpoint, @NotBlank String accessKey, @NotBlank String secretKey, @NotBlank String bucket){
     }
 
-    public record Qr (String secret){
+    public record Qr (@NotBlank String secret){
     }
 
-    public record Bootstrap (String adminEmail, String adminPassword, String tenantName){
+    public record Bootstrap (@NotBlank String adminEmail, @NotBlank String adminPassword, @NotBlank String tenantName){
     }
 }

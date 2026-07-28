@@ -1,5 +1,6 @@
 spring:
   application.name: hardware-ai-support-api
+  profiles.default: dev
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://127.0.0.1:5432/hardware_ai_support}
     username: ${DATABASE_USERNAME:hardware_ai_app}
@@ -26,3 +27,10 @@ app:
     admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:CHANGE_ME_BEFORE_USE}
     tenant-name: ${BOOTSTRAP_TENANT_NAME:Demo tenant}
 server.error.include-message: never
+management:
+  endpoints.web.exposure.include: health,info
+  health:
+    db.enabled: true
+    diskspace.enabled: true
+logging:
+  pattern.level: "%5p [requestId:%X{requestId:-}]"

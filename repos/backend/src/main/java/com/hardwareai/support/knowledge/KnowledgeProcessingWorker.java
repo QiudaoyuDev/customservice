@@ -3,7 +3,6 @@ package com.hardwareai.support.knowledge;
 import org.slf4j.*;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Polls one durable job at a time; failures are retried twice and remain inspectable.
@@ -36,11 +35,8 @@ class KnowledgeProcessingWorker {
     }
 
     @Scheduled(fixedDelayString = "${app.worker-delay-ms:2000}")
-    @Transactional
     public void processNext() {
-        jobs.findFirstByStatusOrderByCreatedAtAsc(ProcessingJob.Status.PENDING).ifPresent((job) -> {
-            job.start();
-            jobs.save(job);
+        jobs.claimNext().ifPresent((job) -> {
             try {
                 var revision = revisions
                     .findById(job.revisionId())
@@ -57,12 +53,12 @@ class KnowledgeProcessingWorker {
                 } else vectorIndex.upsert(revision);
                 job.complete();
                 jobs.save(job);
-                log.info("Completed {} job {} for revision {}", job.jobType(), job.id(), revision.id());
+                log.info("Completed knowledge job type={} jobId={} revisionId={}", job.jobType(), job.id(), revision.id());
             } catch (Exception e) {
                 job.fail(e);
                 jobs.save(job);
                 log.warn(
-                    "Knowledge job {} failed on attempt {}: {}",
+                    "Knowledge job failed jobId={} type={} error={}",
                     job.id(),
                     job.jobType(),
                     e.getMessage()

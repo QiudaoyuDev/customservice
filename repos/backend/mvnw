@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+set -eu
+MVN="${MAVEN_HOME:-}/bin/mvn"
+if [ ! -x "$MVN" ]; then MVN="mvn"; fi
+exec "$MVN" "$@"

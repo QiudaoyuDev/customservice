@@ -12,12 +12,17 @@ public class ApiExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     Map<String, Object> invalid(IllegalArgumentException e) {
-        return Map.of("timestamp", Instant.now().toString(), "message", e.getMessage());
+        return body("INVALID_ARGUMENT", e.getMessage());
     }
 
     @ExceptionHandler(IllegalStateException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     Map<String, Object> conflict(IllegalStateException e) {
-        return Map.of("timestamp", Instant.now().toString(), "message", e.getMessage());
+        return body("INVALID_STATE", e.getMessage());
+    }
+
+    private Map<String, Object> body(String code, String message) {
+        return Map.of("timestamp", Instant.now().toString(), "code", code, "message", message,
+            "requestId", org.slf4j.MDC.get(RequestContextFilter.REQUEST_ID));
     }
 }
