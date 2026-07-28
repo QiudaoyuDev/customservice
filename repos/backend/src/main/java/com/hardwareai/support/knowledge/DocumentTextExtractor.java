@@ -10,12 +10,21 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Converts supported office sources into text; images are delegated to the OCR adapter.
+ * Converts office sources locally and routes supported image sources to the local OCR adapter.
  */
 @Component
 class DocumentTextExtractor {
 
+    private final OcrClient ocr;
+
+    DocumentTextExtractor(OcrClient ocr) {
+        this.ocr = ocr;
+    }
+
     String extract(String contentType, InputStream source) {
+        if ("image/png".equals(contentType) || "image/jpeg".equals(contentType)) {
+            return ocr.extract(contentType, source);
+        }
         try (source) {
             if ("application/pdf".equals(contentType)) {
                 try (var pdf = Loader.loadPDF(source.readAllBytes())) {
@@ -31,7 +40,7 @@ class DocumentTextExtractor {
                     return extractor.getText();
                 }
             }
-            throw new IllegalArgumentException("Image OCR must be handled by the OCR adapter");
+            throw new IllegalArgumentException("Unsupported knowledge document content type: " + contentType);
         } catch (IOException e) {
             throw new IllegalStateException("Unable to extract document text", e);
         }

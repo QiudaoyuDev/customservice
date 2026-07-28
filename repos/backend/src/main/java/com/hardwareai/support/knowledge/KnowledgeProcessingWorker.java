@@ -49,6 +49,7 @@ class KnowledgeProcessingWorker {
                     var document = documents
                         .findById(revision.documentId())
                         .orElseThrow(() -> new IllegalStateException("Document not found"));
+                    // One extractor entry point keeps PDF/DOCX/OCR parsing inside the same durable retry flow.
                     revision.setExtractedText(
                         extractor.extract(document.contentType(), storage.get(document.objectKey())).strip()
                     );
