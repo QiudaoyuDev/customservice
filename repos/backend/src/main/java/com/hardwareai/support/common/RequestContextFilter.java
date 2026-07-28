@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.util.UUID;
 
 /** Adds a non-sensitive correlation id to every request, response and structured log entry. */
-@Component
+@Component("supportRequestContextFilter")
 class RequestContextFilter extends OncePerRequestFilter {
     static final String REQUEST_ID = "requestId";
 
