@@ -2,7 +2,7 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import {BrowserRouter, Navigate, Route, Routes} from 'react-router-dom';
 import './index.css';
-import {I18nProvider} from './i18n';
+import './i18n';
 import {AuthProvider} from './lib/auth';
 import {Root} from './app/Root';
 import Login from './pages/Login';
@@ -18,7 +18,6 @@ import FlowsPage from './console/FlowsPage';
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
     <AuthProvider>
-    <I18nProvider>
       <BrowserRouter>
                 <Routes>
                     <Route path="/support/:qrToken" element={<SupportPage/>}/>
@@ -36,7 +35,6 @@ createRoot(document.getElementById('root')!).render(
                     <Route path="*" element={<Root/>}/>
                 </Routes>
         </BrowserRouter>
-    </I18nProvider>
     </AuthProvider>
     </StrictMode>,
 );
