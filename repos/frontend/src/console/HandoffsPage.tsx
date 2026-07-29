@@ -177,7 +177,7 @@ export default function HandoffsPage() {
             {sel?.reason}
           </div>
           <div>
-            <label className="mb-1 block text-xs text-ink2">{t('handoffs.resolution')}</label>
+            <label className="mb-1 block text-xs text-ink2">{t('handoffs.resolutionLabel')}</label>
             <select
               className="w-full rounded border border-line px-3 py-2 text-sm"
               value={resolution}

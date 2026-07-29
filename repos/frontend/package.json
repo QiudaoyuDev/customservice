@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "prettier --check .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "scan:i18n": "node scripts/scan-i18n.mjs",
+    "check:i18n": "node scripts/check-i18n.mjs"
   },
   "dependencies": {
     "autoprefixer": "10.5.4",
@@ -22,15 +24,17 @@
     "tailwindcss": "3.4.19"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "6.6.3",
+    "esbuild": "0.28.1",
+    "@testing-library/react": "16.3.0",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
-    "@testing-library/jest-dom": "6.6.3",
-    "@testing-library/react": "16.3.0",
     "@vitejs/plugin-react": "4.7.0",
+    "i18next-scanner": "^4.6.0",
     "jsdom": "26.1.0",
+    "prettier": "3.6.2",
     "typescript": "7.0.2",
     "vite": "7.3.6",
-    "vitest": "3.2.4",
-    "prettier": "3.6.2"
+    "vitest": "3.2.4"
   }
 }

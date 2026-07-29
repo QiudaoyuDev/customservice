@@ -1,0 +1,28 @@
+name: i18n check
+
+on:
+  push:
+    paths:
+      - 'repos/frontend/**'
+  pull_request:
+    paths:
+      - 'repos/frontend/**'
+
+jobs:
+  i18n:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: repos/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: repos/frontend/package-lock.json
+      - run: npm ci
+      # 防回归门禁：源码静态 key 必须同时存在于 en/zh 资源，且 en ⊆ zh，防止新串漏翻。
+      - run: npm run check:i18n
+      # 类型与构建校验，确保 i18n 改动不破坏整体编译。
+      - run: npm run build

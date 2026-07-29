@@ -44,6 +44,15 @@ i18n
       caches: ['localStorage'],
       lookupLocalStorage: 'app.lang',
     },
+    // 开发期漏翻告警：缺失 key 时打印到 console，配合 CI 的 i18n 校验脚本防止新串漏翻。
+    // i18next 的签名首参为 readonly string[]（可能多语言），这里取首个语言展示。
+    missingKeyHandler: (lngs: readonly string[], _ns: string, key: string) => {
+      if (import.meta.env.DEV) {
+        const lng = Array.isArray(lngs) ? lngs[0] : lngs;
+        // eslint-disable-next-line no-console
+        console.error(`[i18n] Missing translation: ${key} (${lng})`);
+      }
+    },
   });
 
 /** 语言切换时同步 <html lang>，便于无障碍与字体回退。 */

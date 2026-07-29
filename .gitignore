@@ -14,6 +14,7 @@ __pycache__/
 repos/frontend/node_modules/
 repos/frontend/dist/
 repos/frontend/*.tsbuildinfo
+repos/frontend/.i18n/
 repos/backend/target/
 repos/backend/.mvn/wrapper/dists/
 docs/tmp
