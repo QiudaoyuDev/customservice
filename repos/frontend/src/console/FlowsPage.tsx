@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { Button, Input, Textarea, Tag, Modal, StatusFlow, EmptyState } from '../components/ui';
-import { useTranslation, LANGS } from '../i18n';
+import { useTranslation, LANGS, langNames, regionLabel } from '../i18n';
 
 interface FlowNode {
   nodeKey: string;
@@ -275,10 +275,10 @@ export default function FlowsPage() {
                             onChange={(e) => setEditing({ ...editing, nodeType: e.target.value })}
                           >
                             <option value="QUESTION">{t('flows.typeAI')}</option>
-                            <option value="OBSERVE">OBSERVE</option>
-                            <option value="OPERATION">OPERATION</option>
-                            <option value="VERIFY">VERIFY</option>
-                            <option value="DECISION">DECISION</option>
+                            <option value="OBSERVE">{t('flows.typeObserve')}</option>
+                            <option value="OPERATION">{t('flows.typeOperation')}</option>
+                            <option value="VERIFY">{t('flows.typeVerify')}</option>
+                            <option value="DECISION">{t('flows.typeDecision')}</option>
                             <option value="HUMAN_ESCALATION">{t('flows.typeHuman')}</option>
                             <option value="END">{t('flows.typeEnd')}</option>
                           </select>
@@ -362,7 +362,7 @@ export default function FlowsPage() {
                           <Input
                             value={editing.sourceRefs}
                             onChange={(e) => setEditing({ ...editing, sourceRefs: e.target.value })}
-                            placeholder="doc-1,chunk-2"
+                            placeholder={t('flows.sourceRefsPlaceholder')}
                           />
                         </div>
                         <div className="flex gap-2">
@@ -459,7 +459,7 @@ export default function FlowsPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs text-ink2">
-                Product variant UUID (optional)
+                {t('flows.productVariant')}
               </label>
               <Input
                 value={newFlow.productVariantId}
@@ -467,35 +467,35 @@ export default function FlowsPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-ink2">Hardware revision (optional)</label>
+              <label className="mb-1 block text-xs text-ink2">{t('flows.hardwareRevision')}</label>
               <Input
                 value={newFlow.hardwareRevision}
                 onChange={(e) => setNewFlow({ ...newFlow, hardwareRevision: e.target.value })}
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-ink2">Firmware minimum</label>
+              <label className="mb-1 block text-xs text-ink2">{t('flows.firmwareMin')}</label>
               <Input
                 value={newFlow.firmwareMin}
                 onChange={(e) => setNewFlow({ ...newFlow, firmwareMin: e.target.value })}
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-ink2">Firmware maximum</label>
+              <label className="mb-1 block text-xs text-ink2">{t('flows.firmwareMax')}</label>
               <Input
                 value={newFlow.firmwareMax}
                 onChange={(e) => setNewFlow({ ...newFlow, firmwareMax: e.target.value })}
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-ink2">Trigger phrase or error code</label>
+              <label className="mb-1 block text-xs text-ink2">{t('flows.triggerPhrase')}</label>
               <Input
                 value={newFlow.triggerPhrase}
                 onChange={(e) => setNewFlow({ ...newFlow, triggerPhrase: e.target.value })}
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-ink2">Priority</label>
+              <label className="mb-1 block text-xs text-ink2">{t('flows.priority')}</label>
               <Input
                 type="number"
                 value={newFlow.priority}
@@ -512,7 +512,7 @@ export default function FlowsPage() {
             >
               {['EU', 'NA', 'APAC', 'LATAM', 'MEA'].map((r) => (
                 <option key={r} value={r}>
-                  {r}
+                  {regionLabel(t, r)}
                 </option>
               ))}
             </select>
@@ -526,7 +526,7 @@ export default function FlowsPage() {
             >
               {LANGS.map((l) => (
                 <option key={l} value={l}>
-                  {l}
+                  {langNames[l] ?? l}
                 </option>
               ))}
             </select>

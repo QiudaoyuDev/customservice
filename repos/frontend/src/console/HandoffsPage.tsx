@@ -155,10 +155,10 @@ export default function HandoffsPage() {
             {sel?.conversationId}
           </div>
           <div>
-            <label className="mb-1 block text-xs text-ink2">Internal notes</label>
+            <label className="mb-1 block text-xs text-ink2">{t('handoffs.internalNotes')}</label>
             <div className="mb-2 max-h-28 space-y-1 overflow-y-auto rounded border border-line p-2 text-xs">
               {notes.length === 0 ? (
-                <span className="text-ink2">No notes yet.</span>
+                <span className="text-ink2">{t('handoffs.noNotesYet')}</span>
               ) : (
                 notes.map((item) => <div key={item.id}>{item.content}</div>)
               )}
@@ -166,10 +166,10 @@ export default function HandoffsPage() {
             <Textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Add an internal handoff note"
+              placeholder={t('handoffs.addNotePlaceholder')}
             />
             <Button size="sm" variant="ghost" onClick={addNote} disabled={!note.trim()}>
-              Add note
+              {t('handoffs.addNote')}
             </Button>
           </div>
           <div>

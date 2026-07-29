@@ -168,24 +168,24 @@ export default function QrsPage() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-ink2">Hardware revision</label>
+            <label className="mb-1 block text-xs text-ink2">{t('qrs.hardwareRevision')}</label>
             <select
               className="w-full rounded border border-line px-3 py-2 text-sm"
               value={form.productVariantId}
               disabled={!form.productModelId}
               onChange={(e) => setForm({ ...form, productVariantId: e.target.value })}
             >
-              <option value="">Default model revision</option>
+              <option value="">{t('qrs.defaultRevision')}</option>
               {variants.map((variant) => (
                 <option key={variant.id} value={variant.id}>
-                  {variant.hardwareRevision || 'Unspecified'} · {variant.region}
+                  {variant.hardwareRevision || t('qrs.unspecified')} · {variant.region}
                   {variant.sku ? ` · ${variant.sku}` : ''}
                 </option>
               ))}
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-ink2">Initial firmware version</label>
+            <label className="mb-1 block text-xs text-ink2">{t('qrs.initialFirmware')}</label>
             <Input
               value={form.initialFirmwareVersion}
               onChange={(e) => setForm({ ...form, initialFirmwareVersion: e.target.value })}

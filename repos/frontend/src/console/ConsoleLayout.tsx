@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { useTranslation } from '../i18n';
+import { LANGS, langNames, useTranslation } from '../i18n';
 
 const NAV = [
   { to: '/console/products', key: 'console.nav.products' },
@@ -17,21 +17,25 @@ const NAV = [
 export default function ConsoleLayout() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const onLogout = () => {
     logout();
     navigate('/');
   };
 
+  const onLangChange = (l: string) => {
+    i18n.changeLanguage(l);
+  };
+
   return (
     <div className="flex h-screen">
-      <aside className="w-56 shrink-0 border-r border-line bg-white">
+      <aside className="flex w-56 shrink-0 flex-col border-r border-line bg-white">
         <div className="border-b border-line px-4 py-4">
           <div className="text-sm font-bold text-ink">HARDWARE AI</div>
           <div className="text-xs text-ink2">{t('console.title')}</div>
         </div>
-        <nav className="p-2">
+        <nav className="flex-1 p-2">
           {NAV.map((n) => (
             <NavLink
               key={n.to}
@@ -44,6 +48,20 @@ export default function ConsoleLayout() {
             </NavLink>
           ))}
         </nav>
+        <div className="border-t border-line p-2">
+          <label className="mb-1 block text-xs text-ink2">{t('console.language')}</label>
+          <select
+            className="w-full rounded border border-line px-2 py-1.5 text-sm"
+            value={i18n.language}
+            onChange={(e) => onLangChange(e.target.value)}
+          >
+            {LANGS.map((l) => (
+              <option key={l} value={l}>
+                {langNames[l] ?? l}
+              </option>
+            ))}
+          </select>
+        </div>
       </aside>
 
       <div className="flex flex-1 flex-col">

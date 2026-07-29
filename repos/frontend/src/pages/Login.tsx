@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { Button, Input } from '../components/ui';
-import { useTranslation } from '../i18n';
+import { useTranslation, LANGS, langNames } from '../i18n';
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -28,7 +28,20 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50">
+    <div className="relative flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="absolute right-4 top-4">
+        <select
+          className="rounded border border-line bg-white px-2 py-1 text-sm"
+          value={i18n.language}
+          onChange={(e) => i18n.changeLanguage(e.target.value)}
+        >
+          {LANGS.map((l) => (
+            <option key={l} value={l}>
+              {langNames[l] ?? l}
+            </option>
+          ))}
+        </select>
+      </div>
       <form
         onSubmit={submit}
         className="w-full max-w-sm space-y-4 rounded-2xl border border-line bg-white p-8 shadow-sm"

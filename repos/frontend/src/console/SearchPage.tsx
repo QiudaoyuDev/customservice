@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { Button, Input, Tag } from '../components/ui';
-import { useTranslation, LANGS } from '../i18n';
+import { useTranslation, LANGS, langNames, regionLabel } from '../i18n';
 import { Product } from '../lib/types';
 
 export default function SearchPage() {
@@ -82,7 +82,7 @@ export default function SearchPage() {
             >
               {['EU', 'NA', 'APAC', 'LATAM', 'MEA'].map((r) => (
                 <option key={r} value={r}>
-                  {r}
+                  {regionLabel(t, r)}
                 </option>
               ))}
             </select>
@@ -96,7 +96,7 @@ export default function SearchPage() {
             >
               {LANGS.map((l) => (
                 <option key={l} value={l}>
-                  {l}
+                  {langNames[l] ?? l}
                 </option>
               ))}
             </select>
@@ -133,7 +133,7 @@ export default function SearchPage() {
               result.results?.map((c: any, i: number) => (
                 <div key={i} className="rounded-xl border border-line bg-white p-3">
                   <div className="mb-1 flex items-center gap-2 text-xs">
-                    <Tag tone="ai">Hybrid</Tag>
+                    <Tag tone="ai">{t('search.hybrid')}</Tag>
                     <span className="text-ink2">
                       {t('search.score')} {c.score?.toFixed?.(3)}
                     </span>

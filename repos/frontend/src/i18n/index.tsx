@@ -46,9 +46,25 @@ i18n
     },
   });
 
+/** 语言切换时同步 <html lang>，便于无障碍与字体回退。 */
+function syncHtmlLang(lng: string) {
+  const base = lng.split('-')[0];
+  document.documentElement.lang = base === 'zh' ? 'zh-CN' : base === 'en' ? 'en' : lng;
+}
+syncHtmlLang(i18n.language);
+i18n.on('languageChanged', syncHtmlLang);
+
 /** 状态码 -> 本地化标签；未配置时回退原值。 */
 export function statusLabel(t: TFunction, code: string): string {
   const key = 'status.' + String(code).toLowerCase();
+  const v = t(key);
+  return v === key ? code : v;
+}
+
+/** 地区码 -> 本地化友好名；未配置时回退原码。 */
+export function regionLabel(t: TFunction, code: string): string {
+  if (!code) return '';
+  const key = 'regions.' + String(code).toLowerCase();
   const v = t(key);
   return v === key ? code : v;
 }

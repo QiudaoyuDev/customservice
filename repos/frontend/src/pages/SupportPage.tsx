@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { postAnswer, pub, pubUpload, streamAnswer } from '../lib/api';
 import { Button, Input, Modal, Textarea } from '../components/ui';
-import { langNames, LANGS, useTranslation } from '../i18n';
+import { langNames, LANGS, regionLabel, useTranslation } from '../i18n';
 
 function StepCard({
   m,
@@ -400,7 +400,7 @@ export default function SupportPage() {
         </div>
       );
     }
-    if (intent === 'INFO' && c.startsWith('认证'))
+    if (intent === 'INFO')
       return (
         <div className="rounded-2xl border border-line bg-white p-4 text-[15px] text-ink">
           {t('support.demoSession')}
@@ -432,7 +432,7 @@ export default function SupportPage() {
             {t('support.chatTitle', { id: convId.slice(0, 8) })}
           </span>
           <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-ink2">
-            {region} · {language}
+            {regionLabel(t, region)} · {langNames[language] ?? language}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -444,7 +444,7 @@ export default function SupportPage() {
           >
             {['EU', 'NA', 'APAC', 'LATAM', 'MEA'].map((r) => (
               <option key={r} value={r}>
-                {r}
+                {regionLabel(t, r)}
               </option>
             ))}
           </select>

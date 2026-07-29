@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, apiUpload } from '../lib/api';
 import { Product } from '../lib/types';
 import { Button, Input, Textarea, Tag, Modal, StatusFlow, EmptyState } from '../components/ui';
-import { useTranslation, LANGS } from '../i18n';
+import { useTranslation, LANGS, langNames, regionLabel, statusLabel } from '../i18n';
 
 export default function DocumentsPage() {
   const { t } = useTranslation();
@@ -133,7 +133,7 @@ export default function DocumentsPage() {
                               : 'warn'
                         }
                       >
-                        {d.indexStatus ?? 'NOT_INDEXED'}
+                        {statusLabel(t, d.indexStatus ?? 'NOT_INDEXED')}
                       </Tag>
                     </div>
                   </td>
@@ -181,7 +181,7 @@ export default function DocumentsPage() {
             >
               {LANGS.map((l) => (
                 <option key={l} value={l}>
-                  {l}
+                  {langNames[l] ?? l}
                 </option>
               ))}
             </select>
@@ -195,7 +195,7 @@ export default function DocumentsPage() {
             >
               {['EU', 'NA', 'APAC', 'LATAM', 'MEA'].map((r) => (
                 <option key={r} value={r}>
-                  {r}
+                  {regionLabel(t, r)}
                 </option>
               ))}
             </select>
@@ -216,17 +216,17 @@ export default function DocumentsPage() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-ink2">Product variant</label>
+            <label className="mb-1 block text-xs text-ink2">{t('documents.productVariant')}</label>
             <select
               className="w-full rounded border border-line px-3 py-2 text-sm"
               value={form.productVariantId}
               disabled={!form.productModelId}
               onChange={(e) => setForm({ ...form, productVariantId: e.target.value })}
             >
-              <option value="">All compatible variants</option>
+              <option value="">{t('documents.allVariants')}</option>
               {variants.map((variant) => (
                 <option key={variant.id} value={variant.id}>
-                  {variant.hardwareRevision || 'Unspecified revision'} · {variant.region}
+                  {variant.hardwareRevision || t('qrs.unspecified')} · {variant.region}
                   {variant.sku ? ` · ${variant.sku}` : ''}
                 </option>
               ))}
@@ -234,17 +234,17 @@ export default function DocumentsPage() {
           </div>
           <div className="grid grid-cols-3 gap-2">
             <Input
-              placeholder="Hardware revision"
+              placeholder={t('documents.hardwareRevision')}
               value={form.hardwareRevision}
               onChange={(e) => setForm({ ...form, hardwareRevision: e.target.value })}
             />
             <Input
-              placeholder="Firmware min"
+              placeholder={t('documents.firmwareMin')}
               value={form.firmwareMin}
               onChange={(e) => setForm({ ...form, firmwareMin: e.target.value })}
             />
             <Input
-              placeholder="Firmware max"
+              placeholder={t('documents.firmwareMax')}
               value={form.firmwareMax}
               onChange={(e) => setForm({ ...form, firmwareMax: e.target.value })}
             />
@@ -274,7 +274,7 @@ export default function DocumentsPage() {
                     : 'warn'
               }
             >
-              {preview?.indexStatus ?? 'NOT_INDEXED'}
+              {statusLabel(t, preview?.indexStatus ?? 'NOT_INDEXED')}
             </Tag>
             {preview?.chunks != null && (
               <span>{t('documents.chunks', { count: preview.chunks.length })}</span>
@@ -289,7 +289,7 @@ export default function DocumentsPage() {
               checked={form.allowDuplicate}
               onChange={(e) => setForm({ ...form, allowDuplicate: e.target.checked })}
             />
-            Create an explicit revision when this source already exists
+            {t('documents.createRevision')}
           </label>
           {preview?.chunks?.length > 0 && (
             <div className="max-h-44 space-y-2 overflow-y-auto">

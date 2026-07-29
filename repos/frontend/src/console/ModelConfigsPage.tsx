@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { Button, Input, Modal, Tag } from '../components/ui';
+import { useTranslation } from '../i18n';
 
 type Config = {
   id: string;
@@ -12,6 +13,7 @@ type Config = {
 };
 
 export default function ModelConfigsPage() {
+  const { t } = useTranslation();
   const [rows, setRows] = useState<Config[]>([]);
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
@@ -39,21 +41,17 @@ export default function ModelConfigsPage() {
   };
   const test = async (id: string) => {
     const result = await api(`/model-configurations/${id}/test`, { method: 'POST' });
-    setMessage(
-      result.reachable
-        ? 'Connection succeeded.'
-        : 'Connection failed. Check endpoint and credentials.',
-    );
+    setMessage(result.reachable ? t('models.connectionOk') : t('models.connectionFailed'));
   };
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-ink">Model providers</h1>
-          <p className="text-sm text-ink2">Credentials are encrypted and never shown again.</p>
+          <h1 className="text-xl font-bold text-ink">{t('models.title')}</h1>
+          <p className="text-sm text-ink2">{t('models.subtitle')}</p>
         </div>
         <Button variant="ai" onClick={() => setOpen(true)}>
-          Add provider
+          {t('models.addProvider')}
         </Button>
       </div>
       {message && (
@@ -63,10 +61,10 @@ export default function ModelConfigsPage() {
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-ink2">
             <tr>
-              <th className="px-4 py-2 text-left">Name</th>
-              <th className="px-4 py-2 text-left">Model</th>
-              <th className="px-4 py-2 text-left">State</th>
-              <th className="px-4 py-2 text-left">Action</th>
+              <th className="px-4 py-2 text-left">{t('models.name')}</th>
+              <th className="px-4 py-2 text-left">{t('models.model')}</th>
+              <th className="px-4 py-2 text-left">{t('models.state')}</th>
+              <th className="px-4 py-2 text-left">{t('models.action')}</th>
             </tr>
           </thead>
           <tbody>
@@ -74,17 +72,17 @@ export default function ModelConfigsPage() {
               <tr className="border-t border-line" key={row.id}>
                 <td className="px-4 py-2">
                   {row.name}
-                  {row.defaultConfig && <Tag tone="ai">Default</Tag>}
+                  {row.defaultConfig && <Tag tone="ai">{t('models.default')}</Tag>}
                 </td>
                 <td className="px-4 py-2">{row.modelName}</td>
                 <td className="px-4 py-2">
                   <Tag tone={row.enabled && row.configured ? 'ok' : 'warn'}>
-                    {row.enabled ? 'Enabled' : 'Disabled'}
+                    {row.enabled ? t('models.enabled') : t('models.disabled')}
                   </Tag>
                 </td>
                 <td className="px-4 py-2">
                   <button className="text-ai hover:underline" onClick={() => test(row.id)}>
-                    Test connection
+                    {t('models.testConnection')}
                   </button>
                 </td>
               </tr>
@@ -94,47 +92,47 @@ export default function ModelConfigsPage() {
       </div>
       <Modal
         open={open}
-        title="Add model provider"
+        title={t('models.editTitle')}
         onClose={() => setOpen(false)}
         footer={
           <>
             <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
+              {t('models.cancel')}
             </Button>
             <Button
               variant="ai"
               disabled={!form.name || !form.baseUrl || !form.modelName || !form.apiKey}
               onClick={save}
             >
-              Save encrypted configuration
+              {t('models.save')}
             </Button>
           </>
         }
       >
         <div className="space-y-3">
           <Input
-            placeholder="Name"
+            placeholder={t('models.namePlaceholder')}
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
           <Input
-            placeholder="Base URL"
+            placeholder={t('models.baseUrlPlaceholder')}
             value={form.baseUrl}
             onChange={(e) => setForm({ ...form, baseUrl: e.target.value })}
           />
           <Input
-            placeholder="Model name"
+            placeholder={t('models.modelNamePlaceholder')}
             value={form.modelName}
             onChange={(e) => setForm({ ...form, modelName: e.target.value })}
           />
           <Input
-            placeholder="Vision model (optional)"
+            placeholder={t('models.visionModel')}
             value={form.visionModel}
             onChange={(e) => setForm({ ...form, visionModel: e.target.value })}
           />
           <Input
             type="password"
-            placeholder="API key (stored encrypted)"
+            placeholder={t('models.apiKeyPlaceholder')}
             value={form.apiKey}
             onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
           />
@@ -162,7 +160,7 @@ export default function ModelConfigsPage() {
               checked={form.defaultConfig}
               onChange={(e) => setForm({ ...form, defaultConfig: e.target.checked })}
             />
-            Use as tenant default
+            {t('models.useAsDefault')}
           </label>
         </div>
       </Modal>

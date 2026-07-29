@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { Button, Input, Textarea, Tag, Modal, StatusFlow, EmptyState } from '../components/ui';
-import { useTranslation } from '../i18n';
+import { useTranslation, statusLabel, regionLabel } from '../i18n';
 
 export default function ProductsPage() {
   const { t } = useTranslation();
@@ -147,7 +147,7 @@ export default function ProductsPage() {
                       className="mr-3 text-xs text-ai hover:underline"
                       onClick={() => void openVariants(p)}
                     >
-                      Variants
+                      {t('products.variantsTitle')}
                     </button>
                     {p.status === 'ACTIVE' && (
                       <button
@@ -211,7 +211,7 @@ export default function ProductsPage() {
             >
               {['EU', 'NA', 'APAC', 'LATAM', 'MEA'].map((r) => (
                 <option key={r} value={r}>
-                  {r}
+                  {regionLabel(t, r)}
                 </option>
               ))}
             </select>
@@ -244,33 +244,33 @@ export default function ProductsPage() {
 
       <Modal
         open={showVariants}
-        title={`${selectedProduct?.displayName ?? ''} · variants`}
+        title={`${selectedProduct?.displayName ?? ''} · ${t('products.variantsTitle')}`}
         onClose={() => setShowVariants(false)}
       >
         <div className="space-y-4">
           <div className="rounded border border-line p-3">
-            <div className="mb-2 text-sm font-medium text-ink">Add hardware revision</div>
+            <div className="mb-2 text-sm font-medium text-ink">{t('products.addHardwareRevision')}</div>
             <div className="grid grid-cols-3 gap-2">
               <Input
-                placeholder="Region"
+                placeholder={t('products.region')}
                 value={variantForm.region}
                 onChange={(e) => setVariantForm({ ...variantForm, region: e.target.value })}
               />
               <Input
-                placeholder="Hardware revision"
+                placeholder={t('products.hardwareRevision')}
                 value={variantForm.hardwareRevision}
                 onChange={(e) =>
                   setVariantForm({ ...variantForm, hardwareRevision: e.target.value })
                 }
               />
               <Input
-                placeholder="SKU"
+                placeholder={t('products.sku')}
                 value={variantForm.sku}
                 onChange={(e) => setVariantForm({ ...variantForm, sku: e.target.value })}
               />
             </div>
             <Button className="mt-2" variant="ai" onClick={() => void createVariant()}>
-              Add variant
+              {t('products.addVariant')}
             </Button>
           </div>
           <div className="space-y-2">
@@ -280,7 +280,7 @@ export default function ProductsPage() {
                 onClick={() => void chooseVariant(variant)}
                 className={`block w-full rounded border p-2 text-left text-sm ${selectedVariant?.id === variant.id ? 'border-ai bg-ai-soft' : 'border-line'}`}
               >
-                {variant.hardwareRevision || 'Unspecified revision'} · {variant.region}
+                {variant.hardwareRevision || t('products.unspecifiedRevision')} · {variant.region}
                 {variant.sku ? ` · ${variant.sku}` : ''}
               </button>
             ))}
@@ -288,11 +288,11 @@ export default function ProductsPage() {
           {selectedVariant && (
             <div className="rounded border border-line p-3">
               <div className="mb-2 text-sm font-medium text-ink">
-                Firmware for {selectedVariant.hardwareRevision || selectedVariant.id}
+                {t('products.firmwareFor')} {selectedVariant.hardwareRevision || selectedVariant.id})
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <Input
-                  placeholder="Version"
+                  placeholder={t('products.version')}
                   value={firmwareForm.version}
                   onChange={(e) => setFirmwareForm({ ...firmwareForm, version: e.target.value })}
                 />
@@ -304,23 +304,23 @@ export default function ProductsPage() {
                   }
                 />
                 <Input
-                  placeholder="Checksum"
+                  placeholder={t('products.checksum')}
                   value={firmwareForm.checksum}
                   onChange={(e) => setFirmwareForm({ ...firmwareForm, checksum: e.target.value })}
                 />
                 <Input
-                  placeholder="Notes"
+                  placeholder={t('products.notes')}
                   value={firmwareForm.notes}
                   onChange={(e) => setFirmwareForm({ ...firmwareForm, notes: e.target.value })}
                 />
               </div>
               <Button className="mt-2" variant="ai" onClick={() => void createFirmware()}>
-                Add firmware
+                {t('products.addFirmware')}
               </Button>
               <div className="mt-3 space-y-1 text-sm text-ink2">
                 {firmware.map((item) => (
                   <div key={item.id}>
-                    {item.version} · {item.status}
+                    {item.version} · {statusLabel(t, item.status)}
                   </div>
                 ))}
               </div>
