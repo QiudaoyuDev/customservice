@@ -1,0 +1,3 @@
+CREATE TABLE attachment_processing_jobs (id uuid PRIMARY KEY, attachment_id uuid NOT NULL REFERENCES message_attachments(id), status varchar(32) NOT NULL, attempts integer NOT NULL DEFAULT 0, error_code varchar(80), created_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz);
+CREATE TABLE attachment_analyses (id uuid PRIMARY KEY, attachment_id uuid NOT NULL UNIQUE REFERENCES message_attachments(id), ocr_text text, error_code varchar(100), indicator_description varchar(300), confidence numeric(5,4), requires_confirmation boolean NOT NULL DEFAULT true, status varchar(32) NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX idx_attachment_processing_jobs_pending ON attachment_processing_jobs(status, created_at);

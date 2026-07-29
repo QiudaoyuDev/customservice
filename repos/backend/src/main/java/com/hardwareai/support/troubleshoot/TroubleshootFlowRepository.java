@@ -14,13 +14,15 @@ public interface TroubleshootFlowRepository extends JpaRepository<TroubleshootFl
 
     Optional<TroubleshootFlow> findByIdAndTenantId(UUID id, UUID tenant);
 
+    List<TroubleshootFlow> findAllByDefinitionIdOrderByVersionNoDesc(UUID definitionId);
+
     @Query("""
             select f from TroubleshootFlow f
             where f.tenantId = :tenant and f.productModelId = :product and f.region = :region
               and f.locale = :locale and f.triggerIntent = :trigger
               and f.status = com.hardwareai.support.troubleshoot.TroubleshootFlow.Status.PUBLISHED
             """)
-    Optional<TroubleshootFlow> findPublishedMatch(
+    List<TroubleshootFlow> findPublishedCandidates(
             @Param("tenant") UUID tenant,
             @Param("product") UUID product,
             @Param("region") String region,

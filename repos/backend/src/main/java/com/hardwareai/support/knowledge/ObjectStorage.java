@@ -47,13 +47,28 @@ public class ObjectStorage {
     /**
      * Caller owns and closes the private stream.
      */
-    java.io.InputStream get(String key) {
+    public java.io.InputStream get(String key) {
         try {
             return client.getObject(
                     GetObjectArgs.builder().bucket(properties.storage().bucket()).object(key).build()
             );
         } catch (Exception e) {
             throw new IllegalStateException("Unable to read knowledge source object", e);
+        }
+    }
+
+    /**
+     * Deletes an object that has reached its configured retention boundary.
+     * The caller must have already established that no retained record references it.
+     */
+    public void delete(String key) {
+        try {
+            client.removeObject(
+                    RemoveObjectArgs.builder().bucket(properties.storage().bucket()).object(key).build()
+            );
+            log.info("Deleted retained object {}", key);
+        } catch (Exception e) {
+            throw new IllegalStateException("Unable to delete retained object", e);
         }
     }
 }

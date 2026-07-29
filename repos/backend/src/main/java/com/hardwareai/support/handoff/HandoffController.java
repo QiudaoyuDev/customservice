@@ -2,6 +2,8 @@ package com.hardwareai.support.handoff;
 
 import com.hardwareai.support.common.CurrentUser;
 import com.hardwareai.support.conversation.ConversationAccessService;
+import com.hardwareai.support.conversation.HandoffPackageBuilder;
+import com.hardwareai.support.analytics.OperationalEventService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -24,11 +26,17 @@ class HandoffController {
     private final HandoffRepository requests;
     private final ConversationAccessService conversations;
     private final CurrentUser current;
+    private final HandoffPackageBuilder packageBuilder;
+    private final HandoffNoteRepository notes;
+    private final OperationalEventService events;
 
-    HandoffController(HandoffRepository requests, ConversationAccessService conversations, CurrentUser current) {
+    HandoffController(HandoffRepository requests, ConversationAccessService conversations, CurrentUser current, HandoffPackageBuilder packageBuilder, HandoffNoteRepository notes, OperationalEventService events) {
         this.requests = requests;
         this.conversations = conversations;
         this.current = current;
+        this.packageBuilder = packageBuilder;
+        this.notes = notes;
+        this.events = events;
     }
 
     @PostMapping("/public/handoffs")
@@ -39,7 +47,9 @@ class HandoffController {
             log.info("Handoff deduplicated conversation={} id={}", input.conversationId(), existing.get().id());
             return View.of(existing.get());
         }
-        var item = requests.save(new HandoffRequest(tenant, input.conversationId(), input.idempotencyKey(), input.reason(), input.summary(), input.contact(), input.contactAuthorized(), input.summary()));
+        var snapshot = packageBuilder.build(tenant, input.conversationId(), input.reason(), input.summary(), input.contact(), input.contactAuthorized());
+        var item = requests.save(new HandoffRequest(tenant, input.conversationId(), input.idempotencyKey(), input.reason(), input.summary(), input.contact(), input.contactAuthorized(), snapshot));
+        events.record(tenant, input.conversationId(), "HANDOFF_CREATED", java.util.Map.of("reason", input.reason(), "status", item.status().name()));
         log.info("Handoff created id={} tenant={} conversation={}", item.id(), tenant, input.conversationId());
         return View.of(item);
     }
@@ -56,6 +66,7 @@ class HandoffController {
         var item = owned(id);
         item.claim(current.userId());
         requests.save(item);
+        events.record(current.tenantId(), item.conversationId(), "HANDOFF_CLAIMED", java.util.Map.of("status", item.status().name()));
         log.info("Handoff claimed id={} by={}", id, current.userId());
     }
 
@@ -65,7 +76,24 @@ class HandoffController {
         var item = owned(id);
         item.close(input.resolution());
         requests.save(item);
+        events.record(current.tenantId(), item.conversationId(), "HANDOFF_CLOSED", java.util.Map.of("status", item.status().name(), "outcome", input.resolution().name()));
         log.info("Handoff closed id={}", id);
+    }
+
+    @GetMapping("/api/handoffs/{id}/notes")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPPORT_AGENT')")
+    List<NoteView> notes(@PathVariable UUID id) {
+        owned(id);
+        return notes.findAllByHandoffIdOrderByCreatedAtAsc(id).stream().map(NoteView::of).toList();
+    }
+
+    @PostMapping("/api/handoffs/{id}/notes")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPPORT_AGENT')")
+    NoteView addNote(@PathVariable UUID id, @Valid @RequestBody Note input) {
+        owned(id);
+        var note = notes.save(new HandoffNote(id, current.userId(), input.content()));
+        log.info("Handoff note added handoff={} author={}", id, current.userId());
+        return NoteView.of(note);
     }
 
     private HandoffRequest owned(UUID id) {
@@ -80,6 +108,10 @@ class HandoffController {
     }
 
     record Close(@NotNull HandoffRequest.Resolution resolution) {
+    }
+    record Note(@NotBlank @Size(max = 4000) String content) { }
+    record NoteView(UUID id, UUID authorId, String content, java.time.Instant createdAt) {
+        static NoteView of(HandoffNote note) { return new NoteView(note.id(), note.authorId(), note.content(), note.createdAt()); }
     }
 
     record View(UUID id, UUID conversationId, String status, String reason, String summary, String contact,

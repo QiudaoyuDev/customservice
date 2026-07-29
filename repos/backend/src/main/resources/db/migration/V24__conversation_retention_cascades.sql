@@ -1,0 +1,27 @@
+-- Retention removes only closed conversations; cascading keeps related personal data atomic.
+ALTER TABLE conversation_product_contexts DROP CONSTRAINT IF EXISTS conversation_product_contexts_conversation_id_fkey;
+ALTER TABLE conversation_product_contexts ADD CONSTRAINT conversation_product_contexts_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE;
+ALTER TABLE messages DROP CONSTRAINT IF EXISTS messages_conversation_id_fkey;
+ALTER TABLE messages ADD CONSTRAINT messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE;
+ALTER TABLE conversation_feedback DROP CONSTRAINT IF EXISTS conversation_feedback_conversation_id_fkey;
+ALTER TABLE conversation_feedback ADD CONSTRAINT conversation_feedback_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE;
+ALTER TABLE answer_traces DROP CONSTRAINT IF EXISTS answer_traces_conversation_id_fkey;
+ALTER TABLE answer_traces ADD CONSTRAINT answer_traces_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE;
+ALTER TABLE handoff_requests DROP CONSTRAINT IF EXISTS handoff_requests_conversation_id_fkey;
+ALTER TABLE handoff_requests ADD CONSTRAINT handoff_requests_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE;
+ALTER TABLE conversation_flow_sessions DROP CONSTRAINT IF EXISTS conversation_flow_sessions_conversation_id_fkey;
+ALTER TABLE conversation_flow_sessions ADD CONSTRAINT conversation_flow_sessions_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE;
+ALTER TABLE message_attachments DROP CONSTRAINT IF EXISTS message_attachments_message_id_fkey;
+ALTER TABLE message_attachments ADD CONSTRAINT message_attachments_message_id_fkey FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE;
+ALTER TABLE attachment_processing_jobs DROP CONSTRAINT IF EXISTS attachment_processing_jobs_attachment_id_fkey;
+ALTER TABLE attachment_processing_jobs ADD CONSTRAINT attachment_processing_jobs_attachment_id_fkey FOREIGN KEY (attachment_id) REFERENCES message_attachments(id) ON DELETE CASCADE;
+ALTER TABLE attachment_analyses DROP CONSTRAINT IF EXISTS attachment_analyses_attachment_id_fkey;
+ALTER TABLE attachment_analyses ADD CONSTRAINT attachment_analyses_attachment_id_fkey FOREIGN KEY (attachment_id) REFERENCES message_attachments(id) ON DELETE CASCADE;
+ALTER TABLE answer_citations DROP CONSTRAINT IF EXISTS answer_citations_answer_trace_id_fkey;
+ALTER TABLE answer_citations ADD CONSTRAINT answer_citations_answer_trace_id_fkey FOREIGN KEY (answer_trace_id) REFERENCES answer_traces(id) ON DELETE CASCADE;
+ALTER TABLE conversation_flow_steps DROP CONSTRAINT IF EXISTS conversation_flow_steps_flow_session_id_fkey;
+ALTER TABLE conversation_flow_steps ADD CONSTRAINT conversation_flow_steps_flow_session_id_fkey FOREIGN KEY (flow_session_id) REFERENCES conversation_flow_sessions(id) ON DELETE CASCADE;
+ALTER TABLE handoff_notification_jobs DROP CONSTRAINT IF EXISTS handoff_notification_jobs_handoff_request_id_fkey;
+ALTER TABLE handoff_notification_jobs ADD CONSTRAINT handoff_notification_jobs_handoff_request_id_fkey FOREIGN KEY (handoff_request_id) REFERENCES handoff_requests(id) ON DELETE CASCADE;
+ALTER TABLE handoff_notes DROP CONSTRAINT IF EXISTS handoff_notes_handoff_id_fkey;
+ALTER TABLE handoff_notes ADD CONSTRAINT handoff_notes_handoff_id_fkey FOREIGN KEY (handoff_id) REFERENCES handoff_requests(id) ON DELETE CASCADE;

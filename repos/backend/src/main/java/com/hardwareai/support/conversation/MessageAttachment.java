@@ -41,4 +41,9 @@ class MessageAttachment {
     UUID id() {
         return id;
     }
+    String objectKey() { return objectKey; }
+    String contentType() { return contentType; }
+    UUID messageId() { return messageId; }
+    long sizeBytes() { return sizeBytes; }
+    Instant createdAt() { return createdAt; }
 }

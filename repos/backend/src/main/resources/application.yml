@@ -45,6 +45,9 @@ app:
     connect-timeout: ${EXTERNAL_CONNECT_TIMEOUT:3s}
     read-timeout: ${EXTERNAL_READ_TIMEOUT:15s}
     request-timeout: ${EXTERNAL_REQUEST_TIMEOUT:20s}
+  retention:
+    closed-conversation: ${CLOSED_CONVERSATION_RETENTION:PT720H}
+    cleanup-cron: ${RETENTION_CLEANUP_CRON:0 30 3 * * *}
 server.error.include-message: never
 management:
   endpoints.web.exposure.include: health,info

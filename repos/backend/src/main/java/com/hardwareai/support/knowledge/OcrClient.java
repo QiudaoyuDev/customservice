@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
  * or the image itself.</p>
  */
 @Component
-class OcrClient {
+public class OcrClient {
 
     private static final Logger log = LoggerFactory.getLogger(OcrClient.class);
     private final RestClient client;
@@ -33,7 +33,7 @@ class OcrClient {
         this.client = clients.create(ocrUrl);
     }
 
-    OcrText extract(String contentType, InputStream source) {
+    public OcrText extract(String contentType, InputStream source) {
         byte[] bytes;
         try (source) {
             bytes = source.readAllBytes();
@@ -77,7 +77,7 @@ class OcrClient {
     private record OcrResponse(String text, Double confidence, String language, Integer pageFrom, Integer pageTo) {
     }
 
-    record OcrText(String text, Double confidence, String language, Integer pageFrom, Integer pageTo) { }
+    public record OcrText(String text, Double confidence, String language, Integer pageFrom, Integer pageTo) { }
 
     /**
      * Supplies a filename because FastAPI's UploadFile uses it to choose a safe suffix.

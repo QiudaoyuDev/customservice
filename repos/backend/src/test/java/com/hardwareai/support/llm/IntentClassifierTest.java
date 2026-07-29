@@ -16,4 +16,10 @@ class IntentClassifierTest {
     void recognizesHumanRequest() {
         assertEquals(Intent.HUMAN_REQUEST, classifier.classify("请转人工客服"));
     }
+
+    @Test
+    void classifiesWaterIngressAsSafetyAndAmbiguousTextAsUnknown() {
+        assertEquals(Intent.SAFETY_RISK, classifier.classify("设备进水后还能使用吗"));
+        assertEquals(Intent.UNKNOWN, classifier.classify("asdf qwerty"));
+    }
 }

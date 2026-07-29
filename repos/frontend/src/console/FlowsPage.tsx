@@ -25,11 +25,24 @@ export default function FlowsPage() {
   const [editing, setEditing] = useState<FlowNode | null>(null);
   const [showNewFlow, setShowNewFlow] = useState(false);
   const [showSim, setShowSim] = useState(false);
-  const [newFlow, setNewFlow] = useState({ title: '', triggerIntent: 'TROUBLESHOOTING', productModelId: '', region: 'EU', locale: 'en' });
+  const [newFlow, setNewFlow] = useState({
+    title: '',
+    triggerIntent: 'TROUBLESHOOTING',
+    productModelId: '',
+    productVariantId: '',
+    hardwareRevision: '',
+    firmwareMin: '',
+    firmwareMax: '',
+    triggerPhrase: '',
+    priority: 0,
+    region: 'EU',
+    locale: 'en',
+  });
   const [simLog, setSimLog] = useState<any[]>([]);
   const [simBusy, setSimBusy] = useState(false);
 
-  const typeLabel = (ty: string) => (ty === 'AI' ? t('flows.typeAI') : ty === 'HUMAN' ? t('flows.typeHuman') : t('flows.typeEnd'));
+  const typeLabel = (ty: string) =>
+    ty === 'AI' ? t('flows.typeAI') : ty === 'HUMAN' ? t('flows.typeHuman') : t('flows.typeEnd');
 
   const load = async () => {
     setLoading(true);
@@ -43,9 +56,9 @@ export default function FlowsPage() {
   };
   const loadDetail = async (id: string) => {
     const d = await api(`/flows/${id}`);
-    setDetail({...d.flow, nodes: d.nodes});
+    setDetail({ ...d.flow, nodes: d.nodes });
     setSelId(id);
-    if (d?.nodes?.length) setEditing(d.nodes[0]);
+    if (d?.nodes?.length) setEditing(toEditable(d.nodes[0]));
     else setEditing(null);
   };
   useEffect(() => {
@@ -58,9 +71,23 @@ export default function FlowsPage() {
 
   const saveNode = async () => {
     if (!detail || !editing) return;
-    const payload = { ...editing, sourceRefs: editing.sourceRefs ? editing.sourceRefs.split(',').map((v) => v.trim()).filter(Boolean) : [] };
+    const payload = {
+      ...editing,
+      sourceRefs: editing.sourceRefs
+        ? editing.sourceRefs
+            .split(',')
+            .map((v) => v.trim())
+            .filter(Boolean)
+        : [],
+    };
     if (!payload.nodeKey) payload.nodeKey = 'n' + Math.random().toString(36).slice(2, 8);
-    await api(`/flows/${detail.id}/nodes`, { method: 'POST', body: JSON.stringify(payload) });
+    const exists = detail.nodes?.some(
+      (node: { nodeKey: string }) => node.nodeKey === payload.nodeKey,
+    );
+    await api(
+      exists ? `/flows/${detail.id}/nodes/${payload.nodeKey}` : `/flows/${detail.id}/nodes`,
+      { method: exists ? 'PUT' : 'POST', body: JSON.stringify(payload) },
+    );
     loadDetail(detail.id);
   };
   const deleteNode = async (key: string) => {
@@ -96,7 +123,7 @@ export default function FlowsPage() {
           <p className="text-sm text-ink2">{t('flows.subtitle')}</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="ai" onClick={() => setShowSim(true)} disabled={!detail}>
+          <Button variant="ai" onClick={simulate} disabled={!detail}>
             {t('flows.simulate')}
           </Button>
           <Button variant="ai" onClick={() => setShowNewFlow(true)}>
@@ -120,7 +147,9 @@ export default function FlowsPage() {
                   className={`block w-full rounded-xl border p-3 text-left ${selId === f.id ? 'border-ai bg-ai-soft' : 'border-line bg-white'}`}
                 >
                   <div className="text-sm font-medium text-ink">{f.title}</div>
-                  <div className="mt-1 text-xs text-ink2">{t('flows.stepCount', { count: f.nodes?.length ?? 0 })}</div>
+                  <div className="mt-1 text-xs text-ink2">
+                    {t('flows.stepCount', { count: f.nodes?.length ?? 0 })}
+                  </div>
                   <div className="mt-1">
                     <StatusFlow status={f.status} />
                   </div>
@@ -138,16 +167,42 @@ export default function FlowsPage() {
                   <div>
                     <div className="font-medium text-ink">{detail.title}</div>
                     <div className="text-xs text-ink2">
-                      {t('flows.triggerIntent')}：{detail.triggerIntent} · {t('flows.productModelId')} {detail.productModelId} · {detail.region} · {detail.language}
+                      {t('flows.triggerIntent')}：{detail.triggerIntent} ·{' '}
+                      {t('flows.productModelId')} {detail.productModelId} · {detail.region} ·{' '}
+                      {detail.language}
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    {detail.status === 'DRAFT' && <Button size="sm" variant="ai" onClick={() => updateFlowStatus('REVIEW')}>{t('flows.submit')}</Button>}
-                    {detail.status === 'REVIEW' && <Button size="sm" variant="ai" onClick={() => updateFlowStatus('APPROVED')}>{t('flows.approve')}</Button>}
-                    {detail.status === 'APPROVED' && <Button size="sm" variant="ai" onClick={() => updateFlowStatus('PUBLISHED')}>{t('flows.publish')}</Button>}
-                    {detail.status === 'PUBLISHED' && <Button size="sm" variant="ghost" onClick={() => updateFlowStatus('DEPRECATED')}>{t('flows.deprecate')}</Button>}
+                    {detail.status === 'DRAFT' && (
+                      <Button size="sm" variant="ai" onClick={() => updateFlowStatus('REVIEW')}>
+                        {t('flows.submit')}
+                      </Button>
+                    )}
+                    {detail.status === 'REVIEW' && (
+                      <Button size="sm" variant="ai" onClick={() => updateFlowStatus('APPROVED')}>
+                        {t('flows.approve')}
+                      </Button>
+                    )}
+                    {detail.status === 'APPROVED' && (
+                      <Button size="sm" variant="ai" onClick={() => updateFlowStatus('PUBLISHED')}>
+                        {t('flows.publish')}
+                      </Button>
+                    )}
+                    {detail.status === 'PUBLISHED' && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => updateFlowStatus('DEPRECATED')}
+                      >
+                        {t('flows.deprecate')}
+                      </Button>
+                    )}
                     {(detail.status === 'DEPRECATED' || detail.status === 'APPROVED') && (
-                      <Button size="sm" variant="ghost" onClick={() => updateFlowStatus('PUBLISHED')}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => updateFlowStatus('PUBLISHED')}
+                      >
                         {t('flows.restore')}
                       </Button>
                     )}
@@ -160,23 +215,42 @@ export default function FlowsPage() {
                     {detail.nodes?.map((n: any) => (
                       <div
                         key={n.nodeKey}
-                        onClick={() => setEditing(n)}
+                        onClick={() => setEditing(toEditable(n))}
                         className={`cursor-pointer rounded-lg border p-3 ${editing?.nodeKey === n.nodeKey ? 'border-ai bg-ai-soft' : 'border-line bg-white'}`}
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-ink">{n.nodeKey}</span>
-                          <Tag tone={n.risk === 'HIGH' ? 'bad' : 'mute'}>{n.risk === 'HIGH' ? t('flows.highRisk') : typeLabel(n.nodeType)}</Tag>
+                          <Tag tone={n.risk === 'HIGH' ? 'bad' : 'mute'}>
+                            {n.risk === 'HIGH' ? t('flows.highRisk') : typeLabel(n.nodeType)}
+                          </Tag>
                         </div>
-                        <div className="mt-1 line-clamp-2 text-xs text-ink2">{n.prompt || t('flows.noPrompt')}</div>
-                        {n.nodeType === 'HUMAN_ESCALATION' && <div className="mt-1 text-[10px] text-ink2">{t('flows.escalated')}</div>}
-                        {n.nodeType === 'END' && <div className="mt-1 text-[10px] text-ink2">{t('flows.ended')}</div>}
+                        <div className="mt-1 line-clamp-2 text-xs text-ink2">
+                          {n.prompt || t('flows.noPrompt')}
+                        </div>
+                        {n.nodeType === 'HUMAN_ESCALATION' && (
+                          <div className="mt-1 text-[10px] text-ink2">{t('flows.escalated')}</div>
+                        )}
+                        {n.nodeType === 'END' && (
+                          <div className="mt-1 text-[10px] text-ink2">{t('flows.ended')}</div>
+                        )}
                       </div>
                     ))}
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() =>
-                        setEditing({ nodeKey: '', nodeType: 'QUESTION', prompt: '', expectedInput: 'yes_no_unknown', risk: 'LOW', branchYes: '', branchNo: '', branchUnknown: '', branchNext: '', sourceRefs: '' })
+                        setEditing({
+                          nodeKey: '',
+                          nodeType: 'QUESTION',
+                          prompt: '',
+                          expectedInput: 'yes_no_unknown',
+                          risk: 'LOW',
+                          branchYes: '',
+                          branchNo: '',
+                          branchUnknown: '',
+                          branchNext: '',
+                          sourceRefs: '',
+                        })
                       }
                     >
                       {t('flows.newNode')}
@@ -188,7 +262,11 @@ export default function FlowsPage() {
                       <div className="text-sm text-ink2">{t('flows.clickNode')}</div>
                     ) : (
                       <>
-                        <div className="text-sm font-bold text-ink">{t('flows.inspectorTitle', { key: editing.nodeKey || t('flows.newTitleField') })}</div>
+                        <div className="text-sm font-bold text-ink">
+                          {t('flows.inspectorTitle', {
+                            key: editing.nodeKey || t('flows.newTitleField'),
+                          })}
+                        </div>
                         <div>
                           <label className="mb-1 block text-xs text-ink2">{t('flows.type')}</label>
                           <select
@@ -197,13 +275,22 @@ export default function FlowsPage() {
                             onChange={(e) => setEditing({ ...editing, nodeType: e.target.value })}
                           >
                             <option value="QUESTION">{t('flows.typeAI')}</option>
+                            <option value="OBSERVE">OBSERVE</option>
+                            <option value="OPERATION">OPERATION</option>
+                            <option value="VERIFY">VERIFY</option>
+                            <option value="DECISION">DECISION</option>
                             <option value="HUMAN_ESCALATION">{t('flows.typeHuman')}</option>
                             <option value="END">{t('flows.typeEnd')}</option>
                           </select>
                         </div>
                         <div>
-                          <label className="mb-1 block text-xs text-ink2">{t('flows.prompt')}</label>
-                          <Textarea value={editing.prompt} onChange={(e) => setEditing({ ...editing, prompt: e.target.value })} />
+                          <label className="mb-1 block text-xs text-ink2">
+                            {t('flows.prompt')}
+                          </label>
+                          <Textarea
+                            value={editing.prompt}
+                            onChange={(e) => setEditing({ ...editing, prompt: e.target.value })}
+                          />
                         </div>
                         <div>
                           <label className="mb-1 block text-xs text-ink2">{t('flows.risk')}</label>
@@ -219,49 +306,75 @@ export default function FlowsPage() {
                         {editing.nodeType !== 'END' && (
                           <div className="space-y-2">
                             <div>
-                              <label className="mb-1 block text-xs text-ink2">{t('flows.branchYes')}</label>
+                              <label className="mb-1 block text-xs text-ink2">
+                                {t('flows.branchYes')}
+                              </label>
                               <Input
                                 value={editing.branchYes ?? ''}
-                                onChange={(e) => setEditing({ ...editing, branchYes: e.target.value })}
+                                onChange={(e) =>
+                                  setEditing({ ...editing, branchYes: e.target.value })
+                                }
                                 placeholder={t('flows.nextNodeKey')}
                               />
                             </div>
                             <div>
-                              <label className="mb-1 block text-xs text-ink2">{t('flows.branchNo')}</label>
+                              <label className="mb-1 block text-xs text-ink2">
+                                {t('flows.branchNo')}
+                              </label>
                               <Input
                                 value={editing.branchNo ?? ''}
-                                onChange={(e) => setEditing({ ...editing, branchNo: e.target.value })}
+                                onChange={(e) =>
+                                  setEditing({ ...editing, branchNo: e.target.value })
+                                }
                                 placeholder={t('flows.nextNodeKey')}
                               />
                             </div>
                             <div>
-                              <label className="mb-1 block text-xs text-ink2">{t('flows.branchUnknown')}</label>
+                              <label className="mb-1 block text-xs text-ink2">
+                                {t('flows.branchUnknown')}
+                              </label>
                               <Input
                                 value={editing.branchUnknown ?? ''}
-                                onChange={(e) => setEditing({ ...editing, branchUnknown: e.target.value })}
+                                onChange={(e) =>
+                                  setEditing({ ...editing, branchUnknown: e.target.value })
+                                }
                                 placeholder={t('flows.nextNodeKey')}
                               />
                             </div>
                             <div>
-                              <label className="mb-1 block text-xs text-ink2">{t('flows.branchNext')}</label>
+                              <label className="mb-1 block text-xs text-ink2">
+                                {t('flows.branchNext')}
+                              </label>
                               <Input
                                 value={editing.branchNext ?? ''}
-                                onChange={(e) => setEditing({ ...editing, branchNext: e.target.value })}
+                                onChange={(e) =>
+                                  setEditing({ ...editing, branchNext: e.target.value })
+                                }
                                 placeholder={t('flows.nextNodeKey')}
                               />
                             </div>
                           </div>
                         )}
                         <div>
-                          <label className="mb-1 block text-xs text-ink2">{t('flows.sourceRefs')}</label>
-                          <Input value={editing.sourceRefs} onChange={(e) => setEditing({ ...editing, sourceRefs: e.target.value })} placeholder="doc-1,chunk-2" />
+                          <label className="mb-1 block text-xs text-ink2">
+                            {t('flows.sourceRefs')}
+                          </label>
+                          <Input
+                            value={editing.sourceRefs}
+                            onChange={(e) => setEditing({ ...editing, sourceRefs: e.target.value })}
+                            placeholder="doc-1,chunk-2"
+                          />
                         </div>
                         <div className="flex gap-2">
                           <Button size="sm" variant="ai" onClick={saveNode}>
                             {t('flows.saveNode')}
                           </Button>
                           {editing.nodeKey && (
-                            <Button size="sm" variant="danger" onClick={() => deleteNode(editing.nodeKey)}>
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              onClick={() => deleteNode(editing.nodeKey)}
+                            >
                               {t('flows.delete')}
                             </Button>
                           )}
@@ -290,9 +403,29 @@ export default function FlowsPage() {
             <Button
               variant="ai"
               onClick={async () => {
-                await api('/flows', { method: 'POST', body: JSON.stringify(newFlow) });
+                const payload = {
+                  ...newFlow,
+                  productVariantId: newFlow.productVariantId || null,
+                  hardwareRevision: newFlow.hardwareRevision || null,
+                  firmwareMin: newFlow.firmwareMin || null,
+                  firmwareMax: newFlow.firmwareMax || null,
+                  triggerPhrase: newFlow.triggerPhrase || null,
+                };
+                await api('/flows', { method: 'POST', body: JSON.stringify(payload) });
                 setShowNewFlow(false);
-                setNewFlow({ title: '', triggerIntent: 'TROUBLESHOOTING', productModelId: '', region: 'EU', locale: 'en' });
+                setNewFlow({
+                  title: '',
+                  triggerIntent: 'TROUBLESHOOTING',
+                  productModelId: '',
+                  productVariantId: '',
+                  hardwareRevision: '',
+                  firmwareMin: '',
+                  firmwareMax: '',
+                  triggerPhrase: '',
+                  priority: 0,
+                  region: 'EU',
+                  locale: 'en',
+                });
                 load();
               }}
             >
@@ -304,15 +437,71 @@ export default function FlowsPage() {
         <div className="space-y-3">
           <div>
             <label className="mb-1 block text-xs text-ink2">{t('flows.newTitleField')}</label>
-            <Input value={newFlow.title} onChange={(e) => setNewFlow({ ...newFlow, title: e.target.value })} />
+            <Input
+              value={newFlow.title}
+              onChange={(e) => setNewFlow({ ...newFlow, title: e.target.value })}
+            />
           </div>
           <div>
             <label className="mb-1 block text-xs text-ink2">{t('flows.triggerIntent')}</label>
-            <Input value={newFlow.triggerIntent} onChange={(e) => setNewFlow({ ...newFlow, triggerIntent: e.target.value })} />
+            <Input
+              value={newFlow.triggerIntent}
+              onChange={(e) => setNewFlow({ ...newFlow, triggerIntent: e.target.value })}
+            />
           </div>
           <div>
             <label className="mb-1 block text-xs text-ink2">{t('flows.productModelId')}</label>
-            <Input value={newFlow.productModelId} onChange={(e) => setNewFlow({ ...newFlow, productModelId: e.target.value })} />
+            <Input
+              value={newFlow.productModelId}
+              onChange={(e) => setNewFlow({ ...newFlow, productModelId: e.target.value })}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs text-ink2">
+                Product variant UUID (optional)
+              </label>
+              <Input
+                value={newFlow.productVariantId}
+                onChange={(e) => setNewFlow({ ...newFlow, productVariantId: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-ink2">Hardware revision (optional)</label>
+              <Input
+                value={newFlow.hardwareRevision}
+                onChange={(e) => setNewFlow({ ...newFlow, hardwareRevision: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-ink2">Firmware minimum</label>
+              <Input
+                value={newFlow.firmwareMin}
+                onChange={(e) => setNewFlow({ ...newFlow, firmwareMin: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-ink2">Firmware maximum</label>
+              <Input
+                value={newFlow.firmwareMax}
+                onChange={(e) => setNewFlow({ ...newFlow, firmwareMax: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-ink2">Trigger phrase or error code</label>
+              <Input
+                value={newFlow.triggerPhrase}
+                onChange={(e) => setNewFlow({ ...newFlow, triggerPhrase: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-ink2">Priority</label>
+              <Input
+                type="number"
+                value={newFlow.priority}
+                onChange={(e) => setNewFlow({ ...newFlow, priority: Number(e.target.value) })}
+              />
+            </div>
           </div>
           <div>
             <label className="mb-1 block text-xs text-ink2">{t('flows.region')}</label>
@@ -365,6 +554,15 @@ export default function FlowsPage() {
       </Modal>
     </div>
   );
+}
+
+function toEditable(node: any): FlowNode {
+  return {
+    ...node,
+    sourceRefs: Array.isArray(node.sourceRefs)
+      ? node.sourceRefs.join(', ')
+      : (node.sourceRefs ?? ''),
+  };
 }
 
 function CoverageNote({ detail, t }: { detail: any; t: (k: string, p?: any) => string }) {

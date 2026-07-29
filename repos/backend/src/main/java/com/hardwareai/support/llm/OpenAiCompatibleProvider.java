@@ -25,10 +25,14 @@ public class OpenAiCompatibleProvider {
     }
 
     public String complete(String baseUrl, String apiKey, String model, String system, String prompt) {
+        return complete(baseUrl, apiKey, model, system, prompt, 0d, 800);
+    }
+
+    public String complete(String baseUrl, String apiKey, String model, String system, String prompt, double temperature, int maxTokens) {
         long start = System.nanoTime();
         try {
             var response = clients.create(baseUrl, "Authorization", "Bearer " + apiKey).post().uri("/v1/chat/completions").contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of("model", model, "temperature", 0, "messages", List.of(Map.of("role", "system", "content", system), Map.of("role", "user", "content", prompt))))
+                    .body(Map.of("model", model, "temperature", temperature, "max_tokens", maxTokens, "messages", List.of(Map.of("role", "system", "content", system), Map.of("role", "user", "content", prompt))))
                     .retrieve().body(Map.class);
             var choices = (List<?>) response.get("choices");
             if (choices == null || choices.isEmpty()) {

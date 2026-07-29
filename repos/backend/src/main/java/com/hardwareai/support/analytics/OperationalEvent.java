@@ -29,4 +29,11 @@ class OperationalEvent {
 
     protected OperationalEvent() {
     }
+
+    OperationalEvent(UUID tenantId, UUID conversationId, String eventType, String attributes) {
+        id = UUID.randomUUID(); this.tenantId = tenantId; this.conversationId = conversationId; this.eventType = eventType; this.attributes = attributes;
+    }
+    String eventType() { return eventType; }
+    String attributes() { return attributes; }
+    Instant createdAt() { return createdAt; }
 }

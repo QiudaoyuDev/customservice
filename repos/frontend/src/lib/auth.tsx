@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
-import {api, clearToken, setToken} from './api';
+import { api, clearToken, setToken } from './api';
 
 export interface AuthUser {
   email: string;
@@ -28,7 +28,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(readStored);
 
   const login = async (email: string, password: string) => {
-    const response = await api('/auth/login', {method: 'POST', body: JSON.stringify({email, password})});
+    const response = await api('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
     if (!response?.accessToken || !response?.email) throw new Error('Login response is invalid');
     setToken(response.accessToken);
     const u: AuthUser = { email: response.email, tenantName: 'Current tenant' };
@@ -51,7 +54,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 

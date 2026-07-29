@@ -66,6 +66,10 @@ class Conversation {
         return status;
     }
 
+    Instant closedAt() {
+        return closedAt;
+    }
+
     UUID currentFlowId() {
         return currentFlowId;
     }

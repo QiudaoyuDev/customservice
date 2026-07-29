@@ -33,6 +33,7 @@ class StartupSecurityValidatorTest {
                 new AppProperties.Qr("CHANGE_ME_QR_SECRET"),
                 new AppProperties.Bootstrap("admin@example.local", "CHANGE_ME_BEFORE_USE", "Demo"),
                 new AppProperties.Llm(false, "", "", ""),
+                new AppProperties.ModelKeyEncryption("MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=", "v1"),
                 new AppProperties.ExternalClients(Duration.ofSeconds(3), Duration.ofSeconds(15), Duration.ofSeconds(20)),
                 "http://localhost:18082", "http://localhost:18081", "http://localhost:18083", "http://localhost:6333",
                 "CHANGE_ME_QDRANT_API_KEY", "knowledge"

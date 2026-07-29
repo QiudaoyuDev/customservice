@@ -10,6 +10,8 @@ const NAV = [
   { to: '/console/search', key: 'console.nav.search' },
   { to: '/console/flows', key: 'console.nav.flows' },
   { to: '/console/handoffs', key: 'console.nav.handoffs' },
+  { to: '/console/models', key: 'console.nav.models' },
+  { to: '/console/analytics', key: 'console.nav.analytics' },
 ];
 
 export default function ConsoleLayout() {
@@ -46,10 +48,15 @@ export default function ConsoleLayout() {
 
       <div className="flex flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-line bg-white px-6 py-3">
-          <div className="text-sm font-semibold text-ink">{user?.tenantName ?? t('console.tenant')}</div>
+          <div className="text-sm font-semibold text-ink">
+            {user?.tenantName ?? t('console.tenant')}
+          </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-ink2">{user?.email}</span>
-            <button onClick={onLogout} className="rounded border border-line px-3 py-1 text-xs text-ink2 hover:bg-slate-50">
+            <button
+              onClick={onLogout}
+              className="rounded border border-line px-3 py-1 text-xs text-ink2 hover:bg-slate-50"
+            >
               {t('console.logout')}
             </button>
           </div>

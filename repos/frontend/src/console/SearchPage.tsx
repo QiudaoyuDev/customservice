@@ -16,7 +16,9 @@ export default function SearchPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    api('/products').then((items) => setProducts(items ?? [])).catch(() => setProducts([]));
+    api('/products')
+      .then((items) => setProducts(items ?? []))
+      .catch(() => setProducts([]));
   }, []);
 
   const run = async () => {
@@ -25,7 +27,13 @@ export default function SearchPage() {
     try {
       const r = await api('/search', {
         method: 'POST',
-        body: JSON.stringify({ productModelId, region, locale: language.split('-')[0], query, limit: Math.min(limit, 10) }),
+        body: JSON.stringify({
+          productModelId,
+          region,
+          locale: language.split('-')[0],
+          query,
+          limit: Math.min(limit, 10),
+        }),
       });
       setResult(r);
     } finally {
@@ -43,19 +51,35 @@ export default function SearchPage() {
       <div className="space-y-3 rounded-xl border border-line bg-white p-4">
         <div>
           <label className="mb-1 block text-xs text-ink2">{t('search.query')}</label>
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('search.placeholderQuery')} />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t('search.placeholderQuery')}
+          />
         </div>
         <div className="grid grid-cols-3 gap-3">
           <div>
             <label className="mb-1 block text-xs text-ink2">{t('search.productId')}</label>
-            <select className="w-full rounded border border-line px-3 py-2 text-sm" value={productModelId} onChange={(e) => setProductModelId(e.target.value)}>
+            <select
+              className="w-full rounded border border-line px-3 py-2 text-sm"
+              value={productModelId}
+              onChange={(e) => setProductModelId(e.target.value)}
+            >
               <option value="">{t('common.select')}</option>
-              {products.map((product) => <option key={product.id} value={product.id}>{product.displayName} · {product.model}</option>)}
+              {products.map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.displayName} · {product.model}
+                </option>
+              ))}
             </select>
           </div>
           <div>
             <label className="mb-1 block text-xs text-ink2">{t('search.region')}</label>
-            <select className="w-full rounded border border-line px-3 py-2 text-sm" value={region} onChange={(e) => setRegion(e.target.value)}>
+            <select
+              className="w-full rounded border border-line px-3 py-2 text-sm"
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+            >
               {['EU', 'NA', 'APAC', 'LATAM', 'MEA'].map((r) => (
                 <option key={r} value={r}>
                   {r}
@@ -65,7 +89,11 @@ export default function SearchPage() {
           </div>
           <div>
             <label className="mb-1 block text-xs text-ink2">{t('search.language')}</label>
-            <select className="w-full rounded border border-line px-3 py-2 text-sm" value={language} onChange={(e) => setLanguage(e.target.value)}>
+            <select
+              className="w-full rounded border border-line px-3 py-2 text-sm"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+            >
               {LANGS.map((l) => (
                 <option key={l} value={l}>
                   {l}
@@ -92,11 +120,15 @@ export default function SearchPage() {
 
       <div className="mt-4">
         {!result ? (
-          <div className="rounded-xl border border-dashed border-line bg-white/60 p-8 text-center text-sm text-ink2">{t('search.empty')}</div>
+          <div className="rounded-xl border border-dashed border-line bg-white/60 p-8 text-center text-sm text-ink2">
+            {t('search.empty')}
+          </div>
         ) : (
           <div className="space-y-2">
             {result.results?.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-line bg-white/60 p-8 text-center text-sm text-ink2">{t('search.noMatch')}</div>
+              <div className="rounded-xl border border-dashed border-line bg-white/60 p-8 text-center text-sm text-ink2">
+                {t('search.noMatch')}
+              </div>
             ) : (
               result.results?.map((c: any, i: number) => (
                 <div key={i} className="rounded-xl border border-line bg-white p-3">
@@ -110,7 +142,9 @@ export default function SearchPage() {
                   <div className="whitespace-pre-wrap text-sm text-ink">{c.text}</div>
                   <div className="mt-1 text-xs text-ink2">
                     {t('search.sources')}
-                    {c.revisionId ? `${c.revisionId}${c.page ? ` · p.${c.page}` : ''}${c.titlePath ? ` · ${c.titlePath}` : ''}` : t('search.noSource')}
+                    {c.revisionId
+                      ? `${c.revisionId}${c.page ? ` · p.${c.page}` : ''}${c.titlePath ? ` · ${c.titlePath}` : ''}`
+                      : t('search.noSource')}
                   </div>
                 </div>
               ))

@@ -3,10 +3,11 @@ package com.hardwareai.support.llm;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
-class ModelConfigurationService {
+public class ModelConfigurationService {
     private final ModelConfigurationRepository configurations;
     private final ApiKeyCipher cipher;
     private final OpenAiCompatibleProvider provider;
@@ -27,6 +28,14 @@ class ModelConfigurationService {
         return provider.testConnection(configuration.baseUrl(), configuration.decryptApiKey(cipher));
     }
 
+    /** Returns no value when a tenant deliberately has no enabled default model. */
+    public Optional<GeneratedCompletion> generate(UUID tenantId, String system, String prompt) {
+        return configurations.findByTenantIdAndDefaultConfigTrueAndEnabledTrue(tenantId).map(configuration ->
+                new GeneratedCompletion(provider.complete(configuration.baseUrl(), configuration.decryptApiKey(cipher), configuration.modelName(),
+                        system, prompt, configuration.temperature(), configuration.maxTokens()), configuration.id()));
+    }
+
+    public record GeneratedCompletion(String content, UUID configurationId) { }
     record CreateCommand(String name, String providerType, String baseUrl, String modelName, String visionModel, String apiKey,
                          int timeoutMs, double temperature, int maxTokens, boolean enabled, boolean defaultConfig) { }
 }

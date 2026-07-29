@@ -20,6 +20,12 @@ public class TroubleshootFlow {
     @Column(name = "tenant_id")
     private UUID tenantId;
 
+    @Column(name = "definition_id")
+    private UUID definitionId;
+
+    @Column(name = "version_no")
+    private int versionNo = 1;
+
     private String title;
 
     @Enumerated(EnumType.STRING)
@@ -27,6 +33,12 @@ public class TroubleshootFlow {
 
     @Column(name = "product_model_id")
     private UUID productModelId;
+
+    @Column(name = "product_variant_id")
+    private UUID productVariantId;
+
+    @Column(name = "hardware_revision")
+    private String hardwareRevision;
 
     private String region;
 
@@ -37,6 +49,11 @@ public class TroubleshootFlow {
 
     @Column(name = "firmware_max")
     private String firmwareMax;
+
+    @Column(name = "trigger_phrase")
+    private String triggerPhrase;
+
+    private int priority;
 
     @Enumerated(EnumType.STRING)
     private Status status;
@@ -63,14 +80,24 @@ public class TroubleshootFlow {
         status = Status.DRAFT;
     }
 
-    void update(String title, Intent trigger, UUID product, String region, String locale, String fwMin, String fwMax) {
+    void update(String title, Intent trigger, UUID product, UUID variant, String hardwareRevision, String region, String locale,
+                String fwMin, String fwMax, String triggerPhrase, int priority) {
         this.title = title;
         this.triggerIntent = trigger;
         this.productModelId = product;
+        this.productVariantId = variant;
+        this.hardwareRevision = hardwareRevision;
         this.region = region;
         this.locale = locale;
         this.firmwareMin = fwMin;
         this.firmwareMax = fwMax;
+        this.triggerPhrase = triggerPhrase;
+        this.priority = priority;
+    }
+
+    void assignDefinition(UUID value, int version) {
+        definitionId = value;
+        versionNo = version;
     }
 
     void submit() {
@@ -113,6 +140,10 @@ public class TroubleshootFlow {
         return tenantId;
     }
 
+    public UUID definitionId() { return definitionId; }
+
+    public int versionNo() { return versionNo; }
+
     public String title() {
         return title;
     }
@@ -124,6 +155,10 @@ public class TroubleshootFlow {
     public UUID productModelId() {
         return productModelId;
     }
+
+    public UUID productVariantId() { return productVariantId; }
+
+    public String hardwareRevision() { return hardwareRevision; }
 
     public String region() {
         return region;
@@ -141,6 +176,10 @@ public class TroubleshootFlow {
         return firmwareMax;
     }
 
+    public String triggerPhrase() { return triggerPhrase; }
+
+    public int priority() { return priority; }
+
     public Status status() {
         return status;
     }
@@ -148,6 +187,8 @@ public class TroubleshootFlow {
     public String owner() {
         return owner;
     }
+
+    public Instant publishedAt() { return publishedAt; }
 
     enum Status {
         DRAFT,

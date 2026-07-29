@@ -1,7 +1,7 @@
 import i18n from 'i18next';
-import {initReactI18next, useTranslation as useTranslationReact} from 'react-i18next';
+import { initReactI18next, useTranslation as useTranslationReact } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
-import type {TFunction} from 'i18next';
+import type { TFunction } from 'i18next';
 import en from './locales/en';
 import zh from './locales/zh';
 
@@ -14,41 +14,45 @@ import zh from './locales/zh';
  */
 export const LANGS = ['en-US', 'zh-CN', 'de-DE', 'fr-FR', 'es-ES'];
 export const langNames: Record<string, string> = {
-    'en-US': 'English', 'zh-CN': '中文 (简体)', 'de-DE': 'Deutsch', 'fr-FR': 'Français', 'es-ES': 'Español',
+  'en-US': 'English',
+  'zh-CN': '中文 (简体)',
+  'de-DE': 'Deutsch',
+  'fr-FR': 'Français',
+  'es-ES': 'Español',
 };
 
 i18n
-    .use(LanguageDetector)
-    .use(initReactI18next)
-    .init({
-        resources: {
-            'en-US': {translation: en},
-            'zh-CN': {translation: zh},
-            // 别名，便于浏览器仅返回语言基础码（如 en / zh）时直接命中
-            en: {translation: en},
-            zh: {translation: zh},
-        },
-        fallbackLng: 'en-US',
-        nonExplicitSupportedLngs: true,
-        returnNull: false,
-        interpolation: {
-            // React 自身负责转义，关闭 i18next 的 HTML 转义
-            escapeValue: false,
-        },
-        detection: {
-            order: ['localStorage', 'navigator', 'htmlTag'],
-            caches: ['localStorage'],
-            lookupLocalStorage: 'app.lang',
-        },
-    });
+  .use(LanguageDetector)
+  .use(initReactI18next)
+  .init({
+    resources: {
+      'en-US': { translation: en },
+      'zh-CN': { translation: zh },
+      // 别名，便于浏览器仅返回语言基础码（如 en / zh）时直接命中
+      en: { translation: en },
+      zh: { translation: zh },
+    },
+    fallbackLng: 'en-US',
+    nonExplicitSupportedLngs: true,
+    returnNull: false,
+    interpolation: {
+      // React 自身负责转义，关闭 i18next 的 HTML 转义
+      escapeValue: false,
+    },
+    detection: {
+      order: ['localStorage', 'navigator', 'htmlTag'],
+      caches: ['localStorage'],
+      lookupLocalStorage: 'app.lang',
+    },
+  });
 
 /** 状态码 -> 本地化标签；未配置时回退原值。 */
 export function statusLabel(t: TFunction, code: string): string {
-    const key = 'status.' + String(code).toLowerCase();
-    const v = t(key);
-    return v === key ? code : v;
+  const key = 'status.' + String(code).toLowerCase();
+  const v = t(key);
+  return v === key ? code : v;
 }
 
 export const useTranslation = useTranslationReact;
-export type {TFunction};
+export type { TFunction };
 export default i18n;

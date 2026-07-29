@@ -18,10 +18,14 @@ class ApiKeyCipher {
     private final String keyVersion;
 
     ApiKeyCipher(AppProperties properties) {
-        byte[] bytes = Base64.getDecoder().decode(properties.modelKeyEncryption().masterKey());
+        this(properties.modelKeyEncryption().masterKey(), properties.modelKeyEncryption().keyVersion());
+    }
+
+    ApiKeyCipher(String masterKey, String keyVersion) {
+        byte[] bytes = Base64.getDecoder().decode(masterKey);
         if (bytes.length != 32) throw new IllegalArgumentException("Model key encryption key must be 32 bytes");
         key = new SecretKeySpec(bytes, "AES");
-        keyVersion = properties.modelKeyEncryption().keyVersion();
+        this.keyVersion = keyVersion;
     }
 
     Encrypted encrypt(String value) {

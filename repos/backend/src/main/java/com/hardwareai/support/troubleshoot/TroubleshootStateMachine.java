@@ -18,7 +18,9 @@ public class TroubleshootStateMachine {
             case UNKNOWN -> unknown;
             case REFUSE -> "HUMAN_ESCALATION";
         };
-        return new Transition(node == null ? "HUMAN_ESCALATION" : node, false);
+        // A missing branch is never a successful terminal condition.  It is an
+        // authoring/runtime safety failure and must enter the human path.
+        return node == null ? new Transition("HUMAN_ESCALATION", true) : new Transition(node, false);
     }
 
     public record Transition(String nextNodeKey, boolean escalated) {
