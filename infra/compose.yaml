@@ -87,6 +87,12 @@ services:
       OCR_LANGUAGE: ${OCR_LANGUAGE}
       OCR_DEVICE: ${OCR_DEVICE}
       MODEL_CACHE_DIR: /models
+      # PaddleOCR ignores MODEL_CACHE_DIR and caches under $HOME/.paddleocr.
+      # Point HOME at the volume so downloaded models persist across restarts.
+      HOME: /models
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-}
     volumes:
       - ocr_models:/models
     ports:
@@ -96,7 +102,7 @@ services:
       interval: 20s
       timeout: 5s
       retries: 12
-      start_period: 60s
+      start_period: 300s
     networks: [backend]
 
   embedding:
@@ -108,7 +114,11 @@ services:
       RERANK_MODEL: ${RERANK_MODEL}
       MODEL_CACHE_DIR: /models
       HF_HOME: /models/huggingface
+      HF_ENDPOINT: ${HF_ENDPOINT:-}
       EMBEDDING_DEVICE: ${EMBEDDING_DEVICE}
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-}
     volumes:
       - embedding_models:/models
     ports:
@@ -118,63 +128,63 @@ services:
       interval: 20s
       timeout: 5s
       retries: 12
-      start_period: 120s
+      start_period: 600s
     networks: [backend]
 
-  api:
-    build:
-      context: ../repos/backend
-    restart: unless-stopped
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      DATABASE_USERNAME: ${POSTGRES_USER}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
-      MINIO_ENDPOINT: http://minio:9000
-      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
-      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
-      MINIO_BUCKET: ${MINIO_BUCKET_ASSETS}
-      OCR_URL: http://ocr:8080
-      EMBEDDING_URL: http://embedding:8080
-      RERANK_URL: http://embedding:8080
-      QDRANT_URL: http://qdrant:6333
-      QDRANT_API_KEY: ${QDRANT_API_KEY}
-      JWT_SECRET: ${JWT_SECRET}
-      QR_TOKEN_SECRET: ${QR_TOKEN_SECRET}
-      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD}
-    ports: ["${INFRA_BIND_ADDRESS}:8080:8080"]
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/actuator/health | grep -q 'UP'"]
-      interval: 15s
-      timeout: 5s
-      retries: 12
-    depends_on:
-      postgres:
-        condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
-      qdrant:
-        condition: service_healthy
-      ocr:
-        condition: service_healthy
-      embedding:
-        condition: service_healthy
-    networks: [backend]
-
-  web:
-    build:
-      context: ../repos/frontend
-    restart: unless-stopped
-    ports: ["${INFRA_BIND_ADDRESS}:8088:80"]
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1/ >/dev/null"]
-      interval: 15s
-      timeout: 5s
-      retries: 6
-    depends_on:
-      api:
-        condition: service_healthy
-    networks: [backend]
+#  api:
+#    build:
+#      context: ../repos/backend
+#    restart: unless-stopped
+#    environment:
+#      SPRING_PROFILES_ACTIVE: prod
+#      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+#      DATABASE_USERNAME: ${POSTGRES_USER}
+#      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+#      MINIO_ENDPOINT: http://minio:9000
+#      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+#      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+#      MINIO_BUCKET: ${MINIO_BUCKET_ASSETS}
+#      OCR_URL: http://ocr:8080
+#      EMBEDDING_URL: http://embedding:8080
+#      RERANK_URL: http://embedding:8080
+#      QDRANT_URL: http://qdrant:6333
+#      QDRANT_API_KEY: ${QDRANT_API_KEY}
+#      JWT_SECRET: ${JWT_SECRET}
+#      QR_TOKEN_SECRET: ${QR_TOKEN_SECRET}
+#      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD}
+#    ports: ["${INFRA_BIND_ADDRESS}:8080:8080"]
+#    healthcheck:
+#      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/actuator/health | grep -q 'UP'"]
+#      interval: 15s
+#      timeout: 5s
+#      retries: 12
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
+#      minio-init:
+#        condition: service_completed_successfully
+#      qdrant:
+#        condition: service_healthy
+#      ocr:
+#        condition: service_healthy
+#      embedding:
+#        condition: service_healthy
+#    networks: [backend]
+#
+#  web:
+#    build:
+#      context: ../repos/frontend
+#    restart: unless-stopped
+#    ports: ["${INFRA_BIND_ADDRESS}:8088:80"]
+#    healthcheck:
+#      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1/ >/dev/null"]
+#      interval: 15s
+#      timeout: 5s
+#      retries: 6
+#    depends_on:
+#      api:
+#        condition: service_healthy
+#    networks: [backend]
 
 networks:
   backend:

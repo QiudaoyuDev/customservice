@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import tempfile
 from pathlib import Path
@@ -44,13 +45,17 @@ def load_ocr() -> None:
     # The generic OCR pipeline is deliberately restricted to text extraction.
     # Hardware fault conclusions remain the responsibility of the application
     # diagnosis flow and never this image adapter.
-    ocr = PaddleOCR(
-        lang=os.getenv("OCR_LANGUAGE", "en"),
-        device=os.getenv("OCR_DEVICE", "cpu"),
-        use_doc_orientation_classify=False,
-        use_doc_unwarping=False,
-        use_textline_orientation=False,
-    )
+    try:
+        ocr = PaddleOCR(
+            lang=os.getenv("OCR_LANGUAGE", "en"),
+            device=(os.getenv("OCR_DEVICE") or "").strip() or "cpu",
+            use_doc_orientation_classify=False,
+            use_doc_unwarping=False,
+            use_textline_orientation=False,
+        )
+    except Exception as exc:  # noqa: BLE001 - surface the real cause instead of crash-looping
+        logging.exception("OCR model failed to load: %s", exc)
+        ocr = None
 
 
 @app.get("/health")

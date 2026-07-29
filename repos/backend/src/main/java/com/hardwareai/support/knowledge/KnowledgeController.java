@@ -6,13 +6,7 @@ import com.hardwareai.support.product.ProductRepository;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.security.MessageDigest;
@@ -242,7 +236,7 @@ public class KnowledgeController {
             .orElseThrow(() -> new IllegalArgumentException("文档不存在"));
         revisions.findAllByDocumentIdOrderByRevisionNoDesc(id).forEach(r -> {
             chunks.deleteAllByRevisionId(r.id());
-            ocrResults.deleteByRevisionId(r.id());
+//            ocrResults.deleteByRevisionId(r.id());
             applicability.deleteByRevisionId(r.id());
             try {
                 vectorIndex.removeRevision(r.id());
@@ -250,7 +244,7 @@ public class KnowledgeController {
             }
         });
         revisions.deleteAll(revisions.findAllByDocumentIdOrderByRevisionNoDesc(id));
-        storage.delete(document.storageKey());
+        storage.delete(document.objectKey());
         documents.delete(document);
     }
 }

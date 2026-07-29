@@ -1,6 +1,7 @@
 package com.hardwareai.support.llm;
 
 import com.hardwareai.support.config.AppProperties;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Cipher;
@@ -19,6 +20,7 @@ class ApiKeyCipher {
     private final SecretKey key;
     private final String keyVersion;
 
+    @Autowired
     ApiKeyCipher(AppProperties properties) {
         this(properties.modelKeyEncryption().masterKey(), properties.modelKeyEncryption().keyVersion());
     }

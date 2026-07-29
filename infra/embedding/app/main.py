@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Literal
 
@@ -28,11 +29,15 @@ class RerankRequest(BaseModel):
 @app.on_event("startup")
 def load_models() -> None:
     global embedding_model, rerank_model
-    device = os.getenv("EMBEDDING_DEVICE", "cpu")
-    embedding_model = SentenceTransformer(os.environ["EMBEDDING_MODEL"], device=device)
-    rerank_name = os.getenv("RERANK_MODEL", "").strip()
-    if rerank_name:
-        rerank_model = CrossEncoder(rerank_name, device=device)
+    device = (os.getenv("EMBEDDING_DEVICE") or "").strip() or "cpu"
+    try:
+        embedding_model = SentenceTransformer(os.environ["EMBEDDING_MODEL"], device=device)
+        rerank_name = os.getenv("RERANK_MODEL", "").strip()
+        if rerank_name:
+            rerank_model = CrossEncoder(rerank_name, device=device)
+    except Exception as exc:  # noqa: BLE001 - surface the real cause instead of crash-looping
+        logging.exception("Embedding/rerank model failed to load: %s", exc)
+        embedding_model, rerank_model = None, None
 
 
 @app.get("/health")

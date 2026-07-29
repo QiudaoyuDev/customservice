@@ -103,6 +103,49 @@ bash scripts/backup-postgres.sh
 - `.env` 密钥的受控备份与轮换策略。
 - 至少一次从空环境恢复 PostgreSQL、对象存储和向量索引的演练。
 
+## OCR / Embedding 启动排查与离线预置模型
+
+OCR 与 Embedding 是唯一在首次启动时从外网下载大模型的本地服务，也是最容易在受限网络下“启动异常”的两个组件。
+
+### 常见症状与排查
+
+- **容器反复重启 / 一直 unhealthy**：大概率是首次模型下载失败。
+  - 在 WSL 或公司代理网络中，容器默认无法访问 PaddleOCR 模型源与 HuggingFace。
+  - 用 `docker compose logs -f ocr embedding` 查看真实错误（网络超时、代理拒绝等），而不是只看重启循环。
+- **`/models` 卷“没用上”**：OCR 服务曾错误地把 `MODEL_CACHE_DIR=/models` 当作缓存目录，但 `PaddleOCR` 实际忽略该变量，模型下载到 `$HOME/.paddleocr`（容器内 `/root/.paddleocr`），落在卷之外。每次重建容器都会重新下载。
+  - 已修复：将 OCR 容器的 `HOME` 指向 `/models`，使 `~/.paddleocr` 真正落在卷内，模型持久化、重建后无需重下。
+
+### Compose 基线已做的加固
+
+- OCR：`HOME: /models`，并透传 `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY`；`start_period` 提高到 300s。
+- Embedding：`HF_HOME: /models/huggingface` 已正确指向卷，新增 `HF_ENDPOINT` 镜像源与代理透传；`start_period` 提高到 600s。
+- 两个服务的模型加载失败不再崩溃重启，而是 `logging.exception` 记录真实原因并保持进程存活，便于 `docker logs` 直接定位。
+
+### 受限网络下的配置（`.env`）
+
+在 WSL / 公司代理网络中，编辑 `.env` 填入出口代理，使模型源可达：
+
+```dotenv
+HTTP_PROXY=http://<proxy-host>:<port>
+HTTPS_PROXY=http://<proxy-host>:<port>
+NO_PROXY=127.0.0.1,localhost,minio,postgres,qdrant
+# Embedding 也可改用 HuggingFace 镜像源替代直连
+HF_ENDPOINT=https://<your-mirror>
+```
+
+注意 `NO_PROXY` 必须包含内网服务主机名，否则容器间（如 `minio`、`qdrant`）调用会被错误走代理。
+
+### 完全离线交付
+
+正式离线环境不应在客户侧首次联网下载。先在受控、可联网的机器上把模型预置进卷，再整体带入目标网络：
+
+1. 在联网机器上启动 OCR / Embedding 一次，待 `docker compose logs` 显示模型下载完成、`/health` 返回 `ok`。
+2. 确认模型已落盘：OCR 在 `ocr_models` 卷的 `~/.paddleocr`；Embedding 在 `embedding_models` 卷的 `huggingface/hub`。
+3. 备份并迁移对应 Docker 卷（导出为 tar 或随备份介质带入），或在目标机直接挂载已含模型的卷，再启动服务。
+4. 目标网络无需外网，服务直接加载卷内模型。
+
+提交变更前务必确认 `.env` 永不进入版本库（含新增的代理地址）。
+
 ## 当前限制
 
 - Compose 文件是单节点基线，不是高可用生产方案。
