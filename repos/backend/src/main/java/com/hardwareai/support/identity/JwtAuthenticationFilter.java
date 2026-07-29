@@ -31,17 +31,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain chain
+        HttpServletRequest request,
+        HttpServletResponse response,
+        FilterChain chain
     ) throws ServletException, IOException {
         String h = request.getHeader("Authorization");
         if (h != null && h.startsWith("Bearer ")) try {
             var c = jwt.parse(h.substring(7));
             var a = new UsernamePasswordAuthenticationToken(
-                    c.getSubject(),
-                    null,
-                    List.of(new SimpleGrantedAuthority("ROLE_" + c.get("role", String.class)))
+                c.getSubject(),
+                null,
+                List.of(new SimpleGrantedAuthority("ROLE_" + c.get("role", String.class)))
             );
             a.setDetails(c);
             SecurityContextHolder.getContext().setAuthentication(a);

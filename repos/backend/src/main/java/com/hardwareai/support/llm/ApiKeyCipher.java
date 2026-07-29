@@ -10,7 +10,9 @@ import javax.crypto.spec.SecretKeySpec;
 import java.security.SecureRandom;
 import java.util.Base64;
 
-/** AES-256-GCM envelope for provider credentials; callers receive no plaintext persistence API. */
+/**
+ * AES-256-GCM envelope for provider credentials; callers receive no plaintext persistence API.
+ */
 @Component
 class ApiKeyCipher {
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -34,9 +36,12 @@ class ApiKeyCipher {
             RANDOM.nextBytes(nonce);
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(128, nonce));
-            return new Encrypted(Base64.getEncoder().encodeToString(cipher.doFinal(value.getBytes(java.nio.charset.StandardCharsets.UTF_8))),
-                    Base64.getEncoder().encodeToString(nonce), keyVersion);
-        } catch (java.security.GeneralSecurityException exception) { throw new IllegalStateException("Unable to encrypt provider key", exception); }
+            return new Encrypted(
+                Base64.getEncoder().encodeToString(cipher.doFinal(value.getBytes(java.nio.charset.StandardCharsets.UTF_8))),
+                Base64.getEncoder().encodeToString(nonce), keyVersion);
+        } catch (java.security.GeneralSecurityException exception) {
+            throw new IllegalStateException("Unable to encrypt provider key", exception);
+        }
     }
 
     String decrypt(String ciphertext, String nonce, String version) {
@@ -45,8 +50,11 @@ class ApiKeyCipher {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(128, Base64.getDecoder().decode(nonce)));
             return new String(cipher.doFinal(Base64.getDecoder().decode(ciphertext)), java.nio.charset.StandardCharsets.UTF_8);
-        } catch (java.security.GeneralSecurityException exception) { throw new IllegalStateException("Unable to decrypt provider key", exception); }
+        } catch (java.security.GeneralSecurityException exception) {
+            throw new IllegalStateException("Unable to decrypt provider key", exception);
+        }
     }
 
-    record Encrypted(String ciphertext, String nonce, String keyVersion) { }
+    record Encrypted(String ciphertext, String nonce, String keyVersion) {
+    }
 }

@@ -1,6 +1,11 @@
 package com.hardwareai.support.conversation;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -21,7 +26,7 @@ class Conversation {
     @Enumerated(EnumType.STRING)
     private Status status;
     @Column(name = "created_at")
-    private Instant createdAt = Instant.now();
+    private final Instant createdAt = Instant.now();
     @Column(name = "closed_at")
     private Instant closedAt;
     @Column(name = "current_flow_id")

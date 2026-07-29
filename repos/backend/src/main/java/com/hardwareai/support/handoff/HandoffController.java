@@ -1,9 +1,9 @@
 package com.hardwareai.support.handoff;
 
+import com.hardwareai.support.analytics.OperationalEventService;
 import com.hardwareai.support.common.CurrentUser;
 import com.hardwareai.support.conversation.ConversationAccessService;
 import com.hardwareai.support.conversation.HandoffPackageBuilder;
-import com.hardwareai.support.analytics.OperationalEventService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -11,7 +11,12 @@ import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,7 +36,9 @@ class HandoffController {
     private final OperationalEventService events;
     private final HandoffDeliveryService delivery;
 
-    HandoffController(HandoffRepository requests, ConversationAccessService conversations, CurrentUser current, HandoffPackageBuilder packageBuilder, HandoffNoteRepository notes, OperationalEventService events, HandoffDeliveryService delivery) {
+    HandoffController(HandoffRepository requests, ConversationAccessService conversations, CurrentUser current,
+        HandoffPackageBuilder packageBuilder, HandoffNoteRepository notes, OperationalEventService events,
+        HandoffDeliveryService delivery) {
         this.requests = requests;
         this.conversations = conversations;
         this.current = current;
@@ -49,10 +56,14 @@ class HandoffController {
             log.info("Handoff deduplicated conversation={} id={}", input.conversationId(), existing.get().id());
             return View.of(existing.get());
         }
-        var snapshot = packageBuilder.build(tenant, input.conversationId(), input.reason(), input.summary(), input.contact(), input.contactAuthorized());
-        var item = requests.save(new HandoffRequest(tenant, input.conversationId(), input.idempotencyKey(), input.reason(), input.summary(), input.contact(), input.contactAuthorized(), snapshot));
+        var snapshot = packageBuilder.build(tenant, input.conversationId(), input.reason(), input.summary(), input.contact(),
+            input.contactAuthorized());
+        var item = requests.save(
+            new HandoffRequest(tenant, input.conversationId(), input.idempotencyKey(), input.reason(), input.summary(),
+                input.contact(), input.contactAuthorized(), snapshot));
         delivery.deliver(item);
-        events.record(tenant, input.conversationId(), "HANDOFF_CREATED", java.util.Map.of("reason", input.reason(), "status", item.status().name()));
+        events.record(tenant, input.conversationId(), "HANDOFF_CREATED",
+            java.util.Map.of("reason", input.reason(), "status", item.status().name()));
         log.info("Handoff created id={} tenant={} conversation={}", item.id(), tenant, input.conversationId());
         return View.of(item);
     }
@@ -69,7 +80,8 @@ class HandoffController {
         var item = owned(id);
         item.claim(current.userId());
         requests.save(item);
-        events.record(current.tenantId(), item.conversationId(), "HANDOFF_CLAIMED", java.util.Map.of("status", item.status().name()));
+        events.record(current.tenantId(), item.conversationId(), "HANDOFF_CLAIMED",
+            java.util.Map.of("status", item.status().name()));
         log.info("Handoff claimed id={} by={}", id, current.userId());
     }
 
@@ -79,7 +91,8 @@ class HandoffController {
         var item = owned(id);
         item.transition(input.status());
         requests.save(item);
-        events.record(current.tenantId(), item.conversationId(), "HANDOFF_STATUS_CHANGED", java.util.Map.of("status", item.status().name()));
+        events.record(current.tenantId(), item.conversationId(), "HANDOFF_STATUS_CHANGED",
+            java.util.Map.of("status", item.status().name()));
         log.info("Handoff status changed id={} status={}", id, item.status());
     }
 
@@ -89,7 +102,8 @@ class HandoffController {
         var item = owned(id);
         item.reprioritize(input.priority(), input.slaDueAt());
         requests.save(item);
-        events.record(current.tenantId(), item.conversationId(), "HANDOFF_PRIORITY_CHANGED", java.util.Map.of("priority", item.priority().name()));
+        events.record(current.tenantId(), item.conversationId(), "HANDOFF_PRIORITY_CHANGED",
+            java.util.Map.of("priority", item.priority().name()));
     }
 
     @PostMapping("/api/handoffs/{id}/close")
@@ -98,7 +112,8 @@ class HandoffController {
         var item = owned(id);
         item.close(input.resolution());
         requests.save(item);
-        events.record(current.tenantId(), item.conversationId(), "HANDOFF_CLOSED", java.util.Map.of("status", item.status().name(), "outcome", input.resolution().name()));
+        events.record(current.tenantId(), item.conversationId(), "HANDOFF_CLOSED",
+            java.util.Map.of("status", item.status().name(), "outcome", input.resolution().name()));
         log.info("Handoff closed id={}", id);
     }
 
@@ -125,17 +140,27 @@ class HandoffController {
     }
 
     record Create(@NotNull UUID conversationId, @NotBlank @Size(max = 160) String idempotencyKey,
-                  @NotBlank @Size(max = 300) String reason, @NotBlank @Size(max = 8000) String summary, @Size(max = 300) String contact,
+                  @NotBlank @Size(max = 300) String reason, @NotBlank @Size(max = 8000) String summary,
+                  @Size(max = 300) String contact,
                   boolean contactAuthorized) {
     }
 
     record Close(@NotNull HandoffRequest.Resolution resolution) {
     }
-    record StatusChange(@NotNull HandoffRequest.Status status) { }
-    record PriorityChange(@NotNull HandoffRequest.Priority priority, @NotNull java.time.Instant slaDueAt) { }
-    record Note(@NotBlank @Size(max = 4000) String content) { }
+
+    record StatusChange(@NotNull HandoffRequest.Status status) {
+    }
+
+    record PriorityChange(@NotNull HandoffRequest.Priority priority, @NotNull java.time.Instant slaDueAt) {
+    }
+
+    record Note(@NotBlank @Size(max = 4000) String content) {
+    }
+
     record NoteView(UUID id, UUID authorId, String content, java.time.Instant createdAt) {
-        static NoteView of(HandoffNote note) { return new NoteView(note.id(), note.authorId(), note.content(), note.createdAt()); }
+        static NoteView of(HandoffNote note) {
+            return new NoteView(note.id(), note.authorId(), note.content(), note.createdAt());
+        }
     }
 
     record View(UUID id, UUID conversationId, String status, String reason, String summary, String contact,
@@ -143,8 +168,9 @@ class HandoffController {
                 java.time.Instant closedAt, String packageSnapshot, String priority, java.time.Instant slaDueAt) {
         static View of(HandoffRequest request) {
             return new View(request.id(), request.conversationId(), request.status().name(), request.reason(), request.summary(),
-                    request.contact(), request.contactAuthorized(), request.assignedTo(), request.resolution() == null ? null : request.resolution().name(),
-                    request.createdAt(), request.closedAt(), request.packageSnapshot(), request.priority().name(), request.slaDueAt());
+                request.contact(), request.contactAuthorized(), request.assignedTo(),
+                request.resolution() == null ? null : request.resolution().name(),
+                request.createdAt(), request.closedAt(), request.packageSnapshot(), request.priority().name(), request.slaDueAt());
         }
     }
 }

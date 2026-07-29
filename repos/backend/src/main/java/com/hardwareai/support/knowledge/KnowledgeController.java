@@ -1,18 +1,24 @@
 package com.hardwareai.support.knowledge;
 
 import com.hardwareai.support.common.CurrentUser;
-import com.hardwareai.support.product.ProductRepository;
 import com.hardwareai.support.product.ProductApplicationService;
+import com.hardwareai.support.product.ProductRepository;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -36,13 +42,14 @@ public class KnowledgeController {
     private final KnowledgeRevisionApplicationService revisionService;
 
     KnowledgeController(
-            KnowledgeDocumentRepository d,
-            KnowledgeRevisionRepository r,
-            ProcessingJobRepository j,
-            ProductRepository p, ProductApplicationService productService,
-            ObjectStorage s,
-            CurrentUser c, KnowledgeChunkRepository chunks, VectorStoreAdapter vectorIndex, KnowledgeRevisionApplicabilityRepository applicability,
-            UploadedKnowledgeFileValidator fileValidator, KnowledgeRevisionApplicationService revisionService
+        KnowledgeDocumentRepository d,
+        KnowledgeRevisionRepository r,
+        ProcessingJobRepository j,
+        ProductRepository p, ProductApplicationService productService,
+        ObjectStorage s,
+        CurrentUser c, KnowledgeChunkRepository chunks, VectorStoreAdapter vectorIndex,
+        KnowledgeRevisionApplicabilityRepository applicability,
+        UploadedKnowledgeFileValidator fileValidator, KnowledgeRevisionApplicationService revisionService
     ) {
         documents = d;
         revisions = r;
@@ -61,50 +68,53 @@ public class KnowledgeController {
     @GetMapping("/documents")
     public List<DocumentView> list() {
         return documents
-                .findAllByTenantIdOrderByCreatedAtDesc(current.tenantId())
-                .stream()
-                .map(d -> revisions.findAllByDocumentIdOrderByRevisionNoDesc(d.id()).stream().findFirst().map(r -> DocumentView.of(d, r)).orElse(new DocumentView(d.id(), null, d.title(), d.locale(), "UPLOADED", "NOT_INDEXED")))
-                .toList();
+            .findAllByTenantIdOrderByCreatedAtDesc(current.tenantId())
+            .stream()
+            .map(d -> revisions.findAllByDocumentIdOrderByRevisionNoDesc(d.id()).stream().findFirst().map(r -> DocumentView.of(d, r))
+                .orElse(new DocumentView(d.id(), null, d.title(), d.locale(), "UPLOADED", "NOT_INDEXED")))
+            .toList();
     }
 
     @PostMapping(value = "/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     public DocumentView upload(
-            @RequestPart @NotBlank String title,
-            @RequestPart @NotBlank String locale,
-            @RequestPart UUID productModelId,
-            @RequestPart(required = false) UUID productVariantId,
-            @RequestPart @NotBlank String region,
-            @RequestPart(required = false) String hardwareRevision,
-            @RequestPart(required = false) String firmwareMin,
-            @RequestPart(required = false) String firmwareMax,
-            @RequestPart(required = false) Boolean allowDuplicate,
-            @RequestPart MultipartFile file
+        @RequestPart @NotBlank String title,
+        @RequestPart @NotBlank String locale,
+        @RequestPart UUID productModelId,
+        @RequestPart(required = false) UUID productVariantId,
+        @RequestPart @NotBlank String region,
+        @RequestPart(required = false) String hardwareRevision,
+        @RequestPart(required = false) String firmwareMin,
+        @RequestPart(required = false) String firmwareMax,
+        @RequestPart(required = false) Boolean allowDuplicate,
+        @RequestPart MultipartFile file
     ) {
         fileValidator.validate(file);
         String sourceChecksum = checksum(file);
-        if (!Boolean.TRUE.equals(allowDuplicate) && !documents.findAllByTenantIdAndSourceChecksum(current.tenantId(), sourceChecksum).isEmpty()) {
-            throw new IllegalStateException("An identical source already exists; set allowDuplicate to create an explicit new revision");
+        if (!Boolean.TRUE.equals(allowDuplicate) && !documents.findAllByTenantIdAndSourceChecksum(current.tenantId(), sourceChecksum)
+            .isEmpty()) {
+            throw new IllegalStateException(
+                "An identical source already exists; set allowDuplicate to create an explicit new revision");
         }
         products
-                .findByIdAndTenantId(productModelId, current.tenantId())
-                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+            .findByIdAndTenantId(productModelId, current.tenantId())
+            .orElseThrow(() -> new IllegalArgumentException("Product not found"));
         if (productVariantId != null) productService.requireActiveVariant(current.tenantId(), productModelId, productVariantId);
         String key = current.tenantId() + "/documents/" + UUID.randomUUID();
         storage.put(key, file);
         var doc = documents.save(
-                new KnowledgeDocument(
-                        current.tenantId(),
-                        title,
-                        locale,
-                        key,
-                        file.getContentType(),
-                        current.userId(), sourceChecksum
-                )
+            new KnowledgeDocument(
+                current.tenantId(),
+                title,
+                locale,
+                key,
+                file.getContentType(),
+                current.userId(), sourceChecksum
+            )
         );
         var revision = revisions.save(new KnowledgeRevision(doc.id(), productModelId, region));
         applicability.save(new KnowledgeRevisionApplicability(revision.id(), productModelId, productVariantId, region,
-                hardwareRevision, firmwareMin, firmwareMax, null, null));
+            hardwareRevision, firmwareMin, firmwareMax, null, null));
         jobs.save(new ProcessingJob(revision.id(), ProcessingJob.Type.PARSE));
         return DocumentView.of(doc, revision);
     }
@@ -113,8 +123,8 @@ public class KnowledgeController {
     @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
     public void submit(@PathVariable UUID id) {
         var r = revisions
-                .findOwned(id, current.tenantId())
-                .orElseThrow(() -> new IllegalArgumentException("Revision not found"));
+            .findOwned(id, current.tenantId())
+            .orElseThrow(() -> new IllegalArgumentException("Revision not found"));
         r.submit();
         revisions.save(r);
     }
@@ -123,11 +133,12 @@ public class KnowledgeController {
     @PreAuthorize("hasRole('ADMIN')")
     public DocumentView createRevision(@PathVariable UUID id, @RequestBody NewRevisionRequest request) {
         products.findByIdAndTenantId(request.productModelId(), current.tenantId())
-                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+            .orElseThrow(() -> new IllegalArgumentException("Product not found"));
         var revision = revisionService.createFromExistingSource(current.tenantId(), id, request.productModelId(),
-                request.productVariantId(), request.region(), request.hardwareRevision(), request.firmwareMin(),
-                request.firmwareMax(), request.validFrom(), request.validTo());
-        var document = documents.findByIdAndTenantId(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Document not found"));
+            request.productVariantId(), request.region(), request.hardwareRevision(), request.firmwareMin(),
+            request.firmwareMax(), request.validFrom(), request.validTo());
+        var document = documents.findByIdAndTenantId(id, current.tenantId())
+            .orElseThrow(() -> new IllegalArgumentException("Document not found"));
         return DocumentView.of(document, revision);
     }
 
@@ -135,8 +146,8 @@ public class KnowledgeController {
     @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
     public void publish(@PathVariable UUID id) {
         var r = revisions
-                .findOwned(id, current.tenantId())
-                .orElseThrow(() -> new IllegalArgumentException("Revision not found"));
+            .findOwned(id, current.tenantId())
+            .orElseThrow(() -> new IllegalArgumentException("Revision not found"));
         r.publish(current.userId());
         revisions.save(r);
         jobs.save(new ProcessingJob(r.id(), ProcessingJob.Type.INDEX));
@@ -145,7 +156,8 @@ public class KnowledgeController {
     @PostMapping("/knowledge-revisions/{id}/approve")
     @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
     public void approve(@PathVariable UUID id) {
-        var revision = revisions.findOwned(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Revision not found"));
+        var revision =
+            revisions.findOwned(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Revision not found"));
         revision.approve(current.userId());
         revisions.save(revision);
     }
@@ -153,7 +165,8 @@ public class KnowledgeController {
     @PostMapping("/knowledge-revisions/{id}/deprecate")
     @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
     public void deprecate(@PathVariable UUID id) {
-        var revision = revisions.findOwned(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Revision not found"));
+        var revision =
+            revisions.findOwned(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Revision not found"));
         revision.deprecate();
         revisions.save(revision);
         vectorIndex.removeRevision(revision.id());
@@ -162,7 +175,8 @@ public class KnowledgeController {
     @PostMapping("/knowledge-revisions/{id}/archive")
     @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
     public void archive(@PathVariable UUID id) {
-        var revision = revisions.findOwned(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Revision not found"));
+        var revision =
+            revisions.findOwned(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Revision not found"));
         revision.archive();
         revisions.save(revision);
         vectorIndex.removeRevision(revision.id());
@@ -171,14 +185,15 @@ public class KnowledgeController {
     @PostMapping("/knowledge-revisions/{id}/restore")
     @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
     public void restore(@PathVariable UUID id) {
-        var revision = revisions.findOwned(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Revision not found"));
+        var revision =
+            revisions.findOwned(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Revision not found"));
         revisions.findAllByDocumentIdOrderByRevisionNoDesc(revision.documentId()).stream()
-                .filter(candidate -> candidate.status() == KnowledgeRevision.Status.PUBLISHED)
-                .forEach(candidate -> {
-                    candidate.archive();
-                    revisions.save(candidate);
-                    vectorIndex.removeRevision(candidate.id());
-                });
+            .filter(candidate -> candidate.status() == KnowledgeRevision.Status.PUBLISHED)
+            .forEach(candidate -> {
+                candidate.archive();
+                revisions.save(candidate);
+                vectorIndex.removeRevision(candidate.id());
+            });
         revision.restore(current.userId());
         revisions.save(revision);
         jobs.save(new ProcessingJob(revision.id(), ProcessingJob.Type.INDEX));
@@ -186,14 +201,19 @@ public class KnowledgeController {
 
     @GetMapping("/documents/{id}/preview")
     public Preview preview(@PathVariable UUID id) {
-        var document = documents.findByIdAndTenantId(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Document not found"));
-        var revision = revisions.findAllByDocumentIdOrderByRevisionNoDesc(id).stream().findFirst().orElseThrow(() -> new IllegalStateException("Document has no revision"));
-        return new Preview(document.title(), revision.status().name(), revision.indexStatus().name(), revision.extractedText(), chunks.findAllByRevisionIdOrderByChunkNo(revision.id()).stream().map(c -> new ChunkView(c.chunkNo(), c.sourceLabel(), c.titlePath(), c.pageFrom(), c.content())).toList());
+        var document = documents.findByIdAndTenantId(id, current.tenantId())
+            .orElseThrow(() -> new IllegalArgumentException("Document not found"));
+        var revision = revisions.findAllByDocumentIdOrderByRevisionNoDesc(id).stream().findFirst()
+            .orElseThrow(() -> new IllegalStateException("Document has no revision"));
+        return new Preview(document.title(), revision.status().name(), revision.indexStatus().name(), revision.extractedText(),
+            chunks.findAllByRevisionIdOrderByChunkNo(revision.id()).stream()
+                .map(c -> new ChunkView(c.chunkNo(), c.sourceLabel(), c.titlePath(), c.pageFrom(), c.content())).toList());
     }
 
     record DocumentView(UUID id, UUID revisionId, String title, String locale, String status, String indexStatus) {
         static DocumentView of(KnowledgeDocument d, KnowledgeRevision revision) {
-            return new DocumentView(d.id(), revision.id(), d.title(), d.locale(), revision.status().name(), revision.indexStatus().name());
+            return new DocumentView(d.id(), revision.id(), d.title(), d.locale(), revision.status().name(),
+                revision.indexStatus().name());
         }
     }
 
@@ -204,7 +224,8 @@ public class KnowledgeController {
     }
 
     record NewRevisionRequest(UUID productModelId, UUID productVariantId, @NotBlank String region, String hardwareRevision,
-                              String firmwareMin, String firmwareMax, java.time.Instant validFrom, java.time.Instant validTo) { }
+                              String firmwareMin, String firmwareMax, java.time.Instant validFrom, java.time.Instant validTo) {
+    }
 
     private static String checksum(MultipartFile file) {
         try {

@@ -21,7 +21,7 @@ class ConversationFeedback {
     private boolean resolved;
     private String comment;
     @Column(name = "created_at")
-    private Instant createdAt = Instant.now();
+    private final Instant createdAt = Instant.now();
 
     protected ConversationFeedback() {
     }

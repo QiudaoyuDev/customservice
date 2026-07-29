@@ -11,7 +11,8 @@ import java.util.Locale;
 public class IntentClassifier {
     public Intent classify(String text) {
         String value = text.toLowerCase(Locale.ROOT);
-        if (contains(value, "fire", "smoke", "burn", "burning smell", "shock", "water ingress", "overheat", "swollen", "disassemble", "high voltage", "power damage", "电击", "起火", "冒烟", "烧焦", "进水", "高温", "鼓包", "拆机", "高压", "电源损坏"))
+        if (contains(value, "fire", "smoke", "burn", "burning smell", "shock", "water ingress", "overheat", "swollen", "disassemble",
+            "high voltage", "power damage", "电击", "起火", "冒烟", "烧焦", "进水", "高温", "鼓包", "拆机", "高压", "电源损坏"))
             return Intent.SAFETY_RISK;
         if (contains(value, "human", "agent", "representative", "人工", "客服")) return Intent.HUMAN_REQUEST;
         if (contains(value, "warranty", "保修")) return Intent.WARRANTY;

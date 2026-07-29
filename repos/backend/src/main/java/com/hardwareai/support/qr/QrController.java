@@ -8,7 +8,11 @@ import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -30,7 +34,7 @@ public class QrController {
     @PreAuthorize("hasRole('ADMIN')")
     public Created create(@Valid @RequestBody Create r) {
         var issued = qr.issue(current.tenantId(), r.productModelId(), r.productVariantId(), r.initialFirmwareVersion(),
-                r.batch(), r.serialNumber(), r.expiresAt());
+            r.batch(), r.serialNumber(), r.expiresAt());
         log.info("QR binding created id={} tenant={} product={}", issued.binding().id(), current.tenantId(), r.productModelId());
         return new Created(issued.binding().id(), issued.token());
     }
@@ -41,8 +45,9 @@ public class QrController {
         var b = resolved.binding();
         var p = resolved.product();
         log.info("QR resolved binding={} product={} region={}", b.id(), p.id(), p.region());
-        return new PublicContext(p.displayName(), p.model(), resolved.variant() == null ? null : resolved.variant().hardwareRevision(),
-                p.region(), b.batch());
+        return new PublicContext(p.displayName(), p.model(),
+            resolved.variant() == null ? null : resolved.variant().hardwareRevision(),
+            p.region(), b.batch());
     }
 
     @GetMapping("/api/qr-bindings")
@@ -59,12 +64,12 @@ public class QrController {
     }
 
     record Create(
-            @NotNull UUID productModelId,
-            UUID productVariantId,
-            @Size(max = 80) String initialFirmwareVersion,
-            @Size(max = 100) String batch,
-            @Size(max = 100) String serialNumber,
-            Instant expiresAt
+        @NotNull UUID productModelId,
+        UUID productVariantId,
+        @Size(max = 80) String initialFirmwareVersion,
+        @Size(max = 100) String batch,
+        @Size(max = 100) String serialNumber,
+        Instant expiresAt
     ) {
     }
 
@@ -77,18 +82,20 @@ public class QrController {
     record Revoke(@NotBlank @Size(max = 300) String reason) {
     }
 
-    record View(UUID id, UUID productModelId, UUID productVariantId, String initialFirmwareVersion, String batch, String serialNumber, String status, Instant expiresAt) {
+    record View(UUID id, UUID productModelId, UUID productVariantId, String initialFirmwareVersion, String batch,
+                String serialNumber, String status, Instant expiresAt) {
         static View of(QrBinding binding) {
-            return new View(binding.id(), binding.productModelId(), binding.productVariantId(), binding.initialFirmwareVersion(), binding.batch(), binding.serialNumber(), binding.status().name(), binding.expiresAt());
+            return new View(binding.id(), binding.productModelId(), binding.productVariantId(), binding.initialFirmwareVersion(),
+                binding.batch(), binding.serialNumber(), binding.status().name(), binding.expiresAt());
         }
     }
 
     record PublicContext(
-            String displayName,
-            String model,
-            String hardwareRevision,
-            String region,
-            String batch
+        String displayName,
+        String model,
+        String hardwareRevision,
+        String region,
+        String batch
     ) {
     }
 }

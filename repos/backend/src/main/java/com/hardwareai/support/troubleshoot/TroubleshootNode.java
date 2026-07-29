@@ -2,7 +2,15 @@ package com.hardwareai.support.troubleshoot;
 
 import com.hardwareai.support.troubleshoot.TroubleshootTypes.NodeType;
 import com.hardwareai.support.troubleshoot.TroubleshootTypes.Risk;
-import jakarta.persistence.*;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Table;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -73,7 +81,8 @@ public class TroubleshootNode {
         this.orderIndex = 0;
     }
 
-    void apply(NodeType nodeType, String prompt, Risk risk, String expectedInput, String yes, String no, String unknown, String next, boolean safetyStop, List<String> refs) {
+    void apply(NodeType nodeType, String prompt, Risk risk, String expectedInput, String yes, String no, String unknown, String next,
+        boolean safetyStop, List<String> refs) {
         this.nodeType = nodeType;
         this.prompt = prompt;
         this.risk = risk;

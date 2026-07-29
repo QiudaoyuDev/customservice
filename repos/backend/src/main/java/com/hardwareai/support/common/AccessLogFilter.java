@@ -34,7 +34,7 @@ class AccessLogFilter extends OncePerRequestFilter implements OrderedFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
-            throws ServletException, IOException {
+        throws ServletException, IOException {
         String requestId = request.getHeader("X-Request-Id");
         if (requestId == null || requestId.length() > 100) requestId = UUID.randomUUID().toString();
         MDC.put(RequestContextFilter.REQUEST_ID, requestId);

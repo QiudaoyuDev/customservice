@@ -1,6 +1,8 @@
 package com.hardwareai.support.handoff;
 
-/** Optional delivery channel. The internal queue remains the authoritative work record. */
+/**
+ * Optional delivery channel. The internal queue remains the authoritative work record.
+ */
 public interface HumanSupportAdapter {
     String channel();
 
@@ -11,6 +13,9 @@ public interface HumanSupportAdapter {
     }
 
     record HandoffDelivery(java.util.UUID handoffId, String summary, String contact, boolean contactAuthorized,
-                           String packageSnapshot) { }
-    record DeliveryResult(boolean delivered, String externalConversationId, String errorCode) { }
+                           String packageSnapshot) {
+    }
+
+    record DeliveryResult(boolean delivered, String externalConversationId, String errorCode) {
+    }
 }

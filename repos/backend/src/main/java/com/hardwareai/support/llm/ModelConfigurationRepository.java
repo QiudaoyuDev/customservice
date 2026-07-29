@@ -8,6 +8,8 @@ import java.util.UUID;
 
 interface ModelConfigurationRepository extends JpaRepository<ModelConfiguration, UUID> {
     List<ModelConfiguration> findAllByTenantIdOrderByName(UUID tenantId);
+
     Optional<ModelConfiguration> findByIdAndTenantId(UUID id, UUID tenantId);
+
     Optional<ModelConfiguration> findByTenantIdAndDefaultConfigTrueAndEnabledTrue(UUID tenantId);
 }

@@ -1,10 +1,15 @@
 package com.hardwareai.support.knowledge;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
-import java.time.Instant;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.Instant;
 import java.util.HexFormat;
 import java.util.UUID;
 
@@ -98,15 +103,19 @@ public class KnowledgeRevision {
         return extractedText;
     }
 
-    public int revisionNo() { return revisionNo; }
+    public int revisionNo() {
+        return revisionNo;
+    }
 
-    public IndexStatus indexStatus() { return indexStatus; }
+    public IndexStatus indexStatus() {
+        return indexStatus;
+    }
 
     /**
      * Parser is the only path that writes normalized source text.
      */
     public void setExtractedText(
-            String text
+        String text
     ) {
         extractedText = text;
         contentChecksum = checksum(text);
@@ -123,28 +132,30 @@ public class KnowledgeRevision {
 
     public void submit() {
         if (status != Status.DRAFT) throw new IllegalStateException(
-                "Only a draft revision can be submitted"
+            "Only a draft revision can be submitted"
         );
         if (extractedText == null || extractedText.isBlank()) throw new IllegalStateException(
-                "The document must be parsed before review"
+            "The document must be parsed before review"
         );
         status = Status.REVIEW;
     }
 
     public void publish(UUID user) {
         if (status != Status.APPROVED) throw new IllegalStateException(
-                "Only an approved revision can be published"
+            "Only an approved revision can be published"
         );
         if (
-                productModelId == null || region == null || region.isBlank()
+            productModelId == null || region == null || region.isBlank()
         ) throw new IllegalStateException(
-                "Published knowledge requires product and region applicability"
+            "Published knowledge requires product and region applicability"
         );
         indexStatus = IndexStatus.INDEXING;
         reviewedBy = user;
     }
 
-    /** Index worker is the sole authority that makes a revision visible to retrieval. */
+    /**
+     * Index worker is the sole authority that makes a revision visible to retrieval.
+     */
     public void markIndexedAndPublished() {
         if (status != Status.APPROVED || indexStatus != IndexStatus.INDEXING)
             throw new IllegalStateException("Only an approved indexing revision can be published");
@@ -204,7 +215,7 @@ public class KnowledgeRevision {
         ARCHIVED,
     }
 
-    public enum IndexStatus { NOT_INDEXED, INDEXING, READY, FAILED, REMOVING }
+    public enum IndexStatus {NOT_INDEXED, INDEXING, READY, FAILED, REMOVING}
 
     private static String checksum(String value) {
         try {

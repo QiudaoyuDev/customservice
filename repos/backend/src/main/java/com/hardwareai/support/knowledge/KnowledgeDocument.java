@@ -1,6 +1,11 @@
 package com.hardwareai.support.knowledge;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -39,12 +44,12 @@ public class KnowledgeDocument {
     }
 
     KnowledgeDocument(
-            UUID tenantId,
-            String title,
-            String locale,
-            String key,
-            String contentType,
-            UUID userId, String sourceChecksum
+        UUID tenantId,
+        String title,
+        String locale,
+        String key,
+        String contentType,
+        UUID userId, String sourceChecksum
     ) {
         id = UUID.randomUUID();
         this.tenantId = tenantId;
@@ -81,7 +86,9 @@ public class KnowledgeDocument {
         return contentType;
     }
 
-    public String sourceChecksum() { return sourceChecksum; }
+    public String sourceChecksum() {
+        return sourceChecksum;
+    }
 
     public Status status() {
         return status;

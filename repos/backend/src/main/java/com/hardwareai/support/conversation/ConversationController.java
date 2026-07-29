@@ -1,17 +1,21 @@
 package com.hardwareai.support.conversation;
 
+import com.hardwareai.support.analytics.OperationalEventService;
 import com.hardwareai.support.handoff.HandoffRepository;
 import com.hardwareai.support.handoff.HandoffRequest;
-import com.hardwareai.support.knowledge.EvidenceService;
 import com.hardwareai.support.knowledge.ObjectStorage;
-import com.hardwareai.support.retrieval.RetrievalService;
-import com.hardwareai.support.config.AppProperties;
 import com.hardwareai.support.llm.Intent;
 import com.hardwareai.support.llm.IntentClassifier;
 import com.hardwareai.support.qr.QrApplicationService;
-import com.hardwareai.support.troubleshoot.*;
+import com.hardwareai.support.retrieval.RetrievalService;
+import com.hardwareai.support.troubleshoot.FlowMatchScope;
+import com.hardwareai.support.troubleshoot.FlowMatcher;
 import com.hardwareai.support.troubleshoot.FlowVersionService;
-import com.hardwareai.support.analytics.OperationalEventService;
+import com.hardwareai.support.troubleshoot.TroubleshootFlow;
+import com.hardwareai.support.troubleshoot.TroubleshootFlowRepository;
+import com.hardwareai.support.troubleshoot.TroubleshootNodeRepository;
+import com.hardwareai.support.troubleshoot.TroubleshootStateMachine;
+import com.hardwareai.support.troubleshoot.TroubleshootTypes;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,15 +23,27 @@ import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -69,7 +85,15 @@ class ConversationController {
     private final FlowMatcher flowMatcher;
     private final OperationalEventService events;
 
-    ConversationController(QrApplicationService qr, ConversationRepository conversations, ConversationProductContextRepository contexts, ConversationContextService contextService, ConversationMessageRepository messages, MessageAttachmentRepository attachments, ConversationFeedbackRepository feedback, ObjectStorage storage, IntentClassifier intents, RetrievalService retrieval, TroubleshootFlowRepository flows, TroubleshootNodeRepository nodes, TroubleshootStateMachine machine, HandoffRepository handoffs, MessageSource messageSource, SupportOrchestratorService orchestrator, AttachmentProcessingJobRepository attachmentJobs, AttachmentAnalysisRepository attachmentAnalyses, ConversationFlowSessionRepository flowSessions, ConversationFlowStepRepository flowSteps, FlowVersionService flowVersions, FlowMatcher flowMatcher, OperationalEventService events) {
+    ConversationController(QrApplicationService qr, ConversationRepository conversations,
+        ConversationProductContextRepository contexts, ConversationContextService contextService,
+        ConversationMessageRepository messages, MessageAttachmentRepository attachments, ConversationFeedbackRepository feedback,
+        ObjectStorage storage, IntentClassifier intents, RetrievalService retrieval, TroubleshootFlowRepository flows,
+        TroubleshootNodeRepository nodes, TroubleshootStateMachine machine, HandoffRepository handoffs, MessageSource messageSource,
+        SupportOrchestratorService orchestrator, AttachmentProcessingJobRepository attachmentJobs,
+        AttachmentAnalysisRepository attachmentAnalyses, ConversationFlowSessionRepository flowSessions,
+        ConversationFlowStepRepository flowSteps, FlowVersionService flowVersions, FlowMatcher flowMatcher,
+        OperationalEventService events) {
         this.qr = qr;
         this.conversations = conversations;
         this.contexts = contexts;
@@ -120,72 +144,95 @@ class ConversationController {
         var binding = resolved.binding();
         var product = resolved.product();
         String accessToken = UUID.randomUUID() + "." + UUID.randomUUID();
-        var conversation = conversations.save(new Conversation(binding.tenantId(), binding.id(), request.language(), product.region(), hash(accessToken)));
+        var conversation = conversations.save(
+            new Conversation(binding.tenantId(), binding.id(), request.language(), product.region(), hash(accessToken)));
         contextService.establishFromQr(conversation, resolved, request.hardwareVersion(), request.firmwareVersion());
-        events.record(conversation.tenantId(), conversation.id(), "CONVERSATION_CREATED", Map.of("status", conversation.status().name()));
-        log.info("Conversation created id={} tenant={} product={} language={} region={}", conversation.id(), binding.tenantId(), binding.productModelId(), request.language(), product.region());
+        events.record(conversation.tenantId(), conversation.id(), "CONVERSATION_CREATED",
+            Map.of("status", conversation.status().name()));
+        log.info("Conversation created id={} tenant={} product={} language={} region={}", conversation.id(), binding.tenantId(),
+            binding.productModelId(), request.language(), product.region());
         return new View(conversation.id(), binding.productModelId(), request.language(), product.region(), accessToken);
     }
 
     @PostMapping("/{id}/messages")
-    public MessageView send(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken, @Valid @RequestBody Send request) {
-        var conversation = conversations.findById(id).filter(c -> c.status() == Conversation.Status.OPEN).orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
+    public MessageView send(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken,
+        @Valid @RequestBody Send request) {
+        var conversation = conversations.findById(id).filter(c -> c.status() == Conversation.Status.OPEN)
+            .orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
         authorize(conversation, accessToken);
-        var message = messages.save(new ConversationMessage(conversation.id(), request.content(), request.errorCode(), request.controlledReply()));
-        events.record(conversation.tenantId(), conversation.id(), "MESSAGE_RECEIVED", Map.of("errorCodePresent", request.errorCode() != null));
-        log.debug("Message received conversation={} errorCode={} contentLen={}", id, request.errorCode(), request.content().length());
+        var message = messages.save(
+            new ConversationMessage(conversation.id(), request.content(), request.errorCode(), request.controlledReply()));
+        events.record(conversation.tenantId(), conversation.id(), "MESSAGE_RECEIVED",
+            Map.of("errorCodePresent", request.errorCode() != null));
+        log.debug("Message received conversation={} errorCode={} contentLen={}", id, request.errorCode(),
+            request.content().length());
         return MessageView.of(message);
     }
 
     @PostMapping("/{id}/product-context")
-    public void changeProduct(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken, @Valid @RequestBody ChangeProduct request) {
-        var conversation = conversations.findById(id).filter(c -> c.status() == Conversation.Status.OPEN).orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
+    public void changeProduct(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken,
+        @Valid @RequestBody ChangeProduct request) {
+        var conversation = conversations.findById(id).filter(c -> c.status() == Conversation.Status.OPEN)
+            .orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
         authorize(conversation, accessToken);
-        contextService.replaceByUser(conversation, request.productModelId(), request.productVariantId(), request.hardwareRevision(), request.firmwareVersion());
+        contextService.replaceByUser(conversation, request.productModelId(), request.productVariantId(), request.hardwareRevision(),
+            request.firmwareVersion());
         conversations.save(conversation);
     }
 
     @GetMapping("/{id}/product-options")
     public List<ProductOption> productOptions(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken) {
         var conversation = conversations.findById(id).filter(c -> c.status() == Conversation.Status.OPEN)
-                .orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
+            .orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
         authorize(conversation, accessToken);
         return contextService.selectableProducts(conversation).stream()
-                .map(product -> new ProductOption(product.id(), product.displayName(), product.model(), product.region(), product.hardwareVersion()))
-                .toList();
+            .map(product -> new ProductOption(product.id(), product.displayName(), product.model(), product.region(),
+                product.hardwareVersion()))
+            .toList();
     }
 
     @PostMapping(value = "/{id}/attachments", consumes = "multipart/form-data")
-    public AttachmentView uploadAttachment(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken, @RequestPart @NotBlank @Size(max = 4000) String content, @RequestPart(required = false) @Size(max = 100) String errorCode, @RequestPart MultipartFile file) {
-        if (file.isEmpty() || file.getSize() > 10 * 1024 * 1024 || !Set.of("image/png", "image/jpeg").contains(file.getContentType()) || !validImageSignature(file))
+    public AttachmentView uploadAttachment(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken,
+        @RequestPart @NotBlank @Size(max = 4000) String content, @RequestPart(required = false) @Size(max = 100) String errorCode,
+        @RequestPart MultipartFile file) {
+        if (file.isEmpty() || file.getSize() > 10 * 1024 * 1024 || !Set.of("image/png", "image/jpeg").contains(file.getContentType())
+            || !validImageSignature(file))
             throw new IllegalArgumentException("Only PNG or JPEG up to 10 MiB is supported");
-        var conversation = conversations.findById(id).filter(c -> c.status() == Conversation.Status.OPEN).orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
+        var conversation = conversations.findById(id).filter(c -> c.status() == Conversation.Status.OPEN)
+            .orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
         authorize(conversation, accessToken);
         var message = messages.save(new ConversationMessage(conversation.id(), content, errorCode));
         String key = conversation.tenantId() + "/conversations/" + id + "/" + UUID.randomUUID();
         storage.put(key, file);
         var attachment = attachments.save(new MessageAttachment(message.id(), key, file.getContentType(), file.getSize()));
         attachmentJobs.save(new AttachmentProcessingJob(attachment.id()));
-        events.record(conversation.tenantId(), conversation.id(), "ATTACHMENT_UPLOADED", Map.of("attachmentType", file.getContentType()));
+        events.record(conversation.tenantId(), conversation.id(), "ATTACHMENT_UPLOADED",
+            Map.of("attachmentType", file.getContentType()));
         return new AttachmentView(message.id(), attachment.id());
     }
 
     @GetMapping("/{id}/attachments/{attachmentId}/analysis")
-    public AttachmentAnalysisView attachmentAnalysis(@PathVariable UUID id, @PathVariable UUID attachmentId, @RequestHeader("X-Conversation-Token") String accessToken) {
+    public AttachmentAnalysisView attachmentAnalysis(@PathVariable UUID id, @PathVariable UUID attachmentId,
+        @RequestHeader("X-Conversation-Token") String accessToken) {
         authorizeAttachment(id, attachmentId, accessToken);
-        return attachmentAnalyses.findByAttachmentId(attachmentId).map(AttachmentAnalysisView::of).orElseThrow(() -> new IllegalStateException("Attachment analysis is pending"));
+        return attachmentAnalyses.findByAttachmentId(attachmentId).map(AttachmentAnalysisView::of)
+            .orElseThrow(() -> new IllegalStateException("Attachment analysis is pending"));
     }
 
     @PostMapping("/{id}/attachments/{attachmentId}/analysis/confirm")
-    public AttachmentAnalysisView confirmAttachmentAnalysis(@PathVariable UUID id, @PathVariable UUID attachmentId, @RequestHeader("X-Conversation-Token") String accessToken) {
+    public AttachmentAnalysisView confirmAttachmentAnalysis(@PathVariable UUID id, @PathVariable UUID attachmentId,
+        @RequestHeader("X-Conversation-Token") String accessToken) {
         authorizeAttachment(id, attachmentId, accessToken);
-        var analysis = attachmentAnalyses.findByAttachmentId(attachmentId).orElseThrow(() -> new IllegalStateException("Attachment analysis is pending"));
-        analysis.confirm(); attachmentAnalyses.save(analysis);
+        var analysis = attachmentAnalyses.findByAttachmentId(attachmentId)
+            .orElseThrow(() -> new IllegalStateException("Attachment analysis is pending"));
+        analysis.confirm();
+        attachmentAnalyses.save(analysis);
         return AttachmentAnalysisView.of(analysis);
     }
 
     @PostMapping("/{id}/feedback")
-    public void submitFeedback(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken, @Valid @RequestBody Feedback request) {
+    public void submitFeedback(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken,
+        @Valid @RequestBody Feedback request) {
         var conversation = conversations.findById(id).orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
         authorize(conversation, accessToken);
         feedback.save(new ConversationFeedback(id, request.resolved(), request.comment()));
@@ -200,7 +247,8 @@ class ConversationController {
 
     @PostMapping("/{id}/answers")
     public Answer answer(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken) {
-        var conversation = conversations.findById(id).filter(c -> c.status() == Conversation.Status.OPEN).orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
+        var conversation = conversations.findById(id).filter(c -> c.status() == Conversation.Status.OPEN)
+            .orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
         authorize(conversation, accessToken);
         var history = messages.findAllByConversationIdOrderByCreatedAtAsc(id);
         if (history.isEmpty()) throw new IllegalArgumentException("A user message is required");
@@ -214,24 +262,31 @@ class ConversationController {
             return new Answer(intent, msg(conversation.language(), "answer.human"), List.of(), null, null, null);
         if (intent == Intent.UNKNOWN)
             return new Answer(intent, msg(conversation.language(), "answer.noKnowledge"), List.of(), null, null, null);
-        var context = contexts.findAllByConversationIdAndActiveTrue(id).stream().findFirst().orElseThrow(() -> new IllegalStateException("Product context is unavailable"));
+        var context = contexts.findAllByConversationIdAndActiveTrue(id).stream().findFirst()
+            .orElseThrow(() -> new IllegalStateException("Product context is unavailable"));
         if (intent == Intent.TROUBLESHOOTING || intent == Intent.ERROR_CODE) {
-            var flow = flowMatcher.match(conversation.tenantId(), new FlowMatchScope(context.productModelId(), context.productVariantId(), context.hardwareRevision(), context.firmwareVersion()),
-                    conversation.region(), conversation.language(), intent, history.getLast().content(), history.getLast().errorCode());
+            var flow = flowMatcher.match(conversation.tenantId(),
+                new FlowMatchScope(context.productModelId(), context.productVariantId(), context.hardwareRevision(),
+                    context.firmwareVersion()),
+                conversation.region(), conversation.language(), intent, history.getLast().content(), history.getLast().errorCode());
             if (flow.isPresent()) {
                 log.info("Matched troubleshoot flow conversation={} flow={} intent={}", id, flow.get().id(), intent);
                 return driveFlow(conversation, history, flow.get());
             }
         }
         var result = orchestrator.answer(conversation, context, history.getLast(), intent);
-        log.info("Evidence answer conversation={} intent={} citations={} outcome={}", id, intent, result.citations().size(), result.outcome());
+        log.info("Evidence answer conversation={} intent={} citations={} outcome={}", id, intent, result.citations().size(),
+            result.outcome());
         return new Answer(intent, result.content(), result.citations(), null, null, null);
     }
 
     @GetMapping(value = "/{id}/answers/stream", produces = "text/event-stream")
     public SseEmitter stream(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken) {
         var emitter = new SseEmitter(30_000L);
-        if (!ACTIVE_STREAMS.add(id)) { emitter.completeWithError(new IllegalStateException("An answer is already being generated")); return emitter; }
+        if (!ACTIVE_STREAMS.add(id)) {
+            emitter.completeWithError(new IllegalStateException("An answer is already being generated"));
+            return emitter;
+        }
         var cancelled = new AtomicBoolean(false);
         var completed = new AtomicBoolean(false);
         var task = new AtomicReference<Future<?>>();
@@ -262,11 +317,16 @@ class ConversationController {
                 emitter.complete();
             } catch (Exception exception) {
                 if (!cancelled.get()) {
-                    try { emitter.send(SseEmitter.event().name("error").data(Map.of("code", "ANSWER_FAILED"))); } catch (Exception ignored) { }
+                    try {
+                        emitter.send(SseEmitter.event().name("error").data(Map.of("code", "ANSWER_FAILED")));
+                    } catch (Exception ignored) {
+                    }
                     completed.set(true);
                     emitter.completeWithError(exception);
                 }
-            } finally { ACTIVE_STREAMS.remove(id); }
+            } finally {
+                ACTIVE_STREAMS.remove(id);
+            }
         }));
         return emitter;
     }
@@ -284,8 +344,8 @@ class ConversationController {
         if (active.isPresent()) {
             var definition = flowVersions.byId(active.get().flowVersionId());
             var pinnedFlow = flows.findById(definition.flowId())
-                    .filter(flow -> flow.tenantId().equals(conversation.tenantId()))
-                    .orElseThrow(() -> new IllegalStateException("Pinned flow is unavailable"));
+                .filter(flow -> flow.tenantId().equals(conversation.tenantId()))
+                .orElseThrow(() -> new IllegalStateException("Pinned flow is unavailable"));
             return advanceFlow(conversation, history, pinnedFlow, active.get(), definition);
         }
         var definition = flowVersions.latest(matchedFlow.id());
@@ -294,28 +354,34 @@ class ConversationController {
         conversation.startFlow(matchedFlow.id());
         conversation.setNode(start.nodeKey(), 0);
         conversations.save(conversation);
-        log.info("Flow started conversation={} flow={} version={} firstNode={}", conversation.id(), matchedFlow.id(), definition.snapshotId(), start.nodeKey());
-        events.record(conversation.tenantId(), conversation.id(), "FLOW_STARTED", Map.of("flowVersion", definition.snapshotId().toString(), "nodeType", start.nodeType()));
+        log.info("Flow started conversation={} flow={} version={} firstNode={}", conversation.id(), matchedFlow.id(),
+            definition.snapshotId(), start.nodeKey());
+        events.record(conversation.tenantId(), conversation.id(), "FLOW_STARTED",
+            Map.of("flowVersion", definition.snapshotId().toString(), "nodeType", start.nodeType()));
         return renderFlowNode(conversation, matchedFlow, session, definition, start);
     }
 
     private Answer advanceFlow(Conversation conversation, List<ConversationMessage> history, TroubleshootFlow flow,
-                               ConversationFlowSession session, FlowVersionService.Definition definition) {
+        ConversationFlowSession session, FlowVersionService.Definition definition) {
         var byKey = definition.nodes().stream().collect(Collectors.toMap(FlowVersionService.Node::nodeKey, node -> node));
         var current = byKey.get(session.currentNodeKey());
         if (current == null) throw new IllegalStateException("Pinned flow node is unavailable");
         var reply = normalizeReply(history.getLast(), current);
         int failures = session.failureCount();
         if ((nodeType(current) == TroubleshootTypes.NodeType.OPERATION && reply == TroubleshootTypes.Reply.NO)
-                || reply == TroubleshootTypes.Reply.UNKNOWN) failures++;
+            || reply == TroubleshootTypes.Reply.UNKNOWN) failures++;
         String yes = nodeType(current) == TroubleshootTypes.NodeType.OPERATION ? current.branchNext() : current.branchYes();
         String no = nodeType(current) == TroubleshootTypes.NodeType.OPERATION ? current.branchNext() : current.branchNo();
         var transition = machine.next(nodeType(current), risk(current), reply, yes, no, current.branchUnknown(), failures);
-        String result = transition.escalated() ? "ESCALATED" : transition.nextNodeKey() == null ? "COMPLETED" : "NEXT:" + transition.nextNodeKey();
+        String result = transition.escalated() ?
+            "ESCALATED" :
+            transition.nextNodeKey() == null ? "COMPLETED" : "NEXT:" + transition.nextNodeKey();
         flowSteps.save(new ConversationFlowStep(session.id(), current.nodeKey(), reply.name(), history.getLast().id(), result));
-        events.record(conversation.tenantId(), conversation.id(), "FLOW_STEP", Map.of("flowVersion", definition.snapshotId().toString(), "nodeType", current.nodeType(), "outcome", result));
+        events.record(conversation.tenantId(), conversation.id(), "FLOW_STEP",
+            Map.of("flowVersion", definition.snapshotId().toString(), "nodeType", current.nodeType(), "outcome", result));
         log.info("Flow step conversation={} flow={} version={} fromNode={} reply={} failures={} -> nextNode={} escalated={}",
-                conversation.id(), flow.id(), definition.snapshotId(), current.nodeKey(), reply, failures, transition.nextNodeKey(), transition.escalated());
+            conversation.id(), flow.id(), definition.snapshotId(), current.nodeKey(), reply, failures, transition.nextNodeKey(),
+            transition.escalated());
         if (transition.escalated()) {
             session.complete();
             flowSessions.save(session);
@@ -327,7 +393,8 @@ class ConversationController {
             flowSessions.save(session);
             conversation.clearFlow();
             conversations.save(conversation);
-            log.info("Flow ended conversation={} flow={} version={} lastNode={}", conversation.id(), flow.id(), definition.snapshotId(), current.nodeKey());
+            log.info("Flow ended conversation={} flow={} version={} lastNode={}", conversation.id(), flow.id(),
+                definition.snapshotId(), current.nodeKey());
             return new Answer(Intent.TROUBLESHOOTING, msg(conversation.language(), "flow.end"), List.of(), null, null, null);
         }
         session.advance(next.nodeKey(), failures);
@@ -338,8 +405,9 @@ class ConversationController {
     }
 
     private Answer renderFlowNode(Conversation conversation, TroubleshootFlow flow, ConversationFlowSession session,
-                                  FlowVersionService.Definition definition, FlowVersionService.Node node) {
-        if (nodeType(node) == TroubleshootTypes.NodeType.HUMAN_ESCALATION || node.safetyStop() || risk(node) == TroubleshootTypes.Risk.HIGH) {
+        FlowVersionService.Definition definition, FlowVersionService.Node node) {
+        if (nodeType(node) == TroubleshootTypes.NodeType.HUMAN_ESCALATION || node.safetyStop()
+            || risk(node) == TroubleshootTypes.Risk.HIGH) {
             session.complete();
             flowSessions.save(session);
             return escalate(conversation, flow);
@@ -354,7 +422,8 @@ class ConversationController {
         var byKey = definition.nodes().stream().collect(Collectors.toMap(FlowVersionService.Node::nodeKey, value -> value));
         var path = pathTo(definition.nodes(), byKey, node.nodeKey());
         var refs = node.sourceRefs() == null ? List.<String>of() : node.sourceRefs();
-        var control = new FlowControl(flow.id(), node.nodeKey(), node.nodeType(), node.expectedInput(), node.risk(), path, definition.nodes().size(), end, false);
+        var control = new FlowControl(flow.id(), node.nodeKey(), node.nodeType(), node.expectedInput(), node.risk(), path,
+            definition.nodes().size(), end, false);
         return new Answer(Intent.TROUBLESHOOTING, node.prompt(), new ArrayList<>(refs), node.expectedInput(), node.risk(), control);
     }
 
@@ -406,11 +475,12 @@ class ConversationController {
 
     private Answer escalate(Conversation conversation, TroubleshootFlow flow) {
         var handoff = handoffs.save(new HandoffRequest(conversation.tenantId(), conversation.id(), "flow-" + UUID.randomUUID(),
-                msg(conversation.language(), "handoff.title", flow.title()), msg(conversation.language(), "handoff.desc"), true));
+            msg(conversation.language(), "handoff.title", flow.title()), msg(conversation.language(), "handoff.desc"), true));
         conversation.clearFlow();
         conversations.save(conversation);
         log.warn("Flow escalated to human conversation={} flow={} handoff={}", conversation.id(), flow.id(), handoff.id());
-        return new Answer(Intent.HUMAN_REQUEST, msg(conversation.language(), "flow.escalated", handoff.id()), List.of(), null, null, null);
+        return new Answer(Intent.HUMAN_REQUEST, msg(conversation.language(), "flow.escalated", handoff.id()), List.of(), null, null,
+            null);
     }
 
     private void authorize(Conversation conversation, String accessToken) {
@@ -419,18 +489,21 @@ class ConversationController {
     }
 
     private void authorizeAttachment(UUID conversationId, UUID attachmentId, String accessToken) {
-        var conversation = conversations.findById(conversationId).orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
+        var conversation =
+            conversations.findById(conversationId).orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
         authorize(conversation, accessToken);
         var attachment = attachments.findById(attachmentId).orElseThrow(() -> new IllegalArgumentException("Attachment not found"));
-        var message = messages.findById(attachment.messageId()).orElseThrow(() -> new IllegalArgumentException("Attachment message not found"));
-        if (!conversationId.equals(message.conversationId())) throw new IllegalArgumentException("Attachment is not in this conversation");
+        var message = messages.findById(attachment.messageId())
+            .orElseThrow(() -> new IllegalArgumentException("Attachment message not found"));
+        if (!conversationId.equals(message.conversationId()))
+            throw new IllegalArgumentException("Attachment is not in this conversation");
     }
 
     private boolean validImageSignature(MultipartFile file) {
         try {
             byte[] bytes = file.getInputStream().readNBytes(12);
-            boolean png = bytes.length >= 8 && bytes[0] == (byte) 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4e && bytes[3] == 0x47;
-            boolean jpeg = bytes.length >= 3 && bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xd8 && bytes[2] == (byte) 0xff;
+            boolean png = bytes.length >= 8 && bytes[0] == (byte)0x89 && bytes[1] == 0x50 && bytes[2] == 0x4e && bytes[3] == 0x47;
+            boolean jpeg = bytes.length >= 3 && bytes[0] == (byte)0xff && bytes[1] == (byte)0xd8 && bytes[2] == (byte)0xff;
             return "image/png".equals(file.getContentType()) ? png : jpeg;
         } catch (java.io.IOException e) {
             return false;
@@ -439,7 +512,8 @@ class ConversationController {
 
     private String hash(String value) {
         try {
-            return java.util.HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
+            return java.util.HexFormat.of()
+                .formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
@@ -457,15 +531,20 @@ class ConversationController {
                          @Size(max = 80) String firmwareVersion) {
     }
 
-    record ProductOption(UUID id, String displayName, String model, String region, String hardwareVersion) { }
+    record ProductOption(UUID id, String displayName, String model, String region, String hardwareVersion) {
+    }
 
     record Feedback(boolean resolved, @Size(max = 1000) String comment) {
     }
 
     record AttachmentView(UUID messageId, UUID attachmentId) {
     }
+
     record AttachmentAnalysisView(String ocrText, String errorCode, Double confidence, boolean requiresConfirmation, String status) {
-        static AttachmentAnalysisView of(AttachmentAnalysis value) { return new AttachmentAnalysisView(value.ocrText(), value.errorCode(), value.confidence(), value.requiresConfirmation(), value.status()); }
+        static AttachmentAnalysisView of(AttachmentAnalysis value) {
+            return new AttachmentAnalysisView(value.ocrText(), value.errorCode(), value.confidence(), value.requiresConfirmation(),
+                value.status());
+        }
     }
 
     record Answer(Intent intent, String content, List<String> citations, String expectedInput, String risk,
@@ -481,7 +560,8 @@ class ConversationController {
 
     record MessageView(UUID id, String sender, String content, String errorCode, Instant createdAt) {
         static MessageView of(ConversationMessage message) {
-            return new MessageView(message.id(), message.sender().name(), message.content(), message.errorCode(), message.createdAt());
+            return new MessageView(message.id(), message.sender().name(), message.content(), message.errorCode(),
+                message.createdAt());
         }
     }
 }

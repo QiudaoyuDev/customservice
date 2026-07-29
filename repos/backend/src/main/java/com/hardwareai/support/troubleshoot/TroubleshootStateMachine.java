@@ -2,7 +2,9 @@ package com.hardwareai.support.troubleshoot;
 
 import org.springframework.stereotype.Service;
 
-import static com.hardwareai.support.troubleshoot.TroubleshootTypes.*;
+import static com.hardwareai.support.troubleshoot.TroubleshootTypes.NodeType;
+import static com.hardwareai.support.troubleshoot.TroubleshootTypes.Reply;
+import static com.hardwareai.support.troubleshoot.TroubleshootTypes.Risk;
 
 /**
  * Deterministically resolves all workflow branches and safety stops.

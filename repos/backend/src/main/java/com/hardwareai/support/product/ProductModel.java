@@ -1,6 +1,11 @@
 package com.hardwareai.support.product;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -41,7 +46,8 @@ public class ProductModel {
     protected ProductModel() {
     }
 
-    ProductModel(UUID tenantId, String family, String model, String displayName, String region, String hardwareVersion, String firmwareMin, String firmwareMax) {
+    ProductModel(UUID tenantId, String family, String model, String displayName, String region, String hardwareVersion,
+        String firmwareMin, String firmwareMax) {
         id = UUID.randomUUID();
         this.tenantId = tenantId;
         this.family = family;
@@ -94,7 +100,8 @@ public class ProductModel {
         return firmwareMax;
     }
 
-    void update(String family, String model, String displayName, String region, String hardwareVersion, String firmwareMin, String firmwareMax) {
+    void update(String family, String model, String displayName, String region, String hardwareVersion, String firmwareMin,
+        String firmwareMax) {
         this.family = family;
         this.model = model;
         this.displayName = displayName;
@@ -104,7 +111,9 @@ public class ProductModel {
         this.firmwareMax = firmwareMax;
     }
 
-    void archive() { status = Status.INACTIVE; }
+    void archive() {
+        status = Status.INACTIVE;
+    }
 
     public enum Status {
         ACTIVE,

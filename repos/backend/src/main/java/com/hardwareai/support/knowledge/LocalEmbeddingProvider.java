@@ -12,7 +12,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-/** BGE-compatible local embedding client with the shared external timeout policy. */
+/**
+ * BGE-compatible local embedding client with the shared external timeout policy.
+ */
 @Component
 class LocalEmbeddingProvider implements EmbeddingProvider {
     private static final Logger log = LoggerFactory.getLogger(LocalEmbeddingProvider.class);
@@ -30,8 +32,8 @@ class LocalEmbeddingProvider implements EmbeddingProvider {
         long start = System.nanoTime();
         try {
             var body = client.post().uri("/v1/embeddings").contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of("input", List.of(text), "normalize", true)).retrieve().body(Map.class);
-            var vector = (List<Double>) ((Map<?, ?>) ((List<?>) body.get("data")).getFirst()).get("embedding");
+                .body(Map.of("input", List.of(text), "normalize", true)).retrieve().body(Map.class);
+            var vector = (List<Double>)((Map<?, ?>)((List<?>)body.get("data")).getFirst()).get("embedding");
             log.debug("Embedding ok url={} dims={} in {}ms", endpoint, vector.size(), elapsed(start));
             return vector;
         } catch (Exception e) {

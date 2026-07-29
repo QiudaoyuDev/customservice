@@ -1,6 +1,11 @@
 package com.hardwareai.support.knowledge;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -35,7 +40,7 @@ class ProcessingJob {
     private String errorCode;
 
     @Column(name = "max_attempts")
-    private int maxAttempts = 3;
+    private final int maxAttempts = 3;
 
     @Column(name = "lease_until")
     private Instant leaseUntil;

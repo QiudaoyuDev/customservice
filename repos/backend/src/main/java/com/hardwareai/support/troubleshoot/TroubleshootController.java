@@ -1,5 +1,6 @@
 package com.hardwareai.support.troubleshoot;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hardwareai.support.common.CurrentUser;
 import com.hardwareai.support.llm.Intent;
 import com.hardwareai.support.troubleshoot.TroubleshootTypes.NodeType;
@@ -11,10 +12,23 @@ import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -34,7 +48,8 @@ public class TroubleshootController {
     private final TroubleshootFlowDefinitionRepository definitions;
     private final ObjectMapper json;
 
-    TroubleshootController(TroubleshootFlowRepository flows, TroubleshootNodeRepository nodes, CurrentUser current, TroubleshootFlowVersionSnapshotRepository snapshots, TroubleshootFlowDefinitionRepository definitions, ObjectMapper json) {
+    TroubleshootController(TroubleshootFlowRepository flows, TroubleshootNodeRepository nodes, CurrentUser current,
+        TroubleshootFlowVersionSnapshotRepository snapshots, TroubleshootFlowDefinitionRepository definitions, ObjectMapper json) {
         this.flows = flows;
         this.nodes = nodes;
         this.current = current;
@@ -49,10 +64,12 @@ public class TroubleshootController {
         var f = new TroubleshootFlow(current.tenantId(), c.title(), c.triggerIntent(), c.productModelId(), c.region(), c.locale());
         var definition = definitions.save(new TroubleshootFlowDefinition(current.tenantId(), c.title()));
         f.assignDefinition(definition.id(), 1);
-        f.update(c.title(), c.triggerIntent(), c.productModelId(), c.productVariantId(), c.hardwareRevision(), c.region(), c.locale(),
-                c.firmwareMin(), c.firmwareMax(), c.triggerPhrase(), c.priority());
+        f.update(c.title(), c.triggerIntent(), c.productModelId(), c.productVariantId(), c.hardwareRevision(), c.region(),
+            c.locale(),
+            c.firmwareMin(), c.firmwareMax(), c.triggerPhrase(), c.priority());
         var saved = flows.save(f);
-        log.info("Flow created id={} tenant={} title={} triggerIntent={} product={}", saved.id(), current.tenantId(), c.title(), c.triggerIntent(), c.productModelId());
+        log.info("Flow created id={} tenant={} title={} triggerIntent={} product={}", saved.id(), current.tenantId(), c.title(),
+            c.triggerIntent(), c.productModelId());
         return FlowView.of(saved);
     }
 
@@ -75,8 +92,9 @@ public class TroubleshootController {
     public void update(@PathVariable UUID id, @Valid @RequestBody UpdateMeta u) {
         var f = flows.findByIdAndTenantId(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Flow not found"));
         editable(f);
-        f.update(u.title(), u.triggerIntent(), u.productModelId(), u.productVariantId(), u.hardwareRevision(), u.region(), u.locale(),
-                u.firmwareMin(), u.firmwareMax(), u.triggerPhrase(), u.priority());
+        f.update(u.title(), u.triggerIntent(), u.productModelId(), u.productVariantId(), u.hardwareRevision(), u.region(),
+            u.locale(),
+            u.firmwareMin(), u.firmwareMax(), u.triggerPhrase(), u.priority());
         flows.save(f);
     }
 
@@ -87,8 +105,10 @@ public class TroubleshootController {
         if (nodes.findByFlowIdAndNodeKey(id, c.nodeKey()).isPresent())
             throw new IllegalStateException("nodeKey already exists in this flow");
         var n = new TroubleshootNode(id, c.nodeKey());
-        n.orderIndex(nodes.findAllByFlowIdOrderByOrderIndexAsc(id).stream().mapToInt(TroubleshootNode::orderIndex).max().orElse(-1) + 1);
-        n.apply(c.nodeType(), c.prompt(), c.risk(), c.expectedInput(), c.branchYes(), c.branchNo(), c.branchUnknown(), c.branchNext(), c.safetyStop(), c.sourceRefs());
+        n.orderIndex(
+            nodes.findAllByFlowIdOrderByOrderIndexAsc(id).stream().mapToInt(TroubleshootNode::orderIndex).max().orElse(-1) + 1);
+        n.apply(c.nodeType(), c.prompt(), c.risk(), c.expectedInput(), c.branchYes(), c.branchNo(), c.branchUnknown(),
+            c.branchNext(), c.safetyStop(), c.sourceRefs());
         return NodeView.of(nodes.save(n));
     }
 
@@ -97,7 +117,8 @@ public class TroubleshootController {
     public void updateNode(@PathVariable UUID id, @PathVariable String key, @Valid @RequestBody NodeUpdate u) {
         editable(owned(id));
         var n = nodes.findByFlowIdAndNodeKey(id, key).orElseThrow(() -> new IllegalArgumentException("Node not found"));
-        n.apply(u.nodeType(), u.prompt(), u.risk(), u.expectedInput(), u.branchYes(), u.branchNo(), u.branchUnknown(), u.branchNext(), u.safetyStop(), u.sourceRefs());
+        n.apply(u.nodeType(), u.prompt(), u.risk(), u.expectedInput(), u.branchYes(), u.branchNo(), u.branchUnknown(),
+            u.branchNext(), u.safetyStop(), u.sourceRefs());
         nodes.save(n);
     }
 
@@ -108,9 +129,9 @@ public class TroubleshootController {
         nodes.deleteByFlowIdAndNodeKey(id, key);
         nodes.findAllByFlowIdOrderByOrderIndexAsc(id).forEach(n -> {
             if (n.branchYes() != null && n.branchYes().equals(key)
-                    || n.branchNo() != null && n.branchNo().equals(key)
-                    || n.branchUnknown() != null && n.branchUnknown().equals(key)
-                    || n.branchNext() != null && n.branchNext().equals(key)) {
+                || n.branchNo() != null && n.branchNo().equals(key)
+                || n.branchUnknown() != null && n.branchUnknown().equals(key)
+                || n.branchNext() != null && n.branchNext().equals(key)) {
                 n.clearBranch(key);
                 nodes.save(n);
             }
@@ -141,9 +162,15 @@ public class TroubleshootController {
         var f = owned(id);
         validateForPublish(f);
         try {
-            int version = snapshots.findAllByFlowIdOrderByVersionNoDesc(f.id()).stream().mapToInt(TroubleshootFlowVersionSnapshot::versionNo).max().orElse(0) + 1;
-            snapshots.save(new TroubleshootFlowVersionSnapshot(f.id(), version, json.writeValueAsString(new FlowDetail(FlowView.of(f), nodes.findAllByFlowIdOrderByOrderIndexAsc(f.id()).stream().map(NodeView::of).toList()))));
-        } catch (Exception exception) { throw new IllegalStateException("Unable to snapshot flow version", exception); }
+            int version =
+                snapshots.findAllByFlowIdOrderByVersionNoDesc(f.id()).stream().mapToInt(TroubleshootFlowVersionSnapshot::versionNo)
+                    .max().orElse(0) + 1;
+            snapshots.save(new TroubleshootFlowVersionSnapshot(f.id(), version, json.writeValueAsString(
+                new FlowDetail(FlowView.of(f),
+                    nodes.findAllByFlowIdOrderByOrderIndexAsc(f.id()).stream().map(NodeView::of).toList()))));
+        } catch (Exception exception) {
+            throw new IllegalStateException("Unable to snapshot flow version", exception);
+        }
         f.publish(current.userId());
         flows.save(f);
         log.info("Flow published id={} by={}", id, current.userId());
@@ -178,12 +205,16 @@ public class TroubleshootController {
         return flows.findByIdAndTenantId(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Flow not found"));
     }
 
-    /** Published flow revisions are made by cloning into a new DRAFT; source content remains immutable. */
-    @PostMapping({"/{id}/clone", "/{id}/versions"})
+    /**
+     * Published flow revisions are made by cloning into a new DRAFT; source content remains immutable.
+     */
+    @PostMapping({ "/{id}/clone", "/{id}/versions" })
     @PreAuthorize("hasRole('ADMIN')")
     public FlowView cloneToDraft(@PathVariable UUID id) {
         var source = owned(id);
-        var draft = new TroubleshootFlow(current.tenantId(), source.title() + " (revision)", source.triggerIntent(), source.productModelId(), source.region(), source.locale());
+        var draft =
+            new TroubleshootFlow(current.tenantId(), source.title() + " (revision)", source.triggerIntent(), source.productModelId(),
+                source.region(), source.locale());
         UUID definitionId = source.definitionId();
         if (definitionId == null) {
             var definition = definitions.save(new TroubleshootFlowDefinition(current.tenantId(), source.title()));
@@ -191,18 +222,24 @@ public class TroubleshootController {
             source.assignDefinition(definitionId, 1);
             flows.save(source);
         }
-        int nextVersion = flows.findAllByDefinitionIdOrderByVersionNoDesc(definitionId).stream().mapToInt(TroubleshootFlow::versionNo).max().orElse(0) + 1;
+        int nextVersion =
+            flows.findAllByDefinitionIdOrderByVersionNoDesc(definitionId).stream().mapToInt(TroubleshootFlow::versionNo).max()
+                .orElse(0) + 1;
         draft.assignDefinition(definitionId, nextVersion);
-        draft.update(draft.title(), source.triggerIntent(), source.productModelId(), source.productVariantId(), source.hardwareRevision(), source.region(), source.locale(),
-                source.firmwareMin(), source.firmwareMax(), source.triggerPhrase(), source.priority());
+        draft.update(draft.title(), source.triggerIntent(), source.productModelId(), source.productVariantId(),
+            source.hardwareRevision(), source.region(), source.locale(),
+            source.firmwareMin(), source.firmwareMax(), source.triggerPhrase(), source.priority());
         draft = flows.save(draft);
         for (var sourceNode : nodes.findAllByFlowIdOrderByOrderIndexAsc(source.id())) {
             var copied = new TroubleshootNode(draft.id(), sourceNode.nodeKey());
             copied.orderIndex(sourceNode.orderIndex());
-            copied.apply(sourceNode.nodeType(), sourceNode.prompt(), sourceNode.risk(), sourceNode.expectedInput(), sourceNode.branchYes(), sourceNode.branchNo(), sourceNode.branchUnknown(), sourceNode.branchNext(), sourceNode.safetyStop(), sourceNode.sourceRefs());
+            copied.apply(sourceNode.nodeType(), sourceNode.prompt(), sourceNode.risk(), sourceNode.expectedInput(),
+                sourceNode.branchYes(), sourceNode.branchNo(), sourceNode.branchUnknown(), sourceNode.branchNext(),
+                sourceNode.safetyStop(), sourceNode.sourceRefs());
             nodes.save(copied);
         }
-        log.info("Flow version cloned definition={} source={} draft={} version={} tenant={}", definitionId, source.id(), draft.id(), nextVersion, current.tenantId());
+        log.info("Flow version cloned definition={} source={} draft={} version={} tenant={}", definitionId, source.id(), draft.id(),
+            nextVersion, current.tenantId());
         return FlowView.of(draft);
     }
 
@@ -218,32 +255,54 @@ public class TroubleshootController {
         long startNodes = flowNodes.stream().filter(node -> node.orderIndex() == 0).count();
         if (startNodes != 1) throw new IllegalStateException("A published flow requires exactly one start node");
         for (var node : flowNodes) {
-            for (String branch : new String[]{node.branchYes(), node.branchNo(), node.branchUnknown(), node.branchNext()}) {
-                if (branch != null && !keys.contains(branch)) throw new IllegalStateException("Flow branch points to an unknown node: " + branch);
+            for (String branch : new String[] { node.branchYes(), node.branchNo(), node.branchUnknown(), node.branchNext() }) {
+                if (branch != null && !keys.contains(branch))
+                    throw new IllegalStateException("Flow branch points to an unknown node: " + branch);
             }
-            if (node.nodeType() != NodeType.END && node.nodeType() != NodeType.HUMAN_ESCALATION && node.branchYes() == null && node.branchNo() == null && node.branchUnknown() == null && node.branchNext() == null)
+            if (node.nodeType() != NodeType.END && node.nodeType() != NodeType.HUMAN_ESCALATION && node.branchYes() == null
+                && node.branchNo() == null && node.branchUnknown() == null && node.branchNext() == null)
                 throw new IllegalStateException("Non-terminal node requires at least one branch: " + node.nodeKey());
         }
         var reachable = reachable(flowNodes);
         if (reachable.size() != flowNodes.size()) throw new IllegalStateException("Published flow contains unreachable nodes");
         if (hasUncontrolledCycle(flowNodes)) throw new IllegalStateException("Published flow contains a cycle without an exit");
-        boolean terminal = flowNodes.stream().anyMatch(n -> n.nodeType() == NodeType.END || n.nodeType() == NodeType.HUMAN_ESCALATION || n.risk() == Risk.HIGH || n.safetyStop());
+        boolean terminal = flowNodes.stream().anyMatch(
+            n -> n.nodeType() == NodeType.END || n.nodeType() == NodeType.HUMAN_ESCALATION || n.risk() == Risk.HIGH
+                || n.safetyStop());
         if (!terminal) throw new IllegalStateException("A published flow requires an end or human escalation path");
     }
 
     private Set<String> reachable(List<TroubleshootNode> nodes) {
         var byKey = nodes.stream().collect(Collectors.toMap(TroubleshootNode::nodeKey, node -> node));
-        var visited = new HashSet<String>(); var queue = new ArrayDeque<String>(); queue.add(nodes.stream().min(Comparator.comparingInt(TroubleshootNode::orderIndex)).orElseThrow().nodeKey());
-        while (!queue.isEmpty()) { var key = queue.remove(); if (!visited.add(key)) continue; var node = byKey.get(key); for (var branch : new String[]{node.branchYes(), node.branchNo(), node.branchUnknown(), node.branchNext()}) if (branch != null) queue.add(branch); }
+        var visited = new HashSet<String>();
+        var queue = new ArrayDeque<String>();
+        queue.add(nodes.stream().min(Comparator.comparingInt(TroubleshootNode::orderIndex)).orElseThrow().nodeKey());
+        while (!queue.isEmpty()) {
+            var key = queue.remove();
+            if (!visited.add(key)) continue;
+            var node = byKey.get(key);
+            for (var branch : new String[] { node.branchYes(), node.branchNo(), node.branchUnknown(), node.branchNext() })
+                if (branch != null) queue.add(branch);
+        }
         return visited;
     }
+
     private boolean hasUncontrolledCycle(List<TroubleshootNode> nodes) {
         var byKey = nodes.stream().collect(Collectors.toMap(TroubleshootNode::nodeKey, node -> node));
         return nodes.stream().anyMatch(start -> loopsWithoutTerminal(start.nodeKey(), byKey, new HashSet<>(), new HashSet<>()));
     }
+
     private boolean loopsWithoutTerminal(String key, Map<String, TroubleshootNode> nodes, Set<String> visiting, Set<String> done) {
-        if (!done.add(key)) return visiting.contains(key); var node = nodes.get(key); if (node == null || node.nodeType() == NodeType.END || node.nodeType() == NodeType.HUMAN_ESCALATION || node.safetyStop()) return false;
-        visiting.add(key); boolean loop = false; for (var branch : new String[]{node.branchYes(), node.branchNo(), node.branchUnknown(), node.branchNext()}) if (branch != null) loop |= loopsWithoutTerminal(branch, nodes, visiting, done); visiting.remove(key); return loop;
+        if (!done.add(key)) return visiting.contains(key);
+        var node = nodes.get(key);
+        if (node == null || node.nodeType() == NodeType.END || node.nodeType() == NodeType.HUMAN_ESCALATION || node.safetyStop())
+            return false;
+        visiting.add(key);
+        boolean loop = false;
+        for (var branch : new String[] { node.branchYes(), node.branchNo(), node.branchUnknown(), node.branchNext() })
+            if (branch != null) loop |= loopsWithoutTerminal(branch, nodes, visiting, done);
+        visiting.remove(key);
+        return loop;
     }
 
     private SimulateResponse simulate(TroubleshootFlow flow, List<TroubleshootNode> ns) {
@@ -258,7 +317,7 @@ public class TroubleshootController {
                 var k = q.poll();
                 var n = byKey.get(k);
                 if (n == null) continue;
-                for (String b : new String[]{n.branchYes(), n.branchNo(), n.branchUnknown(), n.branchNext()}) {
+                for (String b : new String[] { n.branchYes(), n.branchNo(), n.branchUnknown(), n.branchNext() }) {
                     if (b != null && !reachable.contains(b)) {
                         reachable.add(b);
                         q.add(b);
@@ -266,7 +325,8 @@ public class TroubleshootController {
                 }
             }
         }
-        var unreachable = ns.stream().map(TroubleshootNode::nodeKey).filter(k -> !reachable.contains(k)).collect(Collectors.toList());
+        var unreachable =
+            ns.stream().map(TroubleshootNode::nodeKey).filter(k -> !reachable.contains(k)).collect(Collectors.toList());
         var transcript = new ArrayList<SimStep>();
         var seen = new HashSet<String>();
         var cur = start;
@@ -274,7 +334,8 @@ public class TroubleshootController {
         while (cur != null && !seen.contains(cur.nodeKey()) && transcript.size() < 100) {
             seen.add(cur.nodeKey());
             boolean isEsc = cur.nodeType() == NodeType.HUMAN_ESCALATION || cur.risk() == Risk.HIGH;
-            transcript.add(new SimStep(cur.nodeKey(), cur.nodeType().name(), cur.prompt(), cur.expectedInput(), cur.risk().name(), isEsc));
+            transcript.add(
+                new SimStep(cur.nodeKey(), cur.nodeType().name(), cur.prompt(), cur.expectedInput(), cur.risk().name(), isEsc));
             if (isEsc) {
                 escalated = true;
                 break;
@@ -293,77 +354,80 @@ public class TroubleshootController {
     /* ---------- records ---------- */
 
     record Create(
-            @NotBlank @Size(max = 200) String title,
-            Intent triggerIntent,
-            @NotNull UUID productModelId,
-            @NotBlank @Size(max = 16) String region,
-            @NotBlank @Size(max = 16) String locale,
-            UUID productVariantId, @Size(max = 80) String hardwareRevision,
-            @Size(max = 80) String firmwareMin, @Size(max = 80) String firmwareMax,
-            @Size(max = 500) String triggerPhrase, int priority
+        @NotBlank @Size(max = 200) String title,
+        Intent triggerIntent,
+        @NotNull UUID productModelId,
+        @NotBlank @Size(max = 16) String region,
+        @NotBlank @Size(max = 16) String locale,
+        UUID productVariantId, @Size(max = 80) String hardwareRevision,
+        @Size(max = 80) String firmwareMin, @Size(max = 80) String firmwareMax,
+        @Size(max = 500) String triggerPhrase, int priority
     ) {
     }
 
     record UpdateMeta(
-            @NotBlank @Size(max = 200) String title,
-            Intent triggerIntent,
-            @NotNull UUID productModelId,
-            @NotBlank @Size(max = 16) String region,
-            @NotBlank @Size(max = 16) String locale,
-            UUID productVariantId, @Size(max = 80) String hardwareRevision,
-            String firmwareMin,
-            String firmwareMax,
-            @Size(max = 500) String triggerPhrase, int priority
+        @NotBlank @Size(max = 200) String title,
+        Intent triggerIntent,
+        @NotNull UUID productModelId,
+        @NotBlank @Size(max = 16) String region,
+        @NotBlank @Size(max = 16) String locale,
+        UUID productVariantId, @Size(max = 80) String hardwareRevision,
+        String firmwareMin,
+        String firmwareMax,
+        @Size(max = 500) String triggerPhrase, int priority
     ) {
     }
 
     record NodeCreate(
-            @NotBlank @Size(max = 80) String nodeKey,
-            NodeType nodeType,
-            String prompt,
-            Risk risk,
-            String expectedInput,
-            String branchYes,
-            String branchNo,
-            String branchUnknown,
-            String branchNext,
-            boolean safetyStop,
-            List<String> sourceRefs
+        @NotBlank @Size(max = 80) String nodeKey,
+        NodeType nodeType,
+        String prompt,
+        Risk risk,
+        String expectedInput,
+        String branchYes,
+        String branchNo,
+        String branchUnknown,
+        String branchNext,
+        boolean safetyStop,
+        List<String> sourceRefs
     ) {
     }
 
     record NodeUpdate(
-            NodeType nodeType,
-            String prompt,
-            Risk risk,
-            String expectedInput,
-            String branchYes,
-            String branchNo,
-            String branchUnknown,
-            String branchNext,
-            boolean safetyStop,
-            List<String> sourceRefs
+        NodeType nodeType,
+        String prompt,
+        Risk risk,
+        String expectedInput,
+        String branchYes,
+        String branchNo,
+        String branchUnknown,
+        String branchNext,
+        boolean safetyStop,
+        List<String> sourceRefs
     ) {
     }
 
     record FlowView(
-            UUID id, UUID definitionId, int versionNo, String title, String triggerIntent, UUID productModelId, UUID productVariantId, String hardwareRevision,
-            String region, String locale, String firmwareMin, String firmwareMax, String triggerPhrase, int priority, String status, String owner
+        UUID id, UUID definitionId, int versionNo, String title, String triggerIntent, UUID productModelId, UUID productVariantId,
+        String hardwareRevision,
+        String region, String locale, String firmwareMin, String firmwareMax, String triggerPhrase, int priority, String status,
+        String owner
     ) {
         static FlowView of(TroubleshootFlow f) {
-            return new FlowView(f.id(), f.definitionId(), f.versionNo(), f.title(), f.triggerIntent().name(), f.productModelId(), f.productVariantId(), f.hardwareRevision(), f.region(), f.locale(),
-                    f.firmwareMin(), f.firmwareMax(), f.triggerPhrase(), f.priority(), f.status().name(), f.owner());
+            return new FlowView(f.id(), f.definitionId(), f.versionNo(), f.title(), f.triggerIntent().name(), f.productModelId(),
+                f.productVariantId(), f.hardwareRevision(), f.region(), f.locale(),
+                f.firmwareMin(), f.firmwareMax(), f.triggerPhrase(), f.priority(), f.status().name(), f.owner());
         }
     }
 
     record NodeView(
-            UUID id, String nodeKey, String nodeType, String prompt, String risk, String expectedInput,
-            String branchYes, String branchNo, String branchUnknown, String branchNext, boolean safetyStop,
-            List<String> sourceRefs, int orderIndex
+        UUID id, String nodeKey, String nodeType, String prompt, String risk, String expectedInput,
+        String branchYes, String branchNo, String branchUnknown, String branchNext, boolean safetyStop,
+        List<String> sourceRefs, int orderIndex
     ) {
         static NodeView of(TroubleshootNode n) {
             return new NodeView(n.id(), n.nodeKey(), n.nodeType().name(), n.prompt(), n.risk().name(), n.expectedInput(),
-                    n.branchYes(), n.branchNo(), n.branchUnknown(), n.branchNext(), n.safetyStop(), n.sourceRefs(), n.orderIndex());
+                n.branchYes(), n.branchNo(), n.branchUnknown(), n.branchNext(), n.safetyStop(), n.sourceRefs(), n.orderIndex());
         }
     }
 

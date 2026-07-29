@@ -14,14 +14,14 @@ public class StorageConfig {
     MinioClient minioClient(AppProperties p) {
         var timeouts = p.externalClients();
         var httpClient = new OkHttpClient.Builder()
-                .connectTimeout(timeouts.connectTimeout())
-                .readTimeout(timeouts.readTimeout())
-                .callTimeout(timeouts.requestTimeout())
-                .build();
+            .connectTimeout(timeouts.connectTimeout())
+            .readTimeout(timeouts.readTimeout())
+            .callTimeout(timeouts.requestTimeout())
+            .build();
         return MinioClient.builder()
-                .endpoint(p.storage().endpoint())
-                .credentials(p.storage().accessKey(), p.storage().secretKey())
-                .httpClient(httpClient)
-                .build();
+            .endpoint(p.storage().endpoint())
+            .credentials(p.storage().accessKey(), p.storage().secretKey())
+            .httpClient(httpClient)
+            .build();
     }
 }

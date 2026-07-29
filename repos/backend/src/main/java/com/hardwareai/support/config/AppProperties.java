@@ -12,19 +12,19 @@ import java.time.Duration;
 @Validated
 /** External configuration; credentials are supplied only through environment variables. */
 public record AppProperties(
-        @Valid Security security,
-        @Valid Storage storage,
-        @Valid Qr qr,
-        @Valid Bootstrap bootstrap,
-        @Valid Llm llm,
-        @Valid ModelKeyEncryption modelKeyEncryption,
-        @Valid ExternalClients externalClients,
-        @NotBlank String embeddingUrl,
-        @NotBlank String ocrUrl,
-        @NotBlank String rerankUrl,
-        @NotBlank String qdrantUrl,
-        @NotBlank String qdrantApiKey,
-        String qdrantCollection
+    @Valid Security security,
+    @Valid Storage storage,
+    @Valid Qr qr,
+    @Valid Bootstrap bootstrap,
+    @Valid Llm llm,
+    @Valid ModelKeyEncryption modelKeyEncryption,
+    @Valid ExternalClients externalClients,
+    @NotBlank String embeddingUrl,
+    @NotBlank String ocrUrl,
+    @NotBlank String rerankUrl,
+    @NotBlank String qdrantUrl,
+    @NotBlank String qdrantApiKey,
+    String qdrantCollection
 ) {
     public record Security(@NotBlank String jwtSecret) {
     }
@@ -42,14 +42,19 @@ public record AppProperties(
     public record Llm(boolean enabled, String baseUrl, String apiKey, String model) {
     }
 
-    /** 32-byte base64 key is loaded only from environment/KMS integration, never from the database. */
-    public record ModelKeyEncryption(@NotBlank String masterKey, @NotBlank String keyVersion) { }
+    /**
+     * 32-byte base64 key is loaded only from environment/KMS integration, never from the database.
+     */
+    public record ModelKeyEncryption(@NotBlank String masterKey, @NotBlank String keyVersion) {
+    }
 
-    /** Shared bounded timings for PostgreSQL-adjacent external HTTP and object-storage clients. */
+    /**
+     * Shared bounded timings for PostgreSQL-adjacent external HTTP and object-storage clients.
+     */
     public record ExternalClients(
-            @NotNull Duration connectTimeout,
-            @NotNull Duration readTimeout,
-            @NotNull Duration requestTimeout
+        @NotNull Duration connectTimeout,
+        @NotNull Duration readTimeout,
+        @NotNull Duration requestTimeout
     ) {
         public Duration effectiveResponseTimeout() {
             return readTimeout.compareTo(requestTimeout) < 0 ? readTimeout : requestTimeout;

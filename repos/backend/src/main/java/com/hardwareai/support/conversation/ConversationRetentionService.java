@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 
 /**
  * Removes closed anonymous-support sessions after the configured retention period.
@@ -30,22 +29,22 @@ class ConversationRetentionService {
     private final Duration retention;
 
     ConversationRetentionService(
-            ConversationRepository conversations,
-            ConversationMessageRepository messages,
-            MessageAttachmentRepository attachments,
-            ObjectStorage storage,
-            @Value("${app.retention.closed-conversation:PT720H}") Duration retention
+        ConversationRepository conversations,
+        ConversationMessageRepository messages,
+        MessageAttachmentRepository attachments,
+        ObjectStorage storage,
+        @Value("${app.retention.closed-conversation:PT720H}") Duration retention
     ) {
         this(conversations, messages, attachments, storage, retention, Clock.systemUTC());
     }
 
     ConversationRetentionService(
-            ConversationRepository conversations,
-            ConversationMessageRepository messages,
-            MessageAttachmentRepository attachments,
-            ObjectStorage storage,
-            Duration retention,
-            Clock clock
+        ConversationRepository conversations,
+        ConversationMessageRepository messages,
+        MessageAttachmentRepository attachments,
+        ObjectStorage storage,
+        Duration retention,
+        Clock clock
     ) {
         this.conversations = conversations;
         this.messages = messages;
@@ -63,11 +62,11 @@ class ConversationRetentionService {
     @Transactional
     void removeExpiredConversations(Instant now) {
         var expired = conversations.findTop100ByStatusAndClosedAtBeforeOrderByClosedAtAsc(
-                Conversation.Status.CLOSED, now.minus(retention));
+            Conversation.Status.CLOSED, now.minus(retention));
         for (var conversation : expired) {
             var messageIds = messages.findAllByConversationIdOrderByCreatedAtAsc(conversation.id()).stream()
-                    .map(ConversationMessage::id)
-                    .toList();
+                .map(ConversationMessage::id)
+                .toList();
             for (var attachment : attachments.findAllByMessageIdInOrderByCreatedAtAsc(messageIds)) {
                 storage.delete(attachment.objectKey());
             }

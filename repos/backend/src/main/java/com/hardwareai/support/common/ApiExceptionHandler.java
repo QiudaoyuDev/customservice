@@ -3,13 +3,13 @@ package com.hardwareai.support.common;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.web.HttpMediaTypeNotSupportedException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.time.Instant;
 import java.util.Map;
@@ -40,7 +40,7 @@ public class ApiExceptionHandler {
         return body("FORBIDDEN", "You are not allowed to perform this action");
     }
 
-    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentNotValidException.class})
+    @ExceptionHandler({ HttpMessageNotReadableException.class, MethodArgumentNotValidException.class })
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     Map<String, Object> malformed(Exception e) {
         log.warn("Rejected malformed request");
@@ -63,6 +63,6 @@ public class ApiExceptionHandler {
 
     private Map<String, Object> body(String code, String message) {
         return Map.of("timestamp", Instant.now().toString(), "code", code, "message", message,
-                "requestId", org.slf4j.MDC.get(RequestContextFilter.REQUEST_ID), "details", Map.of());
+            "requestId", org.slf4j.MDC.get(RequestContextFilter.REQUEST_ID), "details", Map.of());
     }
 }

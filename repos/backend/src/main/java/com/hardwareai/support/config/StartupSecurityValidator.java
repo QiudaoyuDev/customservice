@@ -25,8 +25,8 @@ class StartupSecurityValidator implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         boolean development = Arrays.asList(environment.getActiveProfiles()).contains("dev");
         List<String> secrets = List.of(properties.security().jwtSecret(), properties.qr().secret(),
-                properties.storage().secretKey(), properties.qdrantApiKey(), properties.bootstrap().adminPassword(),
-                properties.modelKeyEncryption().masterKey());
+            properties.storage().secretKey(), properties.qdrantApiKey(), properties.bootstrap().adminPassword(),
+            properties.modelKeyEncryption().masterKey());
         if (!development && secrets.stream().anyMatch(this::isDefaultOrWeak)) {
             throw new IllegalStateException("Refusing startup with default or weak secret outside the dev profile");
         }

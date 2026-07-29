@@ -25,15 +25,28 @@ class OperationalEvent {
     @Column(columnDefinition = "jsonb")
     private String attributes = "{}";
     @Column(name = "created_at")
-    private Instant createdAt = Instant.now();
+    private final Instant createdAt = Instant.now();
 
     protected OperationalEvent() {
     }
 
     OperationalEvent(UUID tenantId, UUID conversationId, String eventType, String attributes) {
-        id = UUID.randomUUID(); this.tenantId = tenantId; this.conversationId = conversationId; this.eventType = eventType; this.attributes = attributes;
+        id = UUID.randomUUID();
+        this.tenantId = tenantId;
+        this.conversationId = conversationId;
+        this.eventType = eventType;
+        this.attributes = attributes;
     }
-    String eventType() { return eventType; }
-    String attributes() { return attributes; }
-    Instant createdAt() { return createdAt; }
+
+    String eventType() {
+        return eventType;
+    }
+
+    String attributes() {
+        return attributes;
+    }
+
+    Instant createdAt() {
+        return createdAt;
+    }
 }

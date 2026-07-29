@@ -15,7 +15,7 @@ public class CurrentUser {
     public UUID tenantId() {
         var d = SecurityContextHolder.getContext().getAuthentication().getDetails();
         if (!(d instanceof Claims c)) throw new IllegalStateException(
-                "Authenticated tenant context is required"
+            "Authenticated tenant context is required"
         );
         return UUID.fromString(c.get("tenantId", String.class));
     }

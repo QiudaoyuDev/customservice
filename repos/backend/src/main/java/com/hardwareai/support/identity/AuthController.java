@@ -33,8 +33,8 @@ public class AuthController {
     @PostMapping("/login")
     public Token login(@Valid @RequestBody Login request) {
         var u = users
-                .findByEmail(request.email())
-                .filter(UserAccount::enabled);
+            .findByEmail(request.email())
+            .filter(UserAccount::enabled);
         if (u.isEmpty() || !encoder.matches(request.password(), u.get().passwordHash())) {
             log.warn("Login failed (userFound={})", u.isPresent());
             throw new IllegalArgumentException("Invalid email or password");

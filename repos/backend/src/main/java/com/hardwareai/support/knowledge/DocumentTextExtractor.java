@@ -39,9 +39,9 @@ class DocumentTextExtractor {
                 }
             }
             if (
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document".equals(
-                            contentType
-                    )
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document".equals(
+                    contentType
+                )
             ) {
                 try (var doc = new XWPFDocument(source)) {
                     var text = new StringBuilder();
@@ -68,5 +68,6 @@ class DocumentTextExtractor {
         }
     }
 
-    record ExtractedText(String text, OcrClient.OcrText ocr) { }
+    record ExtractedText(String text, OcrClient.OcrText ocr) {
+    }
 }

@@ -11,7 +11,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
-/** Firmware metadata is tenant-inherited from its variant and never supplied by an anonymous caller. */
+/**
+ * Firmware metadata is tenant-inherited from its variant and never supplied by an anonymous caller.
+ */
 @Entity
 @Table(name = "firmware_versions")
 public class FirmwareVersion {
@@ -29,7 +31,8 @@ public class FirmwareVersion {
     @Column(name = "created_at")
     private final Instant createdAt = Instant.now();
 
-    protected FirmwareVersion() { }
+    protected FirmwareVersion() {
+    }
 
     FirmwareVersion(UUID productVariantId, String version, LocalDate releaseDate, String checksum, String notes) {
         this.id = UUID.randomUUID();
@@ -41,9 +44,21 @@ public class FirmwareVersion {
         this.status = Status.RELEASED;
     }
 
-    public UUID id() { return id; }
-    public UUID productVariantId() { return productVariantId; }
-    public String version() { return version; }
-    public Status status() { return status; }
-    public enum Status { RELEASED, RETIRED }
+    public UUID id() {
+        return id;
+    }
+
+    public UUID productVariantId() {
+        return productVariantId;
+    }
+
+    public String version() {
+        return version;
+    }
+
+    public Status status() {
+        return status;
+    }
+
+    public enum Status {RELEASED, RETIRED}
 }

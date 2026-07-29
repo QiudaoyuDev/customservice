@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 
 import java.util.concurrent.Callable;
 
@@ -39,8 +38,8 @@ class ExternalDependencyHealthIndicator implements HealthIndicator {
         allUp &= probeHttp("Embedding", properties.embeddingUrl(), "/health");
         allUp &= probeHttp("Qdrant", properties.qdrantUrl(), "/healthz");
         return allUp
-                ? Health.up().withDetail("dependencies", "reachable").build()
-                : Health.down().withDetail("dependency", "unavailable").build();
+            ? Health.up().withDetail("dependencies", "reachable").build()
+            : Health.down().withDetail("dependency", "unavailable").build();
     }
 
     private boolean probeHttp(String name, String baseUrl, String path) {

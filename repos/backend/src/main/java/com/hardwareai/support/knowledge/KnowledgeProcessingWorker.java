@@ -23,12 +23,13 @@ class KnowledgeProcessingWorker {
     private final KnowledgeOcrResultRepository ocrResults;
 
     KnowledgeProcessingWorker(
-            ProcessingJobRepository jobs,
-            KnowledgeRevisionRepository revisions,
-            KnowledgeDocumentRepository documents,
-            ObjectStorage storage,
-            DocumentTextExtractor extractor,
-            VectorStoreAdapter vectorIndex, KnowledgeChunkRepository chunks, KnowledgeChunker chunker, KnowledgeOcrResultRepository ocrResults
+        ProcessingJobRepository jobs,
+        KnowledgeRevisionRepository revisions,
+        KnowledgeDocumentRepository documents,
+        ObjectStorage storage,
+        DocumentTextExtractor extractor,
+        VectorStoreAdapter vectorIndex, KnowledgeChunkRepository chunks, KnowledgeChunker chunker,
+        KnowledgeOcrResultRepository ocrResults
     ) {
         this.jobs = jobs;
         this.revisions = revisions;
@@ -47,24 +48,26 @@ class KnowledgeProcessingWorker {
             try {
                 jobs.heartbeat(job.id());
                 var revision = revisions
-                        .findById(job.revisionId())
-                        .orElseThrow(() -> new IllegalStateException("Revision not found"));
+                    .findById(job.revisionId())
+                    .orElseThrow(() -> new IllegalStateException("Revision not found"));
                 if (job.jobType() == ProcessingJob.Type.PARSE) {
                     revision.beginParsing();
                     revisions.save(revision);
                     var document = documents
-                            .findById(revision.documentId())
-                            .orElseThrow(() -> new IllegalStateException("Document not found"));
+                        .findById(revision.documentId())
+                        .orElseThrow(() -> new IllegalStateException("Document not found"));
                     // One extractor entry point keeps PDF/DOCX/OCR parsing inside the same durable retry flow.
                     jobs.heartbeat(job.id());
                     var extracted = extractor.extract(document.contentType(), storage.get(document.objectKey()));
                     revision.setExtractedText(extracted.text().strip());
-                    if (extracted.ocr() != null) ocrResults.save(new KnowledgeOcrResult(revision.id(), extracted.ocr(), revision.extractedText()));
+                    if (extracted.ocr() != null)
+                        ocrResults.save(new KnowledgeOcrResult(revision.id(), extracted.ocr(), revision.extractedText()));
                     revisions.save(revision);
                     chunks.deleteAllByRevisionId(revision.id());
                     chunks.saveAll(chunker.split(revision, document));
                 } else {
-                    var document = documents.findById(revision.documentId()).orElseThrow(() -> new IllegalStateException("Document not found"));
+                    var document =
+                        documents.findById(revision.documentId()).orElseThrow(() -> new IllegalStateException("Document not found"));
                     jobs.heartbeat(job.id());
                     vectorIndex.upsert(revision, document, chunks.findAllByRevisionIdOrderByChunkNo(revision.id()));
                     revision.markIndexedAndPublished();
@@ -83,7 +86,7 @@ class KnowledgeProcessingWorker {
                 }
                 jobs.save(job);
                 log.warn("Knowledge job failed jobId={} type={} errorType={}", job.id(), job.jobType(),
-                        e.getClass().getSimpleName());
+                    e.getClass().getSimpleName());
             }
         });
     }

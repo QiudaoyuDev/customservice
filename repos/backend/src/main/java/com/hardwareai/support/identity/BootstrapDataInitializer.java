@@ -24,10 +24,10 @@ class BootstrapDataInitializer implements CommandLineRunner {
     private final AppProperties properties;
 
     BootstrapDataInitializer(
-            UserAccountRepository users,
-            EntityManager entityManager,
-            PasswordEncoder passwords,
-            AppProperties properties
+        UserAccountRepository users,
+        EntityManager entityManager,
+        PasswordEncoder passwords,
+        AppProperties properties
     ) {
         this.users = users;
         this.entityManager = entityManager;
@@ -41,24 +41,24 @@ class BootstrapDataInitializer implements CommandLineRunner {
         if (users.count() > 0) return;
         if (properties.bootstrap().adminPassword().startsWith("CHANGE_ME")) {
             log.warn(
-                    "No bootstrap administrator was created: BOOTSTRAP_ADMIN_PASSWORD is not configured"
+                "No bootstrap administrator was created: BOOTSTRAP_ADMIN_PASSWORD is not configured"
             );
             return;
         }
         UUID tenantId = UUID.randomUUID();
         entityManager
-                .createNativeQuery("insert into tenants(id,name,status) values (?1,?2,'ACTIVE')")
-                .setParameter(1, tenantId)
-                .setParameter(2, properties.bootstrap().tenantName())
-                .executeUpdate();
+            .createNativeQuery("insert into tenants(id,name,status) values (?1,?2,'ACTIVE')")
+            .setParameter(1, tenantId)
+            .setParameter(2, properties.bootstrap().tenantName())
+            .executeUpdate();
         users.save(
-                new UserAccount(
-                        UUID.randomUUID(),
-                        tenantId,
-                        properties.bootstrap().adminEmail(),
-                        passwords.encode(properties.bootstrap().adminPassword()),
-                        UserAccount.Role.ADMIN
-                )
+            new UserAccount(
+                UUID.randomUUID(),
+                tenantId,
+                properties.bootstrap().adminEmail(),
+                passwords.encode(properties.bootstrap().adminPassword()),
+                UserAccount.Role.ADMIN
+            )
         );
         log.info("Created initial administrator for tenant {}", tenantId);
     }

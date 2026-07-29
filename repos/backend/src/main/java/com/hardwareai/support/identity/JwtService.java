@@ -24,13 +24,13 @@ public class JwtService {
 
     String issue(UserAccount u) {
         return Jwts.builder()
-                .subject(u.id().toString())
-                .claim("tenantId", u.tenantId().toString())
-                .claim("role", u.role().name())
-                .issuedAt(Date.from(Instant.now()))
-                .expiration(Date.from(Instant.now().plusSeconds(28800)))
-                .signWith(key)
-                .compact();
+            .subject(u.id().toString())
+            .claim("tenantId", u.tenantId().toString())
+            .claim("role", u.role().name())
+            .issuedAt(Date.from(Instant.now()))
+            .expiration(Date.from(Instant.now().plusSeconds(28800)))
+            .signWith(key)
+            .compact();
     }
 
     io.jsonwebtoken.Claims parse(String token) {

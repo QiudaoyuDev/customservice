@@ -20,7 +20,7 @@ class RequestContextFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
-            throws ServletException, IOException {
+        throws ServletException, IOException {
         String requestId = request.getHeader("X-Request-Id");
         if (requestId == null || requestId.length() > 100) requestId = UUID.randomUUID().toString();
         MDC.put(REQUEST_ID, requestId);

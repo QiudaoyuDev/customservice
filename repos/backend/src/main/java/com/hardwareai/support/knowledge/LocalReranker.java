@@ -33,11 +33,13 @@ public class LocalReranker implements RerankProvider {
         long start = System.nanoTime();
         try {
             var response = client.post().uri("/v1/rerank").contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of("query", query, "documents", passages)).retrieve().body(Map.class);
-            var rows = (List<Map<String, Object>>) response.get("results");
-            var order = rows.stream().sorted((a, b) -> Double.compare(((Number) b.get("score")).doubleValue(), ((Number) a.get("score")).doubleValue()))
-                    .map(row -> ((Number) row.get("index")).intValue()).toList();
-            log.debug("Rerank ok url={} passages={} in {}ms", rerankUrl, passages.size(), TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
+                .body(Map.of("query", query, "documents", passages)).retrieve().body(Map.class);
+            var rows = (List<Map<String, Object>>)response.get("results");
+            var order = rows.stream()
+                .sorted((a, b) -> Double.compare(((Number)b.get("score")).doubleValue(), ((Number)a.get("score")).doubleValue()))
+                .map(row -> ((Number)row.get("index")).intValue()).toList();
+            log.debug("Rerank ok url={} passages={} in {}ms", rerankUrl, passages.size(),
+                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
             return order;
         } catch (Exception e) {
             log.warn("Rerank unavailable url={} (falling back to retrieval order)", rerankUrl);

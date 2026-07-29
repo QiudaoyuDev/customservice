@@ -22,7 +22,7 @@ class ProductModelAlias {
     private UUID productModelId;
     private String alias;
     @Column(name = "created_at")
-    private Instant createdAt = Instant.now();
+    private final Instant createdAt = Instant.now();
 
     protected ProductModelAlias() {
     }

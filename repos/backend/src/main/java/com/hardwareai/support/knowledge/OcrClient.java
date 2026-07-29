@@ -46,26 +46,26 @@ public class OcrClient {
 
         var body = new MultipartBodyBuilder();
         body.part("file", new NamedImageResource(bytes, filenameFor(contentType)))
-                .contentType(MediaType.parseMediaType(contentType));
+            .contentType(MediaType.parseMediaType(contentType));
         long start = System.nanoTime();
         try {
             var response = client
-                    .post()
-                    .uri("/v1/ocr")
-                    .contentType(MediaType.MULTIPART_FORM_DATA)
-                    .body(body.build())
-                    .retrieve()
-                    .body(OcrResponse.class);
+                .post()
+                .uri("/v1/ocr")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(body.build())
+                .retrieve()
+                .body(OcrResponse.class);
             if (response == null) {
                 throw new IllegalStateException("OCR adapter returned an empty response");
             }
             var text = response.text() == null ? "" : response.text();
             log.info("OCR completed url={} type={} bytes={} chars={} in {}ms", ocrUrl, contentType, bytes.length, text.length(),
-                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
+                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
             return new OcrText(text, response.confidence(), response.language(), response.pageFrom(), response.pageTo());
         } catch (Exception e) {
             log.warn("OCR adapter request failed url={} type={} bytes={} in {}ms", ocrUrl, contentType, bytes.length,
-                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
+                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
             throw new IllegalStateException("OCR adapter request failed", e);
         }
     }
@@ -77,7 +77,8 @@ public class OcrClient {
     private record OcrResponse(String text, Double confidence, String language, Integer pageFrom, Integer pageTo) {
     }
 
-    public record OcrText(String text, Double confidence, String language, Integer pageFrom, Integer pageTo) { }
+    public record OcrText(String text, Double confidence, String language, Integer pageFrom, Integer pageTo) {
+    }
 
     /**
      * Supplies a filename because FastAPI's UploadFile uses it to choose a safe suffix.

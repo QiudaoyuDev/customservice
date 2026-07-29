@@ -1,7 +1,12 @@
 package com.hardwareai.support.troubleshoot;
 
 import com.hardwareai.support.llm.Intent;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -81,7 +86,7 @@ public class TroubleshootFlow {
     }
 
     void update(String title, Intent trigger, UUID product, UUID variant, String hardwareRevision, String region, String locale,
-                String fwMin, String fwMax, String triggerPhrase, int priority) {
+        String fwMin, String fwMax, String triggerPhrase, int priority) {
         this.title = title;
         this.triggerIntent = trigger;
         this.productModelId = product;
@@ -140,9 +145,13 @@ public class TroubleshootFlow {
         return tenantId;
     }
 
-    public UUID definitionId() { return definitionId; }
+    public UUID definitionId() {
+        return definitionId;
+    }
 
-    public int versionNo() { return versionNo; }
+    public int versionNo() {
+        return versionNo;
+    }
 
     public String title() {
         return title;
@@ -156,9 +165,13 @@ public class TroubleshootFlow {
         return productModelId;
     }
 
-    public UUID productVariantId() { return productVariantId; }
+    public UUID productVariantId() {
+        return productVariantId;
+    }
 
-    public String hardwareRevision() { return hardwareRevision; }
+    public String hardwareRevision() {
+        return hardwareRevision;
+    }
 
     public String region() {
         return region;
@@ -176,9 +189,13 @@ public class TroubleshootFlow {
         return firmwareMax;
     }
 
-    public String triggerPhrase() { return triggerPhrase; }
+    public String triggerPhrase() {
+        return triggerPhrase;
+    }
 
-    public int priority() { return priority; }
+    public int priority() {
+        return priority;
+    }
 
     public Status status() {
         return status;
@@ -188,7 +205,9 @@ public class TroubleshootFlow {
         return owner;
     }
 
-    public Instant publishedAt() { return publishedAt; }
+    public Instant publishedAt() {
+        return publishedAt;
+    }
 
     enum Status {
         DRAFT,

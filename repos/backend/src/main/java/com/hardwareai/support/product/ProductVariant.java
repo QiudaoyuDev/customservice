@@ -8,10 +8,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.UUID;
 
-/** Tenant-owned sellable hardware revision. It is the public product context boundary below a model. */
+/**
+ * Tenant-owned sellable hardware revision. It is the public product context boundary below a model.
+ */
 @Entity
 @Table(name = "product_variants")
 public class ProductVariant {
@@ -34,10 +35,11 @@ public class ProductVariant {
     @Column(name = "created_at")
     private final Instant createdAt = Instant.now();
 
-    protected ProductVariant() { }
+    protected ProductVariant() {
+    }
 
     ProductVariant(UUID tenantId, UUID productModelId, String region, String hardwareRevision, String sku,
-                   Instant validFrom, Instant validTo) {
+        Instant validFrom, Instant validTo) {
         this.id = UUID.randomUUID();
         this.tenantId = tenantId;
         this.productModelId = productModelId;
@@ -49,17 +51,38 @@ public class ProductVariant {
         this.status = Status.ACTIVE;
     }
 
-    public UUID id() { return id; }
-    public UUID tenantId() { return tenantId; }
-    public UUID productModelId() { return productModelId; }
-    public String region() { return region; }
-    public String hardwareRevision() { return hardwareRevision; }
-    public String sku() { return sku; }
-    public Status status() { return status; }
-    public boolean activeAt(Instant instant) {
-        return status == Status.ACTIVE && (validFrom == null || !validFrom.isAfter(instant))
-                && (validTo == null || validTo.isAfter(instant));
+    public UUID id() {
+        return id;
     }
 
-    public enum Status { ACTIVE, ARCHIVED }
+    public UUID tenantId() {
+        return tenantId;
+    }
+
+    public UUID productModelId() {
+        return productModelId;
+    }
+
+    public String region() {
+        return region;
+    }
+
+    public String hardwareRevision() {
+        return hardwareRevision;
+    }
+
+    public String sku() {
+        return sku;
+    }
+
+    public Status status() {
+        return status;
+    }
+
+    public boolean activeAt(Instant instant) {
+        return status == Status.ACTIVE && (validFrom == null || !validFrom.isAfter(instant))
+            && (validTo == null || validTo.isAfter(instant));
+    }
+
+    public enum Status {ACTIVE, ARCHIVED}
 }

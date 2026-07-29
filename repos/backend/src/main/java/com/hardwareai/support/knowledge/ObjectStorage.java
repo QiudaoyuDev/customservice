@@ -1,7 +1,12 @@
 package com.hardwareai.support.knowledge;
 
 import com.hardwareai.support.config.AppProperties;
-import io.minio.*;
+import io.minio.BucketExistsArgs;
+import io.minio.GetObjectArgs;
+import io.minio.MakeBucketArgs;
+import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -25,17 +30,17 @@ public class ObjectStorage {
     public void put(String key, MultipartFile file) {
         try {
             if (
-                    !client.bucketExists(
-                            BucketExistsArgs.builder().bucket(properties.storage().bucket()).build()
-                    )
+                !client.bucketExists(
+                    BucketExistsArgs.builder().bucket(properties.storage().bucket()).build()
+                )
             ) client.makeBucket(MakeBucketArgs.builder().bucket(properties.storage().bucket()).build());
             client.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(properties.storage().bucket())
-                            .object(key)
-                            .stream(file.getInputStream(), file.getSize(), -1)
-                            .contentType(file.getContentType())
-                            .build()
+                PutObjectArgs.builder()
+                    .bucket(properties.storage().bucket())
+                    .object(key)
+                    .stream(file.getInputStream(), file.getSize(), -1)
+                    .contentType(file.getContentType())
+                    .build()
             );
             log.info("Stored knowledge source object {} ({} bytes)", key, file.getSize());
         } catch (Exception e) {
@@ -50,7 +55,7 @@ public class ObjectStorage {
     public java.io.InputStream get(String key) {
         try {
             return client.getObject(
-                    GetObjectArgs.builder().bucket(properties.storage().bucket()).object(key).build()
+                GetObjectArgs.builder().bucket(properties.storage().bucket()).object(key).build()
             );
         } catch (Exception e) {
             throw new IllegalStateException("Unable to read knowledge source object", e);
@@ -64,7 +69,7 @@ public class ObjectStorage {
     public void delete(String key) {
         try {
             client.removeObject(
-                    RemoveObjectArgs.builder().bucket(properties.storage().bucket()).object(key).build()
+                RemoveObjectArgs.builder().bucket(properties.storage().bucket()).object(key).build()
             );
             log.info("Deleted retained object {}", key);
         } catch (Exception e) {

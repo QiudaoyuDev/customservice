@@ -33,7 +33,7 @@ class ConversationProductContext {
     private boolean confirmedByUser;
     private boolean active = true;
     @Column(name = "created_at")
-    private Instant createdAt = Instant.now();
+    private final Instant createdAt = Instant.now();
     @Column(name = "closed_at")
     private Instant closedAt;
 
@@ -41,7 +41,7 @@ class ConversationProductContext {
     }
 
     ConversationProductContext(UUID conversationId, UUID productModelId, UUID productVariantId, String hardwareRevision,
-                               String hardware, String firmware, String source, boolean confirmedByUser) {
+        String hardware, String firmware, String source, boolean confirmedByUser) {
         id = UUID.randomUUID();
         this.conversationId = conversationId;
         this.productModelId = productModelId;
@@ -57,9 +57,17 @@ class ConversationProductContext {
         return productModelId;
     }
 
-    UUID productVariantId() { return productVariantId; }
-    String hardwareRevision() { return hardwareRevision; }
-    String firmwareVersion() { return firmwareVersion; }
+    UUID productVariantId() {
+        return productVariantId;
+    }
+
+    String hardwareRevision() {
+        return hardwareRevision;
+    }
+
+    String firmwareVersion() {
+        return firmwareVersion;
+    }
 
     String hardwareVersion() {
         return hardwareVersion;

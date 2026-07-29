@@ -7,12 +7,12 @@ import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.Instant;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.Instant;
 import java.util.HexFormat;
-import java.util.UUID;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Immutable retrieval unit retaining its source position and parent revision.
@@ -47,7 +47,7 @@ class KnowledgeChunk {
     @Column(columnDefinition = "jsonb")
     private Map<String, Object> metadata = Map.of();
     @Column(name = "created_at")
-    private Instant createdAt = Instant.now();
+    private final Instant createdAt = Instant.now();
 
     protected KnowledgeChunk() {
     }
@@ -56,7 +56,8 @@ class KnowledgeChunk {
         this(revisionId, chunkNo, content, sourceLabel, sourceLabel, null, null);
     }
 
-    KnowledgeChunk(UUID revisionId, int chunkNo, String content, String sourceLabel, String titlePath, Integer pageFrom, Integer pageTo) {
+    KnowledgeChunk(UUID revisionId, int chunkNo, String content, String sourceLabel, String titlePath, Integer pageFrom,
+        Integer pageTo) {
         this.id = UUID.randomUUID();
         this.revisionId = revisionId;
         this.chunkNo = chunkNo;
@@ -92,8 +93,13 @@ class KnowledgeChunk {
         return sourceLabel;
     }
 
-    String titlePath() { return titlePath; }
-    Integer pageFrom() { return pageFrom; }
+    String titlePath() {
+        return titlePath;
+    }
+
+    Integer pageFrom() {
+        return pageFrom;
+    }
 
     private static String checksum(String value) {
         try {

@@ -23,7 +23,7 @@ public class ExternalRestClientFactory {
 
     public RestClient create(String baseUrl, String headerName, String headerValue) {
         return RestClient.builder().baseUrl(baseUrl).defaultHeader(headerName, headerValue)
-                .requestFactory(requestFactory()).build();
+            .requestFactory(requestFactory()).build();
     }
 
     private SimpleClientHttpRequestFactory requestFactory() {

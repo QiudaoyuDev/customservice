@@ -1,6 +1,11 @@
 package com.hardwareai.support.qr;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -50,14 +55,14 @@ public class QrBinding {
     }
 
     QrBinding(
-            UUID tenantId,
-            UUID productModelId,
-            UUID productVariantId,
-            String initialFirmwareVersion,
-            String tokenHash,
-            String batch,
-            String serialNumber,
-            Instant expiresAt
+        UUID tenantId,
+        UUID productModelId,
+        UUID productVariantId,
+        String initialFirmwareVersion,
+        String tokenHash,
+        String batch,
+        String serialNumber,
+        Instant expiresAt
     ) {
         id = UUID.randomUUID();
         this.tenantId = tenantId;
@@ -83,8 +88,13 @@ public class QrBinding {
         return tenantId;
     }
 
-    public UUID productVariantId() { return productVariantId; }
-    public String initialFirmwareVersion() { return initialFirmwareVersion; }
+    public UUID productVariantId() {
+        return productVariantId;
+    }
+
+    public String initialFirmwareVersion() {
+        return initialFirmwareVersion;
+    }
 
     public String tokenHash() {
         return tokenHash;

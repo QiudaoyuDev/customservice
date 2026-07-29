@@ -17,16 +17,16 @@ public interface TroubleshootFlowRepository extends JpaRepository<TroubleshootFl
     List<TroubleshootFlow> findAllByDefinitionIdOrderByVersionNoDesc(UUID definitionId);
 
     @Query("""
-            select f from TroubleshootFlow f
-            where f.tenantId = :tenant and f.productModelId = :product and f.region = :region
-              and f.locale = :locale and f.triggerIntent = :trigger
-              and f.status = com.hardwareai.support.troubleshoot.TroubleshootFlow.Status.PUBLISHED
-            """)
+        select f from TroubleshootFlow f
+        where f.tenantId = :tenant and f.productModelId = :product and f.region = :region
+          and f.locale = :locale and f.triggerIntent = :trigger
+          and f.status = com.hardwareai.support.troubleshoot.TroubleshootFlow.Status.PUBLISHED
+        """)
     List<TroubleshootFlow> findPublishedCandidates(
-            @Param("tenant") UUID tenant,
-            @Param("product") UUID product,
-            @Param("region") String region,
-            @Param("locale") String locale,
-            @Param("trigger") Intent trigger
+        @Param("tenant") UUID tenant,
+        @Param("product") UUID product,
+        @Param("region") String region,
+        @Param("locale") String locale,
+        @Param("trigger") Intent trigger
     );
 }

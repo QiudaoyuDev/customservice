@@ -1,7 +1,12 @@
 package com.hardwareai.support.conversation;
 
-import jakarta.persistence.*;
 import com.hardwareai.support.troubleshoot.TroubleshootTypes;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -28,7 +33,7 @@ class ConversationMessage {
     @Enumerated(EnumType.STRING)
     private Status status;
     @Column(name = "created_at")
-    private Instant createdAt = Instant.now();
+    private final Instant createdAt = Instant.now();
 
     protected ConversationMessage() {
     }
@@ -68,10 +73,18 @@ class ConversationMessage {
     String errorCode() {
         return errorCode;
     }
-    TroubleshootTypes.Reply controlledReply() { return controlledReply; }
-    UUID conversationId() { return conversationId; }
 
-    Sender sender() { return sender; }
+    TroubleshootTypes.Reply controlledReply() {
+        return controlledReply;
+    }
+
+    UUID conversationId() {
+        return conversationId;
+    }
+
+    Sender sender() {
+        return sender;
+    }
 
     Instant createdAt() {
         return createdAt;

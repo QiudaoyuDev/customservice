@@ -10,7 +10,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-/** Selects the most-specific published flow without trusting client-provided scope. */
+/**
+ * Selects the most-specific published flow without trusting client-provided scope.
+ */
 @Service
 public class FlowMatcher {
     private static final Pattern NUMERIC_PART = Pattern.compile("\\d+");
@@ -21,18 +23,18 @@ public class FlowMatcher {
     }
 
     public Optional<TroubleshootFlow> match(UUID tenantId, FlowMatchScope context, String region, String locale,
-                                             Intent intent, String message, String errorCode) {
+        Intent intent, String message, String errorCode) {
         return flows.findPublishedCandidates(tenantId, context.productModelId(), region, locale, intent).stream()
-                .filter(flow -> appliesTo(flow, context, message, errorCode))
-                .max(Comparator.comparingInt(TroubleshootFlow::priority)
-                        .thenComparingInt(this::specificity)
-                        .thenComparing(TroubleshootFlow::publishedAt, Comparator.nullsLast(Comparator.naturalOrder())));
+            .filter(flow -> appliesTo(flow, context, message, errorCode))
+            .max(Comparator.comparingInt(TroubleshootFlow::priority)
+                .thenComparingInt(this::specificity)
+                .thenComparing(TroubleshootFlow::publishedAt, Comparator.nullsLast(Comparator.naturalOrder())));
     }
 
     private boolean appliesTo(TroubleshootFlow flow, FlowMatchScope context, String message, String errorCode) {
         if (flow.productVariantId() != null && !flow.productVariantId().equals(context.productVariantId())) return false;
         if (flow.hardwareRevision() != null && !flow.hardwareRevision().isBlank()
-                && !flow.hardwareRevision().equalsIgnoreCase(context.hardwareRevision())) return false;
+            && !flow.hardwareRevision().equalsIgnoreCase(context.hardwareRevision())) return false;
         if (!withinFirmwareRange(context.firmwareVersion(), flow.firmwareMin(), flow.firmwareMax())) return false;
         if (flow.triggerPhrase() == null || flow.triggerPhrase().isBlank()) return true;
         String searchable = (message == null ? "" : message) + " " + (errorCode == null ? "" : errorCode);
@@ -41,9 +43,9 @@ public class FlowMatcher {
 
     private int specificity(TroubleshootFlow flow) {
         return (flow.productVariantId() == null ? 0 : 4)
-                + (blank(flow.hardwareRevision()) ? 0 : 2)
-                + (blank(flow.firmwareMin()) && blank(flow.firmwareMax()) ? 0 : 1)
-                + (blank(flow.triggerPhrase()) ? 0 : 1);
+            + (blank(flow.hardwareRevision()) ? 0 : 2)
+            + (blank(flow.firmwareMin()) && blank(flow.firmwareMax()) ? 0 : 1)
+            + (blank(flow.triggerPhrase()) ? 0 : 1);
     }
 
     static boolean withinFirmwareRange(String firmware, String minimum, String maximum) {
@@ -52,7 +54,7 @@ public class FlowMatcher {
         List<Integer> actual = parse(firmware);
         if (actual.isEmpty()) return false;
         return (blank(minimum) || compare(actual, parse(minimum)) >= 0)
-                && (blank(maximum) || compare(actual, parse(maximum)) <= 0);
+            && (blank(maximum) || compare(actual, parse(maximum)) <= 0);
     }
 
     private static List<Integer> parse(String value) {
@@ -70,5 +72,7 @@ public class FlowMatcher {
         return 0;
     }
 
-    private static boolean blank(String value) { return value == null || value.isBlank(); }
+    private static boolean blank(String value) {
+        return value == null || value.isBlank();
+    }
 }

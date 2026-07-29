@@ -25,7 +25,7 @@ class MessageAttachment {
     @Column(name = "size_bytes")
     private long sizeBytes;
     @Column(name = "created_at")
-    private Instant createdAt = Instant.now();
+    private final Instant createdAt = Instant.now();
 
     protected MessageAttachment() {
     }
@@ -41,9 +41,24 @@ class MessageAttachment {
     UUID id() {
         return id;
     }
-    String objectKey() { return objectKey; }
-    String contentType() { return contentType; }
-    UUID messageId() { return messageId; }
-    long sizeBytes() { return sizeBytes; }
-    Instant createdAt() { return createdAt; }
+
+    String objectKey() {
+        return objectKey;
+    }
+
+    String contentType() {
+        return contentType;
+    }
+
+    UUID messageId() {
+        return messageId;
+    }
+
+    long sizeBytes() {
+        return sizeBytes;
+    }
+
+    Instant createdAt() {
+        return createdAt;
+    }
 }
