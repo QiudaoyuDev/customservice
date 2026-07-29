@@ -30,7 +30,7 @@ public class KnowledgeController {
     private final ObjectStorage storage;
     private final CurrentUser current;
     private final KnowledgeChunkRepository chunks;
-    private final VectorIndex vectorIndex;
+    private final VectorStoreAdapter vectorIndex;
     private final KnowledgeRevisionApplicabilityRepository applicability;
     private final UploadedKnowledgeFileValidator fileValidator;
     private final KnowledgeRevisionApplicationService revisionService;
@@ -41,7 +41,7 @@ public class KnowledgeController {
             ProcessingJobRepository j,
             ProductRepository p, ProductApplicationService productService,
             ObjectStorage s,
-            CurrentUser c, KnowledgeChunkRepository chunks, VectorIndex vectorIndex, KnowledgeRevisionApplicabilityRepository applicability,
+            CurrentUser c, KnowledgeChunkRepository chunks, VectorStoreAdapter vectorIndex, KnowledgeRevisionApplicabilityRepository applicability,
             UploadedKnowledgeFileValidator fileValidator, KnowledgeRevisionApplicationService revisionService
     ) {
         documents = d;

@@ -29,14 +29,16 @@ class HandoffController {
     private final HandoffPackageBuilder packageBuilder;
     private final HandoffNoteRepository notes;
     private final OperationalEventService events;
+    private final HandoffDeliveryService delivery;
 
-    HandoffController(HandoffRepository requests, ConversationAccessService conversations, CurrentUser current, HandoffPackageBuilder packageBuilder, HandoffNoteRepository notes, OperationalEventService events) {
+    HandoffController(HandoffRepository requests, ConversationAccessService conversations, CurrentUser current, HandoffPackageBuilder packageBuilder, HandoffNoteRepository notes, OperationalEventService events, HandoffDeliveryService delivery) {
         this.requests = requests;
         this.conversations = conversations;
         this.current = current;
         this.packageBuilder = packageBuilder;
         this.notes = notes;
         this.events = events;
+        this.delivery = delivery;
     }
 
     @PostMapping("/public/handoffs")
@@ -49,6 +51,7 @@ class HandoffController {
         }
         var snapshot = packageBuilder.build(tenant, input.conversationId(), input.reason(), input.summary(), input.contact(), input.contactAuthorized());
         var item = requests.save(new HandoffRequest(tenant, input.conversationId(), input.idempotencyKey(), input.reason(), input.summary(), input.contact(), input.contactAuthorized(), snapshot));
+        delivery.deliver(item);
         events.record(tenant, input.conversationId(), "HANDOFF_CREATED", java.util.Map.of("reason", input.reason(), "status", item.status().name()));
         log.info("Handoff created id={} tenant={} conversation={}", item.id(), tenant, input.conversationId());
         return View.of(item);
@@ -68,6 +71,25 @@ class HandoffController {
         requests.save(item);
         events.record(current.tenantId(), item.conversationId(), "HANDOFF_CLAIMED", java.util.Map.of("status", item.status().name()));
         log.info("Handoff claimed id={} by={}", id, current.userId());
+    }
+
+    @PostMapping("/api/handoffs/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPPORT_AGENT')")
+    void changeStatus(@PathVariable UUID id, @Valid @RequestBody StatusChange input) {
+        var item = owned(id);
+        item.transition(input.status());
+        requests.save(item);
+        events.record(current.tenantId(), item.conversationId(), "HANDOFF_STATUS_CHANGED", java.util.Map.of("status", item.status().name()));
+        log.info("Handoff status changed id={} status={}", id, item.status());
+    }
+
+    @PostMapping("/api/handoffs/{id}/priority")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPPORT_AGENT')")
+    void updatePriority(@PathVariable UUID id, @Valid @RequestBody PriorityChange input) {
+        var item = owned(id);
+        item.reprioritize(input.priority(), input.slaDueAt());
+        requests.save(item);
+        events.record(current.tenantId(), item.conversationId(), "HANDOFF_PRIORITY_CHANGED", java.util.Map.of("priority", item.priority().name()));
     }
 
     @PostMapping("/api/handoffs/{id}/close")
@@ -109,6 +131,8 @@ class HandoffController {
 
     record Close(@NotNull HandoffRequest.Resolution resolution) {
     }
+    record StatusChange(@NotNull HandoffRequest.Status status) { }
+    record PriorityChange(@NotNull HandoffRequest.Priority priority, @NotNull java.time.Instant slaDueAt) { }
     record Note(@NotBlank @Size(max = 4000) String content) { }
     record NoteView(UUID id, UUID authorId, String content, java.time.Instant createdAt) {
         static NoteView of(HandoffNote note) { return new NoteView(note.id(), note.authorId(), note.content(), note.createdAt()); }
@@ -116,11 +140,11 @@ class HandoffController {
 
     record View(UUID id, UUID conversationId, String status, String reason, String summary, String contact,
                 boolean contactAuthorized, UUID assignedTo, String resolution, java.time.Instant createdAt,
-                java.time.Instant closedAt, String packageSnapshot) {
+                java.time.Instant closedAt, String packageSnapshot, String priority, java.time.Instant slaDueAt) {
         static View of(HandoffRequest request) {
             return new View(request.id(), request.conversationId(), request.status().name(), request.reason(), request.summary(),
                     request.contact(), request.contactAuthorized(), request.assignedTo(), request.resolution() == null ? null : request.resolution().name(),
-                    request.createdAt(), request.closedAt(), request.packageSnapshot());
+                    request.createdAt(), request.closedAt(), request.packageSnapshot(), request.priority().name(), request.slaDueAt());
         }
     }
 }

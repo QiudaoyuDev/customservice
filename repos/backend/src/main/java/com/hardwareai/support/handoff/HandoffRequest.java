@@ -33,6 +33,10 @@ public class HandoffRequest {
     private UUID assignedTo;
     @Enumerated(EnumType.STRING)
     private Resolution resolution;
+    @Enumerated(EnumType.STRING)
+    private Priority priority = Priority.NORMAL;
+    @Column(name = "sla_due_at")
+    private Instant slaDueAt;
     @Column(name = "created_at")
     private Instant createdAt = Instant.now();
     @Column(name = "closed_at")
@@ -56,6 +60,7 @@ public class HandoffRequest {
         this.contactAuthorized = contactAuthorized;
         this.packageSnapshot = packageSnapshot;
         status = Status.NEW;
+        slaDueAt = Instant.now().plus(java.time.Duration.ofHours(48));
     }
 
     public UUID id() {
@@ -70,6 +75,8 @@ public class HandoffRequest {
     public boolean contactAuthorized() { return contactAuthorized; }
     public UUID assignedTo() { return assignedTo; }
     public Resolution resolution() { return resolution; }
+    public Priority priority() { return priority; }
+    public Instant slaDueAt() { return slaDueAt; }
     public Instant createdAt() { return createdAt; }
     public Instant closedAt() { return closedAt; }
     public String packageSnapshot() { return packageSnapshot; }
@@ -79,19 +86,43 @@ public class HandoffRequest {
     }
 
     void claim(UUID user) {
-        if (status != Status.NEW) throw new IllegalStateException("Only new requests can be claimed");
-        status = Status.IN_PROGRESS;
+        if (status != Status.NEW && status != Status.FAILED_DELIVERY) throw new IllegalStateException("Only new or failed-delivery requests can be claimed");
+        status = Status.ASSIGNED;
         assignedTo = user;
     }
 
+    void transition(Status next) {
+        if (!allowed(status, next)) throw new IllegalStateException("Unsupported handoff state transition");
+        status = next;
+    }
+
+    void reprioritize(Priority priority, Instant slaDueAt) {
+        this.priority = priority;
+        this.slaDueAt = slaDueAt;
+    }
+
     void close(Resolution resolution) {
-        if (status != Status.IN_PROGRESS) throw new IllegalStateException("Request must be claimed before close");
+        if (status != Status.ASSIGNED && status != Status.IN_PROGRESS && status != Status.RESOLVED) throw new IllegalStateException("Request must be assigned before close");
         status = Status.CLOSED;
         this.resolution = resolution;
         closedAt = Instant.now();
     }
 
-    public enum Status {NEW, IN_PROGRESS, CLOSED}
+    private static boolean allowed(Status from, Status to) {
+        return switch (from) {
+            case NEW -> to == Status.ASSIGNED || to == Status.FAILED_DELIVERY;
+            case ASSIGNED -> to == Status.IN_PROGRESS || to == Status.WAITING_USER || to == Status.WAITING_PARTS || to == Status.RESOLVED;
+            case IN_PROGRESS -> to == Status.WAITING_USER || to == Status.WAITING_PARTS || to == Status.RESOLVED;
+            case WAITING_USER, WAITING_PARTS -> to == Status.IN_PROGRESS || to == Status.RESOLVED;
+            case RESOLVED -> to == Status.CLOSED;
+            case FAILED_DELIVERY -> to == Status.ASSIGNED;
+            case CLOSED -> false;
+        };
+    }
+
+    public enum Status {NEW, ASSIGNED, IN_PROGRESS, WAITING_USER, WAITING_PARTS, RESOLVED, CLOSED, FAILED_DELIVERY}
+
+    public enum Priority {LOW, NORMAL, HIGH, URGENT}
 
     public enum Resolution {RESOLVED, WAITING_PARTS, WARRANTY, ABANDONED, DUPLICATE, PRODUCT_DEFECT}
 }

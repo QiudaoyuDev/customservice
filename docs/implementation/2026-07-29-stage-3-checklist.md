@@ -12,3 +12,11 @@
 - 后端 `mvnw.cmd test`：21 项通过，1 项 Testcontainers 因 Docker 暂不处理跳过。
 - 前端 `npm test`、`npm run lint`、`npm run build` 通过。
 - `git diff --check` 通过。
+# 阶段 3 补充：Provider 边界
+
+- `EmbeddingProvider`：本地 BGE-compatible embedding 实现与索引/检索调用解耦。
+- `VectorStoreAdapter`：Qdrant 副本实现与知识处理、下架调用解耦。
+- `RerankProvider`：本地 rerank 实现与混合检索策略解耦。
+- `ChatModelProvider`：OpenAI-compatible 实现与模型配置服务解耦。
+
+`OpenAiCompatibleProviderWireMockTest` 验证认证头、请求路径和结构化响应解析；实际 OCR、Embedding、Rerank、Qdrant 服务故障演练仍待 Docker/真实依赖环境。

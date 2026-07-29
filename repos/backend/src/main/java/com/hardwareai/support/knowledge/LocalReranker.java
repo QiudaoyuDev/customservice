@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
  * Calls the local BGE-compatible rerank service; caller retains deterministic fallback ordering.
  */
 @Component
-public class LocalReranker {
+public class LocalReranker implements RerankProvider {
     private static final Logger log = LoggerFactory.getLogger(LocalReranker.class);
 
     private final RestClient client;
@@ -28,6 +28,7 @@ public class LocalReranker {
     }
 
     @SuppressWarnings("unchecked")
+    @Override
     public List<Integer> rank(String query, List<String> passages) {
         long start = System.nanoTime();
         try {

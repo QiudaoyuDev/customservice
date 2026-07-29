@@ -10,9 +10,9 @@ import java.util.UUID;
 public class ModelConfigurationService {
     private final ModelConfigurationRepository configurations;
     private final ApiKeyCipher cipher;
-    private final OpenAiCompatibleProvider provider;
+    private final ChatModelProvider provider;
 
-    ModelConfigurationService(ModelConfigurationRepository configurations, ApiKeyCipher cipher, OpenAiCompatibleProvider provider) {
+    ModelConfigurationService(ModelConfigurationRepository configurations, ApiKeyCipher cipher, ChatModelProvider provider) {
         this.configurations = configurations; this.cipher = cipher; this.provider = provider;
     }
 

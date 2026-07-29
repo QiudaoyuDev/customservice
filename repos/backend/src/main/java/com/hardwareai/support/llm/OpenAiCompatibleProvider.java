@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
  * Minimal OpenAI-compatible provider; credentials are supplied at call time and never logged.
  */
 @Component
-public class OpenAiCompatibleProvider {
+public class OpenAiCompatibleProvider implements ChatModelProvider {
 
     private static final Logger log = LoggerFactory.getLogger(OpenAiCompatibleProvider.class);
     private final ExternalRestClientFactory clients;
@@ -24,10 +24,12 @@ public class OpenAiCompatibleProvider {
         this.clients = clients;
     }
 
+    @Override
     public String complete(String baseUrl, String apiKey, String model, String system, String prompt) {
         return complete(baseUrl, apiKey, model, system, prompt, 0d, 800);
     }
 
+    @Override
     public String complete(String baseUrl, String apiKey, String model, String system, String prompt, double temperature, int maxTokens) {
         long start = System.nanoTime();
         try {
@@ -51,6 +53,7 @@ public class OpenAiCompatibleProvider {
         }
     }
 
+    @Override
     public boolean testConnection(String baseUrl, String apiKey) {
         try {
             return clients.create(baseUrl, "Authorization", "Bearer " + apiKey).get().uri("/v1/models")

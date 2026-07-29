@@ -23,3 +23,12 @@
 - 在 PostgreSQL 环境验证迁移和跨租户备注访问拒绝。
 - 以真实附件、OCR、流程会话和 answer trace 验证快照字段完整性。
 - 如首家客户部署 Chatwoot，增加可选 adapter、签名 webhook 与重试演练，且保持内部队列可独立运行。
+# 阶段 6 补充：内部队列状态与 SLA
+
+- V25 增加 `priority`、`sla_due_at` 与租户/状态/SLA 索引。
+- `HandoffRequest` 支持 `NEW`、`ASSIGNED`、`IN_PROGRESS`、`WAITING_USER`、`WAITING_PARTS`、`RESOLVED`、`CLOSED`、`FAILED_DELIVERY` 的受控迁移。
+- 管理端可领取、推进状态、更新优先级/SLA、关闭和记录备注；交接包保持不可变。
+- `HandoffRequestTest` 覆盖合法生命周期和非法状态跳跃。
+- `HumanSupportAdapter` 与 `InternalQueueAdapter` 已接入创建工单链路；可选通道失败不会回滚内部工单，`HandoffDeliveryServiceTest` 覆盖该降级。
+
+Chatwoot API/Webhook 是可选外部适配器，当前仍未配置或联调，不能当作本项已验收。

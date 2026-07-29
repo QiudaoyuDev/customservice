@@ -4,9 +4,9 @@
 
 | 项目 | 命令 | 结果 |
 | --- | --- | --- |
-| 后端干净测试 | `repos/backend/mvnw.cmd -B clean test` | 33 成功，1 跳过 |
+| 后端干净测试 | `repos/backend/mvnw.cmd -B clean test` | 37 成功，1 跳过（含 Provider、交接队列和投递降级测试） |
 | 前端干净安装 | `repos/frontend/npm ci` | 成功 |
-| 前端测试 | `npm test` | 2 成功 |
+| 前端测试 | `npm test` | 4 成功（含 jsdom/React Testing Library 登录页行为） |
 | 前端格式检查 | `npm run lint` | 退出成功 |
 | 前端生产构建 | `npm run build` | 成功 |
 | Diff 空白检查 | `git diff --check` | 无空白错误；仅 CRLF 提示 |
@@ -21,7 +21,8 @@
 - 阶段 5：不可变流程快照、定义/版本、会话步骤与受控状态机。
 - 阶段 6：不可变人工交接包、内部队列和备注。
 - 阶段 7：隐私安全运营事件、看板和可执行检索评测。
-- 阶段 8（非 Docker 范围）：会话/附件保留任务、V24 级联清理迁移、SSE 增量协议前后端测试、可执行前端格式检查与精确依赖锁定。
+- 阶段 8（非 Docker 范围）：会话/附件保留任务、V24 级联清理迁移、SSE 增量协议前后端测试、可执行前端格式检查与精确依赖锁定，以及 jsdom/React Testing Library 组件测试基线。
+- 架构补强：业务服务现在依赖 `EmbeddingProvider`、`VectorStoreAdapter`、`RerankProvider`、`ChatModelProvider` 契约；当前 RestClient 实现保持不变。
 
 ## 本轮明确排除或未验证项
 
@@ -29,6 +30,7 @@
 2. **真实 PostgreSQL 迁移**：V14–V24 已编译进测试资源，但因 Docker 未启动，尚未由 PostgreSQL 实例实际执行。
 3. **前端依赖风险**：`npm ci` 报 3 个漏洞（2 moderate、1 critical）。需要在单独依赖升级任务中定位经由依赖并评估升级；未执行 `npm audit fix --force`。
 4. **可选集成**：Chatwoot 与 Langfuse 均保持非强依赖，尚未配置客户环境验证。
+5. **人工外部交接**：内部队列和不可变交接包已经存在；方案要求的 Chatwoot API Inbox、签名 webhook、外部工单幂等重试及人工消息回写尚未实现，不能把阶段 6 标记为完整外部交接闭环。
 
 ## 发布建议
 

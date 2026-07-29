@@ -3,7 +3,8 @@ package com.hardwareai.support.retrieval;
 import com.hardwareai.support.config.AppProperties;
 import com.hardwareai.support.config.ExternalRestClientFactory;
 import com.hardwareai.support.knowledge.EvidenceService;
-import com.hardwareai.support.knowledge.LocalReranker;
+import com.hardwareai.support.knowledge.EmbeddingProvider;
+import com.hardwareai.support.knowledge.RerankProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -22,16 +23,17 @@ class DefaultRetrievalService implements RetrievalService {
     private static final Logger log = LoggerFactory.getLogger(DefaultRetrievalService.class);
     private final EvidenceService lexical;
     private final RestClient qdrant;
-    private final RestClient embedding;
+    private final EmbeddingProvider embedding;
     private final AppProperties config;
-    private final LocalReranker reranker;
+    private final RerankProvider reranker;
     private final ConclusionConflictDetector conflictDetector = new ConclusionConflictDetector();
 
-    DefaultRetrievalService(EvidenceService lexical, AppProperties config, ExternalRestClientFactory clients, LocalReranker reranker) {
+    DefaultRetrievalService(EvidenceService lexical, AppProperties config, ExternalRestClientFactory clients,
+                            RerankProvider reranker, EmbeddingProvider embedding) {
         this.lexical = lexical;
         this.config = config;
         this.qdrant = clients.create(config.qdrantUrl(), "api-key", config.qdrantApiKey());
-        this.embedding = clients.create(config.embeddingUrl());
+        this.embedding = embedding;
         this.reranker = reranker;
     }
 
@@ -68,9 +70,7 @@ class DefaultRetrievalService implements RetrievalService {
 
     @SuppressWarnings("unchecked")
     private void addVectorHits(Map<UUID, Candidate> merged, RetrievalRequest request, int limit) {
-        var embeddingResponse = embedding.post().uri("/v1/embeddings").contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("input", List.of(request.userQuestion()), "normalize", true)).retrieve().body(Map.class);
-        var vector = (List<Double>) ((Map<?, ?>) ((List<?>) embeddingResponse.get("data")).getFirst()).get("embedding");
+        var vector = embedding.embed(request.userQuestion());
         var must = new ArrayList<Map<String, Object>>();
         must.add(Map.of("key", "tenantId", "match", Map.of("value", request.tenantId().toString())));
         must.add(Map.of("key", "productModelId", "match", Map.of("value", request.productModelId().toString())));

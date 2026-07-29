@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Login from './Login';
 
@@ -10,6 +10,7 @@ vi.mock('react-router-dom', () => ({ useNavigate: () => navigate }));
 
 describe('Login', () => {
   afterEach(() => {
+    cleanup();
     login.mockReset();
     navigate.mockReset();
   });
@@ -34,7 +35,7 @@ describe('Login', () => {
 
     fireEvent.click(screen.getByRole('button'));
 
-    expect(await screen.findByText('登录失败，请检查邮箱和密码')).toBeInTheDocument();
+    expect(await screen.findByText('Incorrect email or password')).toBeInTheDocument();
     expect(navigate).not.toHaveBeenCalled();
   });
 });

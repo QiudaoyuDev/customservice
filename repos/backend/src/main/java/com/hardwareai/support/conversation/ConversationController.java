@@ -8,7 +8,6 @@ import com.hardwareai.support.retrieval.RetrievalService;
 import com.hardwareai.support.config.AppProperties;
 import com.hardwareai.support.llm.Intent;
 import com.hardwareai.support.llm.IntentClassifier;
-import com.hardwareai.support.llm.OpenAiCompatibleProvider;
 import com.hardwareai.support.qr.QrApplicationService;
 import com.hardwareai.support.troubleshoot.*;
 import com.hardwareai.support.troubleshoot.FlowVersionService;

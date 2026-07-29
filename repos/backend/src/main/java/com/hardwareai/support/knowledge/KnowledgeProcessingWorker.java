@@ -17,7 +17,7 @@ class KnowledgeProcessingWorker {
     private final KnowledgeDocumentRepository documents;
     private final ObjectStorage storage;
     private final DocumentTextExtractor extractor;
-    private final VectorIndex vectorIndex;
+    private final VectorStoreAdapter vectorIndex;
     private final KnowledgeChunkRepository chunks;
     private final KnowledgeChunker chunker;
     private final KnowledgeOcrResultRepository ocrResults;
@@ -28,7 +28,7 @@ class KnowledgeProcessingWorker {
             KnowledgeDocumentRepository documents,
             ObjectStorage storage,
             DocumentTextExtractor extractor,
-            VectorIndex vectorIndex, KnowledgeChunkRepository chunks, KnowledgeChunker chunker, KnowledgeOcrResultRepository ocrResults
+            VectorStoreAdapter vectorIndex, KnowledgeChunkRepository chunks, KnowledgeChunker chunker, KnowledgeOcrResultRepository ocrResults
     ) {
         this.jobs = jobs;
         this.revisions = revisions;

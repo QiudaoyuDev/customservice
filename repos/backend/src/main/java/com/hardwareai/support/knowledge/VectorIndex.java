@@ -17,28 +17,30 @@ import java.util.concurrent.TimeUnit;
  * Qdrant adapter: application metadata is always embedded in the payload for retrieval filtering.
  */
 @Service
-class VectorIndex {
+class VectorIndex implements VectorStoreAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(VectorIndex.class);
 
     private final RestClient client;
-    private final RestClient embedding;
+    private final EmbeddingProvider embedding;
     private final AppProperties config;
     private final KnowledgeRevisionApplicabilityRepository applicability;
 
-    VectorIndex(AppProperties config, ExternalRestClientFactory clients, KnowledgeRevisionApplicabilityRepository applicability) {
+    VectorIndex(AppProperties config, ExternalRestClientFactory clients, KnowledgeRevisionApplicabilityRepository applicability,
+                EmbeddingProvider embedding) {
         this.config = config;
         client = clients.create(config.qdrantUrl(), "api-key", config.qdrantApiKey());
-        embedding = clients.create(config.embeddingUrl());
+        this.embedding = embedding;
         this.applicability = applicability;
     }
 
-    void upsert(KnowledgeRevision revision, KnowledgeDocument document, List<KnowledgeChunk> chunks) {
+    @Override
+    public void upsert(KnowledgeRevision revision, KnowledgeDocument document, List<KnowledgeChunk> chunks) {
         if (chunks.isEmpty()) throw new IllegalStateException("Cannot index a revision without chunks");
         long start = System.nanoTime();
         try {
             var scope = applicability.findAllByRevisionId(revision.id()).stream().findFirst().orElse(null);
-            var vector = embedding(chunks.getFirst().content());
+            var vector = embedding.embed(chunks.getFirst().content());
             ensureCollection(vector.size());
             client
                     .put()
@@ -64,7 +66,7 @@ class VectorIndex {
                                         if (scope != null && scope.productVariantId() != null) payload.put("productVariantId", scope.productVariantId().toString());
                                         if (scope != null && scope.hardwareRevision() != null) payload.put("hardwareRevision", scope.hardwareRevision());
                                         payload.put("firmwareScoped", scope != null && (scope.firmwareMin() != null || scope.firmwareMax() != null));
-                                        return Map.of("id", chunk.id().toString(), "vector", embedding(chunk.content()), "payload", payload);
+                                        return Map.of("id", chunk.id().toString(), "vector", embedding.embed(chunk.content()), "payload", payload);
                                     }).toList()
                             )
                     )
@@ -85,7 +87,7 @@ class VectorIndex {
     private boolean smokeQuery(UUID revisionId, String text) {
         var response = client.post().uri("/collections/{collection}/points/query", config.qdrantCollection())
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("query", embedding(text), "limit", 1, "with_payload", false,
+                .body(Map.of("query", embedding.embed(text), "limit", 1, "with_payload", false,
                         "filter", Map.of("must", List.of(Map.of("key", "revisionId", "match", Map.of("value", revisionId.toString()))))))
                 .retrieve().body(Map.class);
         if (response == null || !(response.get("result") instanceof Map<?, ?> result)) return false;
@@ -95,7 +97,8 @@ class VectorIndex {
     /**
      * Removes every chunk for a revision so a new request cannot retrieve deprecated knowledge.
      */
-    void removeRevision(UUID revisionId) {
+    @Override
+    public void removeRevision(UUID revisionId) {
         long start = System.nanoTime();
         try {
             client.post().uri("/collections/{collection}/points/delete?wait=true", config.qdrantCollection())
@@ -127,26 +130,6 @@ class VectorIndex {
                     .retrieve()
                     .toBodilessEntity();
             log.info("Qdrant collection created collection={} dim={} in {}ms", config.qdrantCollection(), vectorSize, millis(start));
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<Double> embedding(String text) {
-        long start = System.nanoTime();
-        try {
-            var body = embedding
-                    .post()
-                    .uri("/v1/embeddings")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of("input", List.of(text), "normalize", true))
-                    .retrieve()
-                    .body(Map.class);
-            var vector = (List<Double>) ((Map<?, ?>) ((List<?>) body.get("data")).getFirst()).get("embedding");
-            log.debug("Embedding ok url={} dims={} in {}ms", config.embeddingUrl(), vector.size(), millis(start));
-            return vector;
-        } catch (Exception e) {
-            log.error("Embedding failed url={}", config.embeddingUrl());
-            throw e;
         }
     }
 
