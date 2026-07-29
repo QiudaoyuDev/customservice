@@ -33,6 +33,14 @@ const GROUPS: { titleKey: string; items: NavItem[] }[] = [
 ];
 
 export default function ConsoleLayout() {
+  return (
+    <TenantProvider>
+      <ConsoleShell />
+    </TenantProvider>
+  );
+}
+
+function ConsoleShell() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const { allTenants, currentTenantId, setTenant } = useTenant();
@@ -101,7 +109,6 @@ export default function ConsoleLayout() {
   );
 
   return (
-    <TenantProvider>
     <div className="flex h-screen overflow-hidden">
       <aside className="hidden w-60 flex-none md:block">{sidebar}</aside>
 
@@ -172,7 +179,6 @@ export default function ConsoleLayout() {
         </main>
       </div>
     </div>
-    </TenantProvider>
   );
 }
 
