@@ -33,9 +33,12 @@ interface KnowledgeRevisionRepository extends JpaRepository<KnowledgeRevision, U
 
 interface KnowledgeRevisionApplicabilityRepository extends JpaRepository<KnowledgeRevisionApplicability, UUID> {
     List<KnowledgeRevisionApplicability> findAllByRevisionId(UUID revisionId);
+
+    void deleteByRevisionId(UUID revisionId);
 }
 
 interface KnowledgeOcrResultRepository extends JpaRepository<KnowledgeOcrResult, UUID> {
+    void deleteByRevisionId(UUID revisionId);
 }
 
 interface KnowledgeChunkRepository extends JpaRepository<KnowledgeChunk, UUID> {

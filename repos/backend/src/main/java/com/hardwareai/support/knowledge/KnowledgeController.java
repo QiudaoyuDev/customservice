@@ -234,4 +234,23 @@ public class KnowledgeController {
             throw new IllegalArgumentException("Unable to checksum uploaded knowledge source", exception);
         }
     }
+
+    @DeleteMapping("/documents/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void deleteDocument(@PathVariable UUID id) {
+        KnowledgeDocument document = documents.findByIdAndTenantId(id, current.tenantId())
+            .orElseThrow(() -> new IllegalArgumentException("文档不存在"));
+        revisions.findAllByDocumentIdOrderByRevisionNoDesc(id).forEach(r -> {
+            chunks.deleteAllByRevisionId(r.id());
+            ocrResults.deleteByRevisionId(r.id());
+            applicability.deleteByRevisionId(r.id());
+            try {
+                vectorIndex.removeRevision(r.id());
+            } catch (RuntimeException ignored) {
+            }
+        });
+        revisions.deleteAll(revisions.findAllByDocumentIdOrderByRevisionNoDesc(id));
+        storage.delete(document.storageKey());
+        documents.delete(document);
+    }
 }

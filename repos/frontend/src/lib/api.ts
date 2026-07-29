@@ -207,18 +207,26 @@ export const listDocuments = () => api('/documents');
 export const uploadDocument = (input: {
   file: File;
   title?: string;
-  language?: string;
+  locale?: string;
   region?: string;
   productModelId?: string;
 }) => {
   const form = new FormData();
   form.append('file', input.file);
   if (input.title) form.append('title', input.title);
-  if (input.language) form.append('language', input.language);
+  if (input.locale) form.append('locale', input.locale);
   if (input.region) form.append('region', input.region);
   if (input.productModelId) form.append('productModelId', input.productModelId);
   return apiUpload('/documents', form);
 };
+
+export const submitRevision = (id: string) => api(`/knowledge-revisions/${id}/submit`, { method: 'POST' });
+export const publishRevision = (id: string) => api(`/knowledge-revisions/${id}/publish`, { method: 'POST' });
+export const approveRevision = (id: string) => api(`/knowledge-revisions/${id}/approve`, { method: 'POST' });
+export const deprecateRevision = (id: string) => api(`/knowledge-revisions/${id}/deprecate`, { method: 'POST' });
+export const archiveRevision = (id: string) => api(`/knowledge-revisions/${id}/archive`, { method: 'POST' });
+export const restoreRevision = (id: string) => api(`/knowledge-revisions/${id}/restore`, { method: 'POST' });
+export const deleteDocument = (id: string) => api(`/documents/${id}`, { method: 'DELETE' });
 export const getDocumentContent = (id: string) => api(`/documents/${id}/content`);
 export const previewDocumentUrl = (id: string) => `/api/documents/${id}/preview`;
 
