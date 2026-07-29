@@ -2,7 +2,7 @@ import logging
 import os
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from pydantic import BaseModel, Field
 from sentence_transformers import CrossEncoder, SentenceTransformer
 
@@ -41,9 +41,12 @@ def load_models() -> None:
 
 
 @app.get("/health")
-def health() -> dict[str, object]:
+def health(response: Response) -> dict[str, object]:
+    ready = embedding_model is not None
+    if not ready:
+        response.status_code = 503
     return {
-        "status": "ok" if embedding_model else "starting",
+        "status": "ok" if ready else "starting",
         "embedding_model": os.getenv("EMBEDDING_MODEL"),
         "reranker_enabled": rerank_model is not None,
     }

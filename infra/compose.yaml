@@ -114,7 +114,7 @@ services:
       RERANK_MODEL: ${RERANK_MODEL}
       MODEL_CACHE_DIR: /models
       HF_HOME: /models/huggingface
-      HF_ENDPOINT: ${HF_ENDPOINT:-}
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://huggingface.co}
       EMBEDDING_DEVICE: ${EMBEDDING_DEVICE}
       HTTP_PROXY: ${HTTP_PROXY:-}
       HTTPS_PROXY: ${HTTPS_PROXY:-}
