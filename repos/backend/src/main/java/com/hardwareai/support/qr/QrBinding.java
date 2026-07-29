@@ -20,6 +20,10 @@ public class QrBinding {
 
     @Column(name = "product_model_id")
     private UUID productModelId;
+    @Column(name = "product_variant_id")
+    private UUID productVariantId;
+    @Column(name = "initial_firmware_version")
+    private String initialFirmwareVersion;
 
     @Column(name = "token_hash")
     private String tokenHash;
@@ -48,6 +52,8 @@ public class QrBinding {
     QrBinding(
             UUID tenantId,
             UUID productModelId,
+            UUID productVariantId,
+            String initialFirmwareVersion,
             String tokenHash,
             String batch,
             String serialNumber,
@@ -56,6 +62,8 @@ public class QrBinding {
         id = UUID.randomUUID();
         this.tenantId = tenantId;
         this.productModelId = productModelId;
+        this.productVariantId = productVariantId;
+        this.initialFirmwareVersion = initialFirmwareVersion;
         this.tokenHash = tokenHash;
         this.batch = batch;
         this.serialNumber = serialNumber;
@@ -74,6 +82,9 @@ public class QrBinding {
     public UUID tenantId() {
         return tenantId;
     }
+
+    public UUID productVariantId() { return productVariantId; }
+    public String initialFirmwareVersion() { return initialFirmwareVersion; }
 
     public String tokenHash() {
         return tokenHash;

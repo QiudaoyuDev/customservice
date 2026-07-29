@@ -23,6 +23,9 @@ public class KnowledgeDocument {
     @Column(name = "content_type")
     private String contentType;
 
+    @Column(name = "source_checksum")
+    private String sourceChecksum;
+
     @Enumerated(EnumType.STRING)
     private Status status;
 
@@ -41,7 +44,7 @@ public class KnowledgeDocument {
             String locale,
             String key,
             String contentType,
-            UUID userId
+            UUID userId, String sourceChecksum
     ) {
         id = UUID.randomUUID();
         this.tenantId = tenantId;
@@ -49,6 +52,7 @@ public class KnowledgeDocument {
         this.locale = locale;
         objectKey = key;
         this.contentType = contentType;
+        this.sourceChecksum = sourceChecksum;
         createdBy = userId;
         status = Status.DRAFT;
     }
@@ -76,6 +80,8 @@ public class KnowledgeDocument {
     public String contentType() {
         return contentType;
     }
+
+    public String sourceChecksum() { return sourceChecksum; }
 
     public Status status() {
         return status;

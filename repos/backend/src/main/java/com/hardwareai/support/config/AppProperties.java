@@ -17,6 +17,7 @@ public record AppProperties(
         @Valid Qr qr,
         @Valid Bootstrap bootstrap,
         @Valid Llm llm,
+        @Valid ModelKeyEncryption modelKeyEncryption,
         @Valid ExternalClients externalClients,
         @NotBlank String embeddingUrl,
         @NotBlank String ocrUrl,
@@ -40,6 +41,9 @@ public record AppProperties(
 
     public record Llm(boolean enabled, String baseUrl, String apiKey, String model) {
     }
+
+    /** 32-byte base64 key is loaded only from environment/KMS integration, never from the database. */
+    public record ModelKeyEncryption(@NotBlank String masterKey, @NotBlank String keyVersion) { }
 
     /** Shared bounded timings for PostgreSQL-adjacent external HTTP and object-storage clients. */
     public record ExternalClients(

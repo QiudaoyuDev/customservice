@@ -46,4 +46,14 @@ public class OpenAiCompatibleProvider {
             throw e;
         }
     }
+
+    public boolean testConnection(String baseUrl, String apiKey) {
+        try {
+            return clients.create(baseUrl, "Authorization", "Bearer " + apiKey).get().uri("/v1/models")
+                    .exchange((request, response) -> response.getStatusCode().is2xxSuccessful());
+        } catch (Exception exception) {
+            log.warn("LLM connection test failed baseUrl={}", baseUrl);
+            return false;
+        }
+    }
 }

@@ -20,30 +20,46 @@ class ConversationProductContext {
     private UUID conversationId;
     @Column(name = "product_model_id")
     private UUID productModelId;
+    @Column(name = "product_variant_id")
+    private UUID productVariantId;
     @Column(name = "hardware_version")
     private String hardwareVersion;
+    @Column(name = "hardware_revision")
+    private String hardwareRevision;
     @Column(name = "firmware_version")
     private String firmwareVersion;
     private String source;
+    @Column(name = "confirmed_by_user")
+    private boolean confirmedByUser;
     private boolean active = true;
     @Column(name = "created_at")
     private Instant createdAt = Instant.now();
+    @Column(name = "closed_at")
+    private Instant closedAt;
 
     protected ConversationProductContext() {
     }
 
-    ConversationProductContext(UUID conversationId, UUID productModelId, String hardware, String firmware, String source) {
+    ConversationProductContext(UUID conversationId, UUID productModelId, UUID productVariantId, String hardwareRevision,
+                               String hardware, String firmware, String source, boolean confirmedByUser) {
         id = UUID.randomUUID();
         this.conversationId = conversationId;
         this.productModelId = productModelId;
+        this.productVariantId = productVariantId;
+        this.hardwareRevision = hardwareRevision;
         hardwareVersion = hardware;
         firmwareVersion = firmware;
         this.source = source;
+        this.confirmedByUser = confirmedByUser;
     }
 
     UUID productModelId() {
         return productModelId;
     }
+
+    UUID productVariantId() { return productVariantId; }
+    String hardwareRevision() { return hardwareRevision; }
+    String firmwareVersion() { return firmwareVersion; }
 
     String hardwareVersion() {
         return hardwareVersion;
@@ -51,5 +67,6 @@ class ConversationProductContext {
 
     void close() {
         active = false;
+        closedAt = Instant.now();
     }
 }

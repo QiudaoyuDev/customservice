@@ -33,7 +33,7 @@ class OcrClient {
         this.client = clients.create(ocrUrl);
     }
 
-    String extract(String contentType, InputStream source) {
+    OcrText extract(String contentType, InputStream source) {
         byte[] bytes;
         try (source) {
             bytes = source.readAllBytes();
@@ -62,7 +62,7 @@ class OcrClient {
             var text = response.text() == null ? "" : response.text();
             log.info("OCR completed url={} type={} bytes={} chars={} in {}ms", ocrUrl, contentType, bytes.length, text.length(),
                     TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
-            return text;
+            return new OcrText(text, response.confidence(), response.language(), response.pageFrom(), response.pageTo());
         } catch (Exception e) {
             log.warn("OCR adapter request failed url={} type={} bytes={} in {}ms", ocrUrl, contentType, bytes.length,
                     TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
@@ -74,8 +74,10 @@ class OcrClient {
         return MediaType.IMAGE_JPEG_VALUE.equals(contentType) ? "source.jpg" : "source.png";
     }
 
-    private record OcrResponse(String text) {
+    private record OcrResponse(String text, Double confidence, String language, Integer pageFrom, Integer pageTo) {
     }
+
+    record OcrText(String text, Double confidence, String language, Integer pageFrom, Integer pageTo) { }
 
     /**
      * Supplies a filename because FastAPI's UploadFile uses it to choose a safe suffix.

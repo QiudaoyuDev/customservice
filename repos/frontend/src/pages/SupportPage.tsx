@@ -83,7 +83,7 @@ function StepCard({m, onReply, t}: { m: any; onReply: (v: string) => void; t: (k
 export default function SupportPage() {
     const {qrToken} = useParams();
     const navigate = useNavigate();
-    const {logout, isAuthenticated, login} = useAuth();
+    const {logout, isAuthenticated} = useAuth();
     const {t, i18n} = useTranslation();
     const [language, setLanguage] = useState(i18n.language);
     const [convId, setConvId] = useState('');
@@ -102,6 +102,7 @@ export default function SupportPage() {
     const [handoffId, setHandoffId] = useState('');
     const [showChange, setShowChange] = useState(false);
     const [changeProductId, setChangeProductId] = useState('');
+    const [productOptions, setProductOptions] = useState<Array<{id: string; displayName: string; model: string; hardwareVersion?: string}>>([]);
     const [historyOpen, setHistoryOpen] = useState(false);
     const [replays, setReplays] = useState<any[]>([]);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -239,7 +240,7 @@ export default function SupportPage() {
         try {
             await pub(`/conversations/${convId}/product-context`, {
                 method: 'POST',
-                headers: {'X-Conversation-Token': conversationToken}, body: JSON.stringify({productModelId: changeProductId.trim()})
+                headers: {'X-Conversation-Token': conversationToken}, body: JSON.stringify({productModelId: changeProductId})
             });
             setShowChange(false);
             setChangeProductId('');
@@ -247,6 +248,18 @@ export default function SupportPage() {
             setNotice(t('support.identified'));
         } catch (e) {
             setNotice(t('support.changeFailed', {msg: (e as Error).message}));
+        }
+    };
+
+    const openProductSelection = async () => {
+        if (!convId) return;
+        try {
+            const options = await pub(`/conversations/${convId}/product-options`, {headers: {'X-Conversation-Token': conversationToken}});
+            setProductOptions(options ?? []);
+            setChangeProductId('');
+            setShowChange(true);
+        } catch (e) {
+            setNotice((e as Error).message);
         }
     };
 
@@ -266,10 +279,6 @@ export default function SupportPage() {
         } catch {
             /* ignore */
         }
-    };
-
-    const loginAsOperator = () => {
-        login('support-eu@hardware.ai', 'support123');
     };
 
     const renderMsg = (m: any) => {
@@ -352,7 +361,7 @@ export default function SupportPage() {
                         ))}
                     </select>
                     <button className="rounded border border-line px-2 py-1 text-xs text-ink2 hover:bg-slate-50"
-                            onClick={() => setShowChange(true)}>
+                            onClick={() => void openProductSelection()}>
                         {t('support.changeProduct')}
                     </button>
                     {isAuthenticated ? (
@@ -371,7 +380,7 @@ export default function SupportPage() {
                         </>
                     ) : (
                         <button className="rounded border border-line px-2 py-1 text-xs text-ink2 hover:bg-slate-50"
-                                onClick={loginAsOperator}>
+                                onClick={() => navigate('/login')}>
                             {t('login.submit')}
                         </button>
                     )}
@@ -570,8 +579,15 @@ export default function SupportPage() {
                     <p className="text-ink2">{t('support.changeProductDesc')}</p>
                     <div>
                         <label className="mb-1 block text-xs text-ink2">{t('support.changeProductPlaceholder')}</label>
-                        <Input value={changeProductId} onChange={(e) => setChangeProductId(e.target.value)}
-                               placeholder={t('support.changeProductPlaceholder')}/>
+                        <select className="w-full rounded border border-line px-3 py-2 text-sm" value={changeProductId}
+                                onChange={(e) => setChangeProductId(e.target.value)}>
+                            <option value="">{t('common.select')}</option>
+                            {productOptions.map((product) => (
+                                <option key={product.id} value={product.id}>
+                                    {product.displayName} · {product.model}{product.hardwareVersion ? ` · ${product.hardwareVersion}` : ''}
+                                </option>
+                            ))}
+                        </select>
                     </div>
                 </div>
             </Modal>

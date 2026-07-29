@@ -17,8 +17,11 @@ public class EvidenceService {
         this.chunks = chunks;
     }
 
-    public List<Evidence> find(UUID tenantId, UUID productModelId, String region, String language, String question) {
-        return chunks.keywordSearch(tenantId, productModelId, region, language, question, PageRequest.of(0, 3)).stream().map(c -> new Evidence(c.id(), c.sourceLabel(), c.content())).toList();
+    public List<Evidence> find(UUID tenantId, UUID productModelId, UUID productVariantId, String region,
+                               String hardwareRevision, String firmwareVersion, String language, String question, String errorCode, int topK) {
+        return chunks.keywordSearch(tenantId, productModelId, productVariantId, region, hardwareRevision, firmwareVersion,
+                language, question, errorCode, PageRequest.of(0, Math.max(1, Math.min(topK, 20))))
+                .stream().map(c -> new Evidence(c.id(), c.sourceLabel(), c.content())).toList();
     }
 
     public record Evidence(UUID chunkId, String source, String text) {

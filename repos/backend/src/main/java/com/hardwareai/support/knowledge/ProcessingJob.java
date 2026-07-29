@@ -31,6 +31,21 @@ class ProcessingJob {
     @Column(name = "error_message")
     private String errorMessage;
 
+    @Column(name = "error_code")
+    private String errorCode;
+
+    @Column(name = "max_attempts")
+    private int maxAttempts = 3;
+
+    @Column(name = "lease_until")
+    private Instant leaseUntil;
+
+    @Column(name = "heartbeat_at")
+    private Instant heartbeatAt;
+
+    @Column(name = "next_retry_at")
+    private Instant nextRetryAt;
+
     @Column(name = "created_at")
     private final Instant createdAt = Instant.now();
 
@@ -62,6 +77,10 @@ class ProcessingJob {
         return jobType;
     }
 
+    boolean exhausted() {
+        return attempts >= maxAttempts;
+    }
+
     void start() {
         status = Status.RUNNING;
         attempts++;
@@ -72,11 +91,19 @@ class ProcessingJob {
         status = Status.COMPLETED;
         completedAt = Instant.now();
         errorMessage = null;
+        errorCode = null;
+        leaseUntil = null;
+        heartbeatAt = Instant.now();
     }
 
     void fail(Exception e) {
-        status = attempts >= 3 ? Status.FAILED : Status.PENDING;
+        status = exhausted() ? Status.FAILED : Status.PENDING;
         errorMessage = e.getClass().getSimpleName();
+        errorCode = e.getClass().getSimpleName();
+        leaseUntil = null;
+        heartbeatAt = Instant.now();
+        // Bounded backoff avoids a broken source monopolising the worker.
+        nextRetryAt = exhausted() ? null : Instant.now().plusSeconds(5L * attempts);
     }
 
     enum Type {

@@ -3,6 +3,9 @@ package com.hardwareai.support.knowledge;
 import jakarta.persistence.*;
 
 import java.time.Instant;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 import java.util.UUID;
 
 /**
@@ -40,6 +43,17 @@ public class KnowledgeRevision {
 
     @Column(name = "deprecated_at")
     private Instant deprecatedAt;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "index_status")
+    private IndexStatus indexStatus = IndexStatus.NOT_INDEXED;
+    @Column(name = "content_checksum")
+    private String contentChecksum;
+    @Column(name = "parser_version")
+    private String parserVersion;
+    @Column(name = "failure_code")
+    private String failureCode;
+    @Column(name = "failure_detail")
+    private String failureDetail;
 
     @Column(name = "created_at")
     private final Instant createdAt = Instant.now();
@@ -48,9 +62,13 @@ public class KnowledgeRevision {
     }
 
     KnowledgeRevision(UUID doc, UUID product, String region) {
+        this(doc, product, region, 1);
+    }
+
+    KnowledgeRevision(UUID doc, UUID product, String region, int revisionNo) {
         id = UUID.randomUUID();
         documentId = doc;
-        revisionNo = 1;
+        this.revisionNo = revisionNo;
         productModelId = product;
         this.region = region;
         status = Status.UPLOADED;
@@ -80,6 +98,10 @@ public class KnowledgeRevision {
         return extractedText;
     }
 
+    public int revisionNo() { return revisionNo; }
+
+    public IndexStatus indexStatus() { return indexStatus; }
+
     /**
      * Parser is the only path that writes normalized source text.
      */
@@ -87,7 +109,10 @@ public class KnowledgeRevision {
             String text
     ) {
         extractedText = text;
+        contentChecksum = checksum(text);
+        parserVersion = "structured-chunker-v1";
         status = Status.DRAFT;
+        indexStatus = IndexStatus.NOT_INDEXED;
     }
 
     public void beginParsing() {
@@ -115,9 +140,26 @@ public class KnowledgeRevision {
         ) throw new IllegalStateException(
                 "Published knowledge requires product and region applicability"
         );
-        status = Status.PUBLISHED;
+        indexStatus = IndexStatus.INDEXING;
         reviewedBy = user;
+    }
+
+    /** Index worker is the sole authority that makes a revision visible to retrieval. */
+    public void markIndexedAndPublished() {
+        if (status != Status.APPROVED || indexStatus != IndexStatus.INDEXING)
+            throw new IllegalStateException("Only an approved indexing revision can be published");
+        status = Status.PUBLISHED;
+        indexStatus = IndexStatus.READY;
         publishedAt = Instant.now();
+        failureCode = null;
+        failureDetail = null;
+    }
+
+    public void markIndexFailed(String code) {
+        if (indexStatus != IndexStatus.INDEXING) return;
+        indexStatus = IndexStatus.FAILED;
+        failureCode = code;
+        failureDetail = null;
     }
 
     public void approve(UUID user) {
@@ -130,6 +172,7 @@ public class KnowledgeRevision {
         if (status != Status.PUBLISHED) throw new IllegalStateException("Only published knowledge can be deprecated");
         status = Status.DEPRECATED;
         deprecatedAt = Instant.now();
+        indexStatus = IndexStatus.REMOVING;
     }
 
     /**
@@ -137,7 +180,8 @@ public class KnowledgeRevision {
      */
     public void restore(UUID user) {
         if (status != Status.DEPRECATED) throw new IllegalStateException("Only deprecated knowledge can be restored");
-        status = Status.PUBLISHED;
+        status = Status.APPROVED;
+        indexStatus = IndexStatus.INDEXING;
         reviewedBy = user;
         publishedAt = Instant.now();
         deprecatedAt = null;
@@ -158,5 +202,15 @@ public class KnowledgeRevision {
         PUBLISHED,
         DEPRECATED,
         ARCHIVED,
+    }
+
+    public enum IndexStatus { NOT_INDEXED, INDEXING, READY, FAILED, REMOVING }
+
+    private static String checksum(String value) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }

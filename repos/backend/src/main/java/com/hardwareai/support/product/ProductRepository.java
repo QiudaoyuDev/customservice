@@ -15,3 +15,13 @@ public interface ProductRepository extends JpaRepository<ProductModel, UUID> {
 interface ProductModelAliasRepository extends JpaRepository<ProductModelAlias, UUID> {
     List<ProductModelAlias> findAllByProductModelId(UUID productModelId);
 }
+
+interface ProductVariantRepository extends JpaRepository<ProductVariant, UUID> {
+    List<ProductVariant> findAllByTenantIdAndProductModelIdOrderByCreatedAtDesc(UUID tenantId, UUID productModelId);
+
+    Optional<ProductVariant> findByIdAndTenantId(UUID id, UUID tenantId);
+}
+
+interface FirmwareVersionRepository extends JpaRepository<FirmwareVersion, UUID> {
+    List<FirmwareVersion> findAllByProductVariantIdOrderByCreatedAtDesc(UUID productVariantId);
+}

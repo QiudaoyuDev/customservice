@@ -38,6 +38,9 @@ app:
     base-url: ${LLM_BASE_URL:}
     api-key: ${LLM_API_KEY:}
     model: ${LLM_MODEL:}
+  model-key-encryption:
+    master-key: ${MODEL_KEY_ENCRYPTION_MASTER_KEY:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
+    key-version: ${MODEL_KEY_ENCRYPTION_KEY_VERSION:v1}
   external-clients:
     connect-timeout: ${EXTERNAL_CONNECT_TIMEOUT:3s}
     read-timeout: ${EXTERNAL_READ_TIMEOUT:15s}

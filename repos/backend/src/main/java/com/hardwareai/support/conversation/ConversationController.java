@@ -4,13 +4,12 @@ import com.hardwareai.support.handoff.HandoffRepository;
 import com.hardwareai.support.handoff.HandoffRequest;
 import com.hardwareai.support.knowledge.EvidenceService;
 import com.hardwareai.support.knowledge.ObjectStorage;
+import com.hardwareai.support.retrieval.RetrievalService;
 import com.hardwareai.support.config.AppProperties;
 import com.hardwareai.support.llm.Intent;
 import com.hardwareai.support.llm.IntentClassifier;
 import com.hardwareai.support.llm.OpenAiCompatibleProvider;
-import com.hardwareai.support.product.ProductRepository;
-import com.hardwareai.support.qr.QrBinding;
-import com.hardwareai.support.qr.QrBindingRepository;
+import com.hardwareai.support.qr.QrApplicationService;
 import com.hardwareai.support.troubleshoot.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -36,16 +35,16 @@ import java.util.stream.Collectors;
 @RequestMapping("/public/conversations")
 class ConversationController {
     private static final Logger log = LoggerFactory.getLogger(ConversationController.class);
-    private final QrBindingRepository bindings;
-    private final ProductRepository products;
+    private final QrApplicationService qr;
     private final ConversationRepository conversations;
     private final ConversationProductContextRepository contexts;
+    private final ConversationContextService contextService;
     private final ConversationMessageRepository messages;
     private final MessageAttachmentRepository attachments;
     private final ConversationFeedbackRepository feedback;
     private final ObjectStorage storage;
     private final IntentClassifier intents;
-    private final EvidenceService evidence;
+    private final RetrievalService retrieval;
     private final TroubleshootFlowRepository flows;
     private final TroubleshootNodeRepository nodes;
     private final TroubleshootStateMachine machine;
@@ -54,17 +53,17 @@ class ConversationController {
     private final AppProperties config;
     private final OpenAiCompatibleProvider llm;
 
-    ConversationController(QrBindingRepository bindings, ProductRepository products, ConversationRepository conversations, ConversationProductContextRepository contexts, ConversationMessageRepository messages, MessageAttachmentRepository attachments, ConversationFeedbackRepository feedback, ObjectStorage storage, IntentClassifier intents, EvidenceService evidence, TroubleshootFlowRepository flows, TroubleshootNodeRepository nodes, TroubleshootStateMachine machine, HandoffRepository handoffs, MessageSource messageSource, AppProperties config, OpenAiCompatibleProvider llm) {
-        this.bindings = bindings;
-        this.products = products;
+    ConversationController(QrApplicationService qr, ConversationRepository conversations, ConversationProductContextRepository contexts, ConversationContextService contextService, ConversationMessageRepository messages, MessageAttachmentRepository attachments, ConversationFeedbackRepository feedback, ObjectStorage storage, IntentClassifier intents, RetrievalService retrieval, TroubleshootFlowRepository flows, TroubleshootNodeRepository nodes, TroubleshootStateMachine machine, HandoffRepository handoffs, MessageSource messageSource, AppProperties config, OpenAiCompatibleProvider llm) {
+        this.qr = qr;
         this.conversations = conversations;
         this.contexts = contexts;
+        this.contextService = contextService;
         this.messages = messages;
         this.attachments = attachments;
         this.feedback = feedback;
         this.storage = storage;
         this.intents = intents;
-        this.evidence = evidence;
+        this.retrieval = retrieval;
         this.flows = flows;
         this.nodes = nodes;
         this.machine = machine;
@@ -95,11 +94,12 @@ class ConversationController {
 
     @PostMapping
     public View create(@Valid @RequestBody Create request) {
-        var binding = bindings.findByTokenHash(hash(request.qrToken())).filter(QrBinding::valid).orElseThrow(() -> new IllegalArgumentException("QR token is invalid, revoked, or expired"));
-        var product = products.findById(binding.productModelId()).orElseThrow(() -> new IllegalArgumentException("Product is unavailable"));
+        var resolved = qr.resolve(request.qrToken());
+        var binding = resolved.binding();
+        var product = resolved.product();
         String accessToken = UUID.randomUUID() + "." + UUID.randomUUID();
         var conversation = conversations.save(new Conversation(binding.tenantId(), binding.id(), request.language(), product.region(), hash(accessToken)));
-        contexts.save(new ConversationProductContext(conversation.id(), binding.productModelId(), request.hardwareVersion(), request.firmwareVersion(), "QR"));
+        contextService.establishFromQr(conversation, resolved, request.hardwareVersion(), request.firmwareVersion());
         log.info("Conversation created id={} tenant={} product={} language={} region={}", conversation.id(), binding.tenantId(), binding.productModelId(), request.language(), product.region());
         return new View(conversation.id(), binding.productModelId(), request.language(), product.region(), accessToken);
     }
@@ -117,14 +117,18 @@ class ConversationController {
     public void changeProduct(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken, @Valid @RequestBody ChangeProduct request) {
         var conversation = conversations.findById(id).filter(c -> c.status() == Conversation.Status.OPEN).orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
         authorize(conversation, accessToken);
-        products.findByIdAndTenantId(request.productModelId(), conversation.tenantId()).orElseThrow(() -> new IllegalArgumentException("Product is unavailable"));
-        contexts.findAllByConversationIdAndActiveTrue(id).forEach(context -> {
-            context.close();
-            contexts.save(context);
-        });
-        contexts.save(new ConversationProductContext(id, request.productModelId(), request.hardwareVersion(), request.firmwareVersion(), "USER_SELECTED"));
-        conversation.clearFlow();
+        contextService.replaceByUser(conversation, request.productModelId(), request.productVariantId(), request.hardwareRevision(), request.firmwareVersion());
         conversations.save(conversation);
+    }
+
+    @GetMapping("/{id}/product-options")
+    public List<ProductOption> productOptions(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken) {
+        var conversation = conversations.findById(id).filter(c -> c.status() == Conversation.Status.OPEN)
+                .orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
+        authorize(conversation, accessToken);
+        return contextService.selectableProducts(conversation).stream()
+                .map(product -> new ProductOption(product.id(), product.displayName(), product.model(), product.region(), product.hardwareVersion()))
+                .toList();
     }
 
     @PostMapping(value = "/{id}/attachments", consumes = "multipart/form-data")
@@ -176,7 +180,15 @@ class ConversationController {
                 return driveFlow(conversation, history, flow.get());
             }
         }
-        var citations = evidence.find(conversation.tenantId(), context.productModelId(), conversation.region(), conversation.language(), history.getLast().content());
+        var retrieved = retrieval.retrieve(new RetrievalService.RetrievalRequest(conversation.tenantId(), context.productModelId(),
+                context.productVariantId(), conversation.region(), context.hardwareRevision(), context.firmwareVersion(),
+                conversation.language(), history.getLast().content(), null, 3, 0.0d));
+        if (retrieved.conflictDetected()) {
+            log.warn("Conflicting evidence found conversation={}", id);
+            return new Answer(intent, msg(conversation.language(), "answer.noKnowledge"), List.of(), null, null, null);
+        }
+        var citations = retrieved.evidence().stream()
+                .map(item -> new EvidenceService.Evidence(item.chunkId(), item.documentTitle(), item.excerpt())).toList();
         if (citations.isEmpty()) {
             log.info("No evidence found conversation={} intent={} -> suggesting human/error-code", id, intent);
             return new Answer(intent, msg(conversation.language(), "answer.noKnowledge"), List.of(), null, null, null);
@@ -334,9 +346,11 @@ class ConversationController {
     record Send(@NotBlank @Size(max = 4000) String content, @Size(max = 100) String errorCode) {
     }
 
-    record ChangeProduct(@NotNull UUID productModelId, @Size(max = 80) String hardwareVersion,
+    record ChangeProduct(@NotNull UUID productModelId, UUID productVariantId, @Size(max = 80) String hardwareRevision,
                          @Size(max = 80) String firmwareVersion) {
     }
+
+    record ProductOption(UUID id, String displayName, String model, String region, String hardwareVersion) { }
 
     record Feedback(boolean resolved, @Size(max = 1000) String comment) {
     }

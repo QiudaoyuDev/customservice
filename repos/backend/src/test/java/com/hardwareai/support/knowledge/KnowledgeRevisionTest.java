@@ -17,8 +17,13 @@ class KnowledgeRevisionTest {
         revision.submit();
         revision.approve(UUID.randomUUID());
         revision.publish(UUID.randomUUID());
+        assertEquals(KnowledgeRevision.Status.APPROVED, revision.status());
+        assertEquals(KnowledgeRevision.IndexStatus.INDEXING, revision.indexStatus());
+        revision.markIndexedAndPublished();
         revision.deprecate();
+        assertEquals(KnowledgeRevision.IndexStatus.REMOVING, revision.indexStatus());
         revision.restore(UUID.randomUUID());
+        revision.markIndexedAndPublished();
         assertEquals(KnowledgeRevision.Status.PUBLISHED, revision.status());
     }
 

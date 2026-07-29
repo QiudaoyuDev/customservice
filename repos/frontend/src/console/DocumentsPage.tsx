@@ -9,8 +9,9 @@ export default function DocumentsPage() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
-  const [form, setForm] = useState({ title: '', locale: 'en', region: 'EU', productModelId: '' });
+  const [form, setForm] = useState({ title: '', locale: 'en', region: 'EU', productModelId: '', productVariantId: '', hardwareRevision: '', firmwareMin: '', firmwareMax: '', allowDuplicate: false });
   const [products, setProducts] = useState<Product[]>([]);
+  const [variants, setVariants] = useState<Array<{id: string; hardwareRevision?: string; sku?: string; region: string}>>([]);
   const [file, setFile] = useState<File | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [preview, setPreview] = useState<any>(null);
@@ -37,13 +38,23 @@ export default function DocumentsPage() {
     data.append('locale', form.locale);
     data.append('region', form.region);
     data.append('productModelId', form.productModelId);
+    if (form.productVariantId) data.append('productVariantId', form.productVariantId);
+    if (form.hardwareRevision) data.append('hardwareRevision', form.hardwareRevision);
+    if (form.firmwareMin) data.append('firmwareMin', form.firmwareMin);
+    if (form.firmwareMax) data.append('firmwareMax', form.firmwareMax);
+    if (form.allowDuplicate) data.append('allowDuplicate', 'true');
     const item = await apiUpload('/documents', data);
     setShowUpload(false);
     setFile(null);
-    setForm({ title: '', locale: 'en', region: 'EU', productModelId: '' });
+    setForm({ title: '', locale: 'en', region: 'EU', productModelId: '', productVariantId: '', hardwareRevision: '', firmwareMin: '', firmwareMax: '', allowDuplicate: false });
     setPreviewId(item.id);
     setPreview(item);
     load();
+  };
+
+  const selectProduct = async (productModelId: string) => {
+    setForm({...form, productModelId, productVariantId: '', hardwareRevision: ''});
+    setVariants(productModelId ? await api(`/products/${productModelId}/variants`) : []);
   };
 
   const openPreview = async (id: string) => {
@@ -89,7 +100,7 @@ export default function DocumentsPage() {
                   <td className="px-4 py-2">{d.region}</td>
                   <td className="px-4 py-2 font-mono text-xs">{d.productModelId || '—'}</td>
                   <td className="px-4 py-2">
-                    <StatusFlow status={d.status} />
+                    <div className="flex items-center gap-1"><StatusFlow status={d.status} /> <Tag tone={d.indexStatus === 'READY' ? 'ok' : d.indexStatus === 'FAILED' ? 'danger' : 'warn'}>{d.indexStatus ?? 'NOT_INDEXED'}</Tag></div>
                   </td>
                   <td className="px-4 py-2">
                     <button className="text-ai hover:underline" onClick={() => openPreview(d.id)}>
@@ -153,10 +164,23 @@ export default function DocumentsPage() {
           </div>
           <div>
             <label className="mb-1 block text-xs text-ink2">{t('documents.productModelId')}</label>
-            <select className="w-full rounded border border-line px-3 py-2 text-sm" value={form.productModelId} onChange={(e) => setForm({ ...form, productModelId: e.target.value })}>
+            <select className="w-full rounded border border-line px-3 py-2 text-sm" value={form.productModelId} onChange={(e) => void selectProduct(e.target.value)}>
               <option value="">{t('documents.productPlaceholder')}</option>
               {products.map((p) => <option key={p.id} value={p.id}>{p.displayName} · {p.model}</option>)}
             </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-ink2">Product variant</label>
+            <select className="w-full rounded border border-line px-3 py-2 text-sm" value={form.productVariantId}
+                    disabled={!form.productModelId} onChange={(e) => setForm({...form, productVariantId: e.target.value})}>
+              <option value="">All compatible variants</option>
+              {variants.map((variant) => <option key={variant.id} value={variant.id}>{variant.hardwareRevision || 'Unspecified revision'} · {variant.region}{variant.sku ? ` · ${variant.sku}` : ''}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <Input placeholder="Hardware revision" value={form.hardwareRevision} onChange={(e) => setForm({...form, hardwareRevision: e.target.value})}/>
+            <Input placeholder="Firmware min" value={form.firmwareMin} onChange={(e) => setForm({...form, firmwareMin: e.target.value})}/>
+            <Input placeholder="Firmware max" value={form.firmwareMax} onChange={(e) => setForm({...form, firmwareMax: e.target.value})}/>
           </div>
           <div>
             <label className="mb-1 block text-xs text-ink2">{t('documents.file')}</label>
@@ -169,11 +193,14 @@ export default function DocumentsPage() {
         <div className="space-y-3 text-sm">
           <div className="flex items-center gap-2 text-xs text-ink2">
             <StatusFlow status={preview?.status} />
+            <Tag tone={preview?.indexStatus === 'READY' ? 'ok' : preview?.indexStatus === 'FAILED' ? 'danger' : 'warn'}>{preview?.indexStatus ?? 'NOT_INDEXED'}</Tag>
             {preview?.chunks != null && <span>{t('documents.chunks', { count: preview.chunks.length })}</span>}
           </div>
           <div className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded border border-line p-3 text-xs text-ink">
             {preview?.text || t('documents.noContent')}
           </div>
+          <label className="flex items-center gap-2 text-xs text-ink2"><input type="checkbox" checked={form.allowDuplicate} onChange={(e) => setForm({...form, allowDuplicate: e.target.checked})} />Create an explicit revision when this source already exists</label>
+          {preview?.chunks?.length > 0 && <div className="max-h-44 space-y-2 overflow-y-auto">{preview.chunks.map((chunk: any) => <div key={chunk.chunkNo} className="rounded border border-line p-2 text-xs"><div className="text-ink2">#{chunk.chunkNo} · {chunk.titlePath || chunk.source}{chunk.pageFrom ? ` · p.${chunk.pageFrom}` : ''}</div><div className="mt-1 whitespace-pre-wrap">{chunk.text}</div></div>)}</div>}
         </div>
       </Modal>
     </div>

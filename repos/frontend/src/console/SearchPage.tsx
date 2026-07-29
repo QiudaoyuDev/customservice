@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { Button, Input, Tag } from '../components/ui';
 import { useTranslation, LANGS } from '../i18n';
+import { Product } from '../lib/types';
 
 export default function SearchPage() {
   const { t } = useTranslation();
   const [productModelId, setProductModelId] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
   const [region, setRegion] = useState('EU');
   const [language, setLanguage] = useState('en-US');
   const [query, setQuery] = useState('');
@@ -13,13 +15,17 @@ export default function SearchPage() {
   const [result, setResult] = useState<any>(null);
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    api('/products').then((items) => setProducts(items ?? [])).catch(() => setProducts([]));
+  }, []);
+
   const run = async () => {
     if (!query.trim()) return;
     setBusy(true);
     try {
-      const r = await api('/search/run', {
+      const r = await api('/search', {
         method: 'POST',
-        body: JSON.stringify({ productModelId: productModelId || null, region, language, query, limit }),
+        body: JSON.stringify({ productModelId, region, locale: language.split('-')[0], query, limit: Math.min(limit, 10) }),
       });
       setResult(r);
     } finally {
@@ -42,7 +48,10 @@ export default function SearchPage() {
         <div className="grid grid-cols-3 gap-3">
           <div>
             <label className="mb-1 block text-xs text-ink2">{t('search.productId')}</label>
-            <Input value={productModelId} onChange={(e) => setProductModelId(e.target.value)} placeholder={t('search.productPlaceholder')} />
+            <select className="w-full rounded border border-line px-3 py-2 text-sm" value={productModelId} onChange={(e) => setProductModelId(e.target.value)}>
+              <option value="">{t('common.select')}</option>
+              {products.map((product) => <option key={product.id} value={product.id}>{product.displayName} · {product.model}</option>)}
+            </select>
           </div>
           <div>
             <label className="mb-1 block text-xs text-ink2">{t('search.region')}</label>
@@ -75,7 +84,7 @@ export default function SearchPage() {
             onChange={(e) => setLimit(Number(e.target.value))}
             className="w-20 rounded border border-line px-2 py-1 text-sm"
           />
-          <Button variant="ai" onClick={run} disabled={busy || !query.trim()}>
+          <Button variant="ai" onClick={run} disabled={busy || !query.trim() || !productModelId}>
             {busy ? t('search.searching') : t('search.run')}
           </Button>
         </div>
@@ -92,16 +101,16 @@ export default function SearchPage() {
               result.results?.map((c: any, i: number) => (
                 <div key={i} className="rounded-xl border border-line bg-white p-3">
                   <div className="mb-1 flex items-center gap-2 text-xs">
-                    <Tag tone={c.mode === 'VECTOR' ? 'ai' : 'warn'}>{c.mode === 'VECTOR' ? t('search.vector') : t('search.keyword')}</Tag>
+                    <Tag tone="ai">Hybrid</Tag>
                     <span className="text-ink2">
                       {t('search.score')} {c.score?.toFixed?.(3)}
                     </span>
-                    <span className="text-ink2">· {c.docTitle}</span>
+                    <span className="text-ink2">· {c.source}</span>
                   </div>
                   <div className="whitespace-pre-wrap text-sm text-ink">{c.text}</div>
                   <div className="mt-1 text-xs text-ink2">
                     {t('search.sources')}
-                    {c.sourceRef || t('search.noSource')}
+                    {c.revisionId ? `${c.revisionId}${c.page ? ` · p.${c.page}` : ''}${c.titlePath ? ` · ${c.titlePath}` : ''}` : t('search.noSource')}
                   </div>
                 </div>
               ))
