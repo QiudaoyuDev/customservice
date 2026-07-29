@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
+import {api, clearToken, setToken} from './api';
 
 export interface AuthUser {
   email: string;
@@ -8,7 +9,7 @@ export interface AuthUser {
 interface AuthValue {
   user: AuthUser | null;
   isAuthenticated: boolean;
-  login: (email: string, password?: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -26,8 +27,11 @@ function readStored(): AuthUser | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(readStored);
 
-  const login = async (email: string) => {
-    const u: AuthUser = { email, tenantName: 'Demo Tenant' };
+  const login = async (email: string, password: string) => {
+    const response = await api('/auth/login', {method: 'POST', body: JSON.stringify({email, password})});
+    if (!response?.accessToken || !response?.email) throw new Error('Login response is invalid');
+    setToken(response.accessToken);
+    const u: AuthUser = { email: response.email, tenantName: 'Current tenant' };
     try {
       localStorage.setItem('auth', JSON.stringify(u));
     } catch {
@@ -37,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    clearToken();
     try {
       localStorage.removeItem('auth');
     } catch {

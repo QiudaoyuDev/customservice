@@ -1,5 +1,16 @@
 #!/usr/bin/env sh
 set -eu
-MVN="${MAVEN_HOME:-}/bin/mvn"
-if [ ! -x "$MVN" ]; then MVN="mvn"; fi
+BASE_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+DIST_DIR="$BASE_DIR/.mvn/wrapper/dists/apache-maven-3.9.11"
+MVN="$DIST_DIR/apache-maven-3.9.11/bin/mvn"
+ARCHIVE="$DIST_DIR/apache-maven-3.9.11-bin.zip"
+URL="https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.11/apache-maven-3.9.11-bin.zip"
+
+if [ ! -x "$MVN" ]; then
+  mkdir -p "$DIST_DIR"
+  if [ ! -f "$ARCHIVE" ]; then
+    curl -fsSL "$URL" -o "$ARCHIVE"
+  fi
+  unzip -q -o "$ARCHIVE" -d "$DIST_DIR"
+fi
 exec "$MVN" "$@"

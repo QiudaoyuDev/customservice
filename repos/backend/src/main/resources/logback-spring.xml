@@ -23,14 +23,14 @@
     </appender>
 
     <!-- Runtime debugging: verbose for our own business packages. -->
-    <logger name="com.hardwareai.support.conversation" level="DEBUG"/>
-    <logger name="com.hardwareai.support.identity" level="DEBUG"/>
-    <logger name="com.hardwareai.support.troubleshoot" level="DEBUG"/>
-    <logger name="com.hardwareai.support.knowledge" level="DEBUG"/>
-    <logger name="com.hardwareai.support.llm" level="DEBUG"/>
-    <logger name="com.hardwareai.support.qr" level="DEBUG"/>
-    <logger name="com.hardwareai.support.handoff" level="DEBUG"/>
-    <logger name="com.hardwareai.support.product" level="DEBUG"/>
+    <logger name="com.hardwareai.support.conversation" level="INFO"/>
+    <logger name="com.hardwareai.support.identity" level="INFO"/>
+    <logger name="com.hardwareai.support.troubleshoot" level="INFO"/>
+    <logger name="com.hardwareai.support.knowledge" level="INFO"/>
+    <logger name="com.hardwareai.support.llm" level="INFO"/>
+    <logger name="com.hardwareai.support.qr" level="INFO"/>
+    <logger name="com.hardwareai.support.handoff" level="INFO"/>
+    <logger name="com.hardwareai.support.product" level="INFO"/>
 
     <!-- Connection noise: keep external HTTP client quiet to avoid leaking headers/secrets. -->
     <logger name="org.springframework.web.client" level="WARN"/>

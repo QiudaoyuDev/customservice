@@ -5,6 +5,12 @@ spring:
     url: ${DATABASE_URL:jdbc:postgresql://127.0.0.1:5432/hardware_ai_support}
     username: ${DATABASE_USERNAME:hardware_ai_app}
     password: ${DATABASE_PASSWORD:CHANGE_ME_POSTGRES_PASSWORD}
+    hikari:
+      connection-timeout: ${DATABASE_POOL_CONNECTION_TIMEOUT:5s}
+      validation-timeout: ${DATABASE_VALIDATION_TIMEOUT:3s}
+      data-source-properties:
+        connectTimeout: ${DATABASE_CONNECT_TIMEOUT_SECONDS:3}
+        socketTimeout: ${DATABASE_SOCKET_TIMEOUT_SECONDS:10}
   jpa:
     open-in-view: false
     hibernate.ddl-auto: validate
@@ -32,6 +38,10 @@ app:
     base-url: ${LLM_BASE_URL:}
     api-key: ${LLM_API_KEY:}
     model: ${LLM_MODEL:}
+  external-clients:
+    connect-timeout: ${EXTERNAL_CONNECT_TIMEOUT:3s}
+    read-timeout: ${EXTERNAL_READ_TIMEOUT:15s}
+    request-timeout: ${EXTERNAL_REQUEST_TIMEOUT:20s}
 server.error.include-message: never
 management:
   endpoints.web.exposure.include: health,info

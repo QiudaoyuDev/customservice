@@ -2,6 +2,7 @@ package com.hardwareai.support.knowledge;
 
 import com.hardwareai.support.common.CurrentUser;
 import com.hardwareai.support.config.AppProperties;
+import com.hardwareai.support.config.ExternalRestClientFactory;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import org.slf4j.Logger;
@@ -33,14 +34,11 @@ class KnowledgeSearchController {
     private final KnowledgeChunkRepository chunks;
     private final LocalReranker reranker;
 
-    KnowledgeSearchController(AppProperties config, CurrentUser current, KnowledgeChunkRepository chunks, LocalReranker reranker) {
+    KnowledgeSearchController(AppProperties config, ExternalRestClientFactory clients, CurrentUser current, KnowledgeChunkRepository chunks, LocalReranker reranker) {
         this.config = config;
         this.current = current;
-        qdrant = RestClient.builder()
-                .baseUrl(config.qdrantUrl())
-                .defaultHeader("api-key", config.qdrantApiKey())
-                .build();
-        embedding = RestClient.create(config.embeddingUrl());
+        qdrant = clients.create(config.qdrantUrl(), "api-key", config.qdrantApiKey());
+        embedding = clients.create(config.embeddingUrl());
         this.chunks = chunks;
         this.reranker = reranker;
     }
@@ -138,7 +136,7 @@ class KnowledgeSearchController {
                     TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
             return vector;
         } catch (Exception e) {
-            log.error("Embedding failed url={}: {}", config.embeddingUrl(), e.getMessage(), e);
+            log.error("Embedding failed url={}", config.embeddingUrl());
             throw e;
         }
     }

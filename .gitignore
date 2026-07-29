@@ -4,9 +4,17 @@ infra/data/
 infra/backups/
 __pycache__/
 *.pyc
+*.log
+.idea/
+*.iml
+.vscode/
+.DS_Store
+*.swp
+*.swo
 repos/frontend/node_modules/
 repos/frontend/dist/
 repos/frontend/*.tsbuildinfo
 repos/backend/target/
+repos/backend/.mvn/wrapper/dists/
 docs/tmp
 /repos/node_modules/

@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.mock.env.MockEnvironment;
 
+import java.time.Duration;
+
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -31,6 +33,7 @@ class StartupSecurityValidatorTest {
                 new AppProperties.Qr("CHANGE_ME_QR_SECRET"),
                 new AppProperties.Bootstrap("admin@example.local", "CHANGE_ME_BEFORE_USE", "Demo"),
                 new AppProperties.Llm(false, "", "", ""),
+                new AppProperties.ExternalClients(Duration.ofSeconds(3), Duration.ofSeconds(15), Duration.ofSeconds(20)),
                 "http://localhost:18082", "http://localhost:18081", "http://localhost:18083", "http://localhost:6333",
                 "CHANGE_ME_QDRANT_API_KEY", "knowledge"
         );

@@ -289,7 +289,7 @@ class ConversationController {
                     "Answer only from the supplied product-support evidence. If it is insufficient, say so and recommend human support.",
                     "Question: " + question + "\n\nEvidence:\n" + evidenceText);
         } catch (Exception e) {
-            log.warn("LLM unavailable; returning cited source extract: {}", e.getMessage());
+            log.warn("LLM unavailable; returning cited source extract");
             return citations.getFirst().text();
         }
     }

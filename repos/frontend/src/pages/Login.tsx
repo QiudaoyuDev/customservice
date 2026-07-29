@@ -8,8 +8,8 @@ export default function Login() {
     const {login} = useAuth();
     const navigate = useNavigate();
     const {t} = useTranslation();
-    const [email, setEmail] = useState('admin@hardware.ai');
-    const [password, setPassword] = useState('admin123');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [busy, setBusy] = useState(false);
 

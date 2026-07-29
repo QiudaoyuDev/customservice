@@ -291,7 +291,7 @@ const en = {
         viewReplays: 'View replay records',
         noReplays: 'No replay records',
         stepsUnit: 'steps',
-        demoSession: 'Identified session (demo only):',
+        demoSession: 'Identified session:',
     },
 };
 

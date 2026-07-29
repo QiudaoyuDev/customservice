@@ -47,7 +47,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(a);
         } catch (Exception e) {
             // Invalid/expired token: leave context unauthenticated and let Security reject the request.
-            log.debug("Rejected bearer token on {} {}: {}", request.getMethod(), request.getRequestURI(), e.getMessage());
+            log.debug("Rejected bearer token on {} {}", request.getMethod(), request.getRequestURI());
         }
         chain.doFilter(request, response);
     }

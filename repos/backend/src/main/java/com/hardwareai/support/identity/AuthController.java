@@ -36,10 +36,10 @@ public class AuthController {
                 .findByEmail(request.email())
                 .filter(UserAccount::enabled);
         if (u.isEmpty() || !encoder.matches(request.password(), u.get().passwordHash())) {
-            log.warn("Login failed email={} (userFound={})", request.email(), u.isPresent());
+            log.warn("Login failed (userFound={})", u.isPresent());
             throw new IllegalArgumentException("Invalid email or password");
         }
-        log.info("Login succeeded email={} role={}", request.email(), u.get().role().name());
+        log.info("Login succeeded role={}", u.get().role().name());
         return new Token(jwt.issue(u.get()), u.get().email(), u.get().role().name());
     }
 

@@ -20,9 +20,12 @@ class ExternalDependencyHealthIndicator implements HealthIndicator {
     private final AppProperties properties;
     private final MinioClient minio;
 
-    ExternalDependencyHealthIndicator(AppProperties properties, MinioClient minio) {
+    private final ExternalRestClientFactory clients;
+
+    ExternalDependencyHealthIndicator(AppProperties properties, MinioClient minio, ExternalRestClientFactory clients) {
         this.properties = properties;
         this.minio = minio;
+        this.clients = clients;
     }
 
     @Override
@@ -42,7 +45,7 @@ class ExternalDependencyHealthIndicator implements HealthIndicator {
 
     private boolean probeHttp(String name, String baseUrl, String path) {
         return probe(name, () -> {
-            RestClient.builder().baseUrl(baseUrl).build().get().uri(path).retrieve().toBodilessEntity();
+            clients.create(baseUrl).get().uri(path).retrieve().toBodilessEntity();
             return null;
         });
     }
@@ -53,7 +56,7 @@ class ExternalDependencyHealthIndicator implements HealthIndicator {
             log.debug("Dependency up: {}", name);
             return true;
         } catch (Exception e) {
-            log.warn("Dependency down: {} - {}", name, e.getMessage());
+            log.warn("Dependency down: {}", name);
             return false;
         }
     }

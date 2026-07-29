@@ -26,8 +26,7 @@ $LogFile     = Join-Path $ProjectRoot 'backend-dev.log'
 $ErrFile     = Join-Path $ProjectRoot 'backend-dev-err.log'
 $Port        = 8080
 
-$JAVA_HOME = 'C:\Program Files\Java\jdk-21.0.11'
-$MVN       = 'C:\dev-tools\apache-maven-3.9.16\bin\mvn.cmd'
+$MavenWrapper = Join-Path $BackendDir 'mvnw.cmd'
 
 # ---- 引入共用函数 ----
 . "$PSScriptRoot\_common.ps1"
@@ -55,7 +54,6 @@ try {
 
 # 3) 构建 jar（如需要）
 Set-Location $BackendDir
-$env:JAVA_HOME = $JAVA_HOME
 
 $filter = { $_.Name -notmatch '(sources|javadoc)\.jar$' }
 $jar = Get-ChildItem -Path target -Filter *.jar -ErrorAction SilentlyContinue |
@@ -64,10 +62,10 @@ $jar = Get-ChildItem -Path target -Filter *.jar -ErrorAction SilentlyContinue |
        Select-Object -First 1
 
 if ($Build -or -not $jar) {
-    Write-Host "[3/4] 构建 jar（mvn package）"
+    Write-Host "[3/4] 构建 jar（Maven Wrapper package）"
     $mvnArgs = @('package')
     if ($SkipTests) { $mvnArgs += '-DskipTests' }
-    & $MVN @mvnArgs
+    & $MavenWrapper @mvnArgs
     if ($LASTEXITCODE -ne 0) { Write-Error "mvn package 失败，退出"; exit 1 }
 
     $jar = Get-ChildItem -Path target -Filter *.jar |
@@ -78,24 +76,9 @@ if ($Build -or -not $jar) {
 
 if (-not $jar) { Write-Error "未找到可启动的 jar 包（target/*.jar）"; exit 1 }
 
-# 4) 设置运行时环境变量并启动
+# 4) 仅选择开发 profile；连接与密钥由开发者的环境变量提供，脚本不内置凭据。
 Write-Host "[4/4] 启动后端：$($jar.Name)"
 $env:SPRING_PROFILES_ACTIVE     = 'dev'
-$env:SPRING_DATASOURCE_URL      = 'jdbc:postgresql://localhost:5432/support'
-$env:SPRING_DATASOURCE_USERNAME = 'postgres'
-$env:SPRING_DATASOURCE_PASSWORD = 'postgres'
-$env:JWT_SECRET                 = 'dev-secret-key-please-change-in-production-1234567890'
-$env:BOOTSTRAP_ADMIN_EMAIL      = 'admin@hardwareai.com'
-$env:BOOTSTRAP_ADMIN_PASSWORD   = 'Admin@123456'
-$env:MINIO_ENDPOINT             = 'http://localhost:9000'
-$env:MINIO_ACCESS_KEY           = 'minioadmin'
-$env:MINIO_SECRET_KEY           = 'minioadmin'
-$env:MINIO_BUCKET               = 'support'
-$env:OCR_SERVICE_URL            = 'http://localhost:8083'
-$env:EMBEDDING_SERVICE_URL      = 'http://localhost:8084'
-$env:QDRANT_HOST                = 'localhost'
-$env:QDRANT_PORT                = '6333'
-$env:QDRANT_API_KEY             = ''
 
 # 清空旧日志后启动，便于观察本次启动
 if (Test-Path $LogFile) { Clear-Content $LogFile }

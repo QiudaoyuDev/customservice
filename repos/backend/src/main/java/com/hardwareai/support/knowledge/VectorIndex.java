@@ -1,6 +1,7 @@
 package com.hardwareai.support.knowledge;
 
 import com.hardwareai.support.config.AppProperties;
+import com.hardwareai.support.config.ExternalRestClientFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -21,14 +22,13 @@ class VectorIndex {
     private static final Logger log = LoggerFactory.getLogger(VectorIndex.class);
 
     private final RestClient client;
+    private final RestClient embedding;
     private final AppProperties config;
 
-    VectorIndex(AppProperties config) {
+    VectorIndex(AppProperties config, ExternalRestClientFactory clients) {
         this.config = config;
-        client = RestClient.builder()
-                .baseUrl(config.qdrantUrl())
-                .defaultHeader("api-key", config.qdrantApiKey())
-                .build();
+        client = clients.create(config.qdrantUrl(), "api-key", config.qdrantApiKey());
+        embedding = clients.create(config.embeddingUrl());
     }
 
     void upsert(KnowledgeRevision revision, KnowledgeDocument document, List<KnowledgeChunk> chunks) {
@@ -59,7 +59,7 @@ class VectorIndex {
             log.info("Qdrant upsert ok collection={} revision={} chunks={} in {}ms",
                     config.qdrantCollection(), revision.id(), chunks.size(), millis(start));
         } catch (Exception e) {
-            log.error("Qdrant upsert failed collection={} revision={}: {}", config.qdrantCollection(), revision.id(), e.getMessage(), e);
+            log.error("Qdrant upsert failed collection={} revision={}", config.qdrantCollection(), revision.id());
             throw e;
         }
     }
@@ -76,7 +76,7 @@ class VectorIndex {
                     .retrieve().toBodilessEntity();
             log.info("Qdrant delete ok collection={} revision={} in {}ms", config.qdrantCollection(), revisionId, millis(start));
         } catch (Exception e) {
-            log.error("Qdrant delete failed collection={} revision={}: {}", config.qdrantCollection(), revisionId, e.getMessage(), e);
+            log.error("Qdrant delete failed collection={} revision={}", config.qdrantCollection(), revisionId);
             throw e;
         }
     }
@@ -106,7 +106,7 @@ class VectorIndex {
     private List<Double> embedding(String text) {
         long start = System.nanoTime();
         try {
-            var body = RestClient.create(config.embeddingUrl())
+            var body = embedding
                     .post()
                     .uri("/v1/embeddings")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -117,7 +117,7 @@ class VectorIndex {
             log.debug("Embedding ok url={} dims={} in {}ms", config.embeddingUrl(), vector.size(), millis(start));
             return vector;
         } catch (Exception e) {
-            log.error("Embedding failed url={}: {}", config.embeddingUrl(), e.getMessage(), e);
+            log.error("Embedding failed url={}", config.embeddingUrl());
             throw e;
         }
     }

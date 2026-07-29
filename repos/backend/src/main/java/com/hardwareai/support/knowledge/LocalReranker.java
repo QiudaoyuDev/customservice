@@ -1,6 +1,7 @@
 package com.hardwareai.support.knowledge;
 
 import com.hardwareai.support.config.AppProperties;
+import com.hardwareai.support.config.ExternalRestClientFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -21,9 +22,9 @@ class LocalReranker {
     private final RestClient client;
     private final String rerankUrl;
 
-    LocalReranker(AppProperties properties) {
+    LocalReranker(AppProperties properties, ExternalRestClientFactory clients) {
         this.rerankUrl = properties.rerankUrl();
-        client = RestClient.builder().baseUrl(rerankUrl).build();
+        client = clients.create(rerankUrl);
     }
 
     @SuppressWarnings("unchecked")
@@ -38,7 +39,7 @@ class LocalReranker {
             log.debug("Rerank ok url={} passages={} in {}ms", rerankUrl, passages.size(), TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
             return order;
         } catch (Exception e) {
-            log.warn("Rerank unavailable url={} (falling back to retrieval order): {}", rerankUrl, e.getMessage());
+            log.warn("Rerank unavailable url={} (falling back to retrieval order)", rerankUrl);
             throw e;
         }
     }

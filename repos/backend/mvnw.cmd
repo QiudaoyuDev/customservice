@@ -1,9 +1,19 @@
 @echo off
-setlocal
-set "_MVN=D:\dev-tools\apache-maven-3.9.16-bin\apache-maven-3.9.16\bin\mvn.cmd"
-if not exist "%_MVN%" if not "%MAVEN_HOME%"=="" set "_MVN=%MAVEN_HOME%\bin\mvn.cmd"
-if not exist "%_MVN%" (
-  echo Maven 3.9+ was not found. Set MAVEN_HOME to a Maven 3.9+ installation.
-  exit /b 1
+setlocal EnableExtensions EnableDelayedExpansion
+set "WRAPPER_DIR=%~dp0.mvn\wrapper"
+set "PROPS=%WRAPPER_DIR%\maven-wrapper.properties"
+set "DIST_DIR=%WRAPPER_DIR%\dists\apache-maven-3.9.11"
+set "MVN_CMD=%DIST_DIR%\apache-maven-3.9.11\bin\mvn.cmd"
+
+if not exist "!MVN_CMD!" (
+  if not exist "!DIST_DIR!" mkdir "!DIST_DIR!"
+  set "ARCHIVE=%DIST_DIR%\apache-maven-3.9.11-bin.zip"
+  if not exist "!ARCHIVE!" (
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -UseBasicParsing -Uri 'https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.11/apache-maven-3.9.11-bin.zip' -OutFile '!ARCHIVE!'"
+    if errorlevel 1 exit /b %errorlevel%
+  )
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -LiteralPath '!ARCHIVE!' -DestinationPath '!DIST_DIR!' -Force"
+  if errorlevel 1 exit /b %errorlevel%
 )
-"%_MVN%" %*
+
+call "%MVN_CMD%" %*

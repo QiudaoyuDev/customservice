@@ -22,28 +22,28 @@ public class ApiExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     Map<String, Object> invalid(IllegalArgumentException e) {
-        log.warn("Handled client error [INVALID_ARGUMENT]: {}", e.getMessage());
+        log.warn("Handled client error [INVALID_ARGUMENT]");
         return body("INVALID_ARGUMENT", e.getMessage());
     }
 
     @ExceptionHandler(IllegalStateException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     Map<String, Object> conflict(IllegalStateException e) {
-        log.warn("Handled client error [INVALID_STATE]: {}", e.getMessage());
+        log.warn("Handled client error [INVALID_STATE]");
         return body("INVALID_STATE", e.getMessage());
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     Map<String, Object> denied(AccessDeniedException e) {
-        log.warn("Access denied: {}", e.getMessage());
+        log.warn("Access denied");
         return body("FORBIDDEN", "You are not allowed to perform this action");
     }
 
     @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentNotValidException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     Map<String, Object> malformed(Exception e) {
-        log.warn("Rejected malformed request: {}", e.getMessage());
+        log.warn("Rejected malformed request");
         return body("INVALID_REQUEST", "The request format or fields are invalid");
     }
 
@@ -57,12 +57,12 @@ public class ApiExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     Map<String, Object> unexpected(Exception e) {
-        log.error("Unhandled server error", e);
+        log.error("Unhandled server error type={}", e.getClass().getSimpleName());
         return body("INTERNAL_ERROR", "An unexpected error occurred");
     }
 
     private Map<String, Object> body(String code, String message) {
         return Map.of("timestamp", Instant.now().toString(), "code", code, "message", message,
-                "requestId", org.slf4j.MDC.get(RequestContextFilter.REQUEST_ID));
+                "requestId", org.slf4j.MDC.get(RequestContextFilter.REQUEST_ID), "details", Map.of());
     }
 }

@@ -3,7 +3,7 @@
   重启前端（Vite）。先停止占用 5173 端口的旧进程，再启动新进程。
 
 .PARAMETER Install
-  启动前执行 npm install 安装/更新依赖。若 node_modules 不存在也会自动安装。
+  启动前执行 npm ci 按锁文件安装依赖。若 node_modules 不存在也会自动安装。
 
 .EXAMPLE
   .\start-frontend.ps1            # 用已有依赖直接重启
@@ -37,11 +37,11 @@ Stop-ProcessOnPort -Port $Port
 Set-Location $FrontendDir
 
 if ($Install -or -not (Test-Path node_modules)) {
-    Write-Host "[2/3] 安装依赖（npm install）"
-    & npm.cmd install --registry https://registry.npmjs.org/
-    if ($LASTEXITCODE -ne 0) { Write-Error "npm install 失败，退出"; exit 1 }
+    Write-Host "[2/3] 安装依赖（npm ci）"
+    & npm.cmd ci
+    if ($LASTEXITCODE -ne 0) { Write-Error "npm ci 失败，退出"; exit 1 }
 } else {
-    Write-Host "[2/3] 依赖已存在，跳过 npm install"
+    Write-Host "[2/3] 依赖已存在，跳过 npm ci"
 }
 
 # 3) 启动前端

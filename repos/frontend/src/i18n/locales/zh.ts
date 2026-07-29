@@ -291,7 +291,7 @@ const zh = {
         viewReplays: '查看复现记录',
         noReplays: '暂无复现记录',
         stepsUnit: '步',
-        demoSession: '已识别会话（仅用于演示）：',
+        demoSession: '已识别会话：',
     },
 };
 

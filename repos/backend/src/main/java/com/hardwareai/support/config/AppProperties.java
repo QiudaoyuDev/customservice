@@ -2,8 +2,11 @@ package com.hardwareai.support.config;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
+
+import java.time.Duration;
 
 @ConfigurationProperties(prefix = "app")
 @Validated
@@ -13,7 +16,8 @@ public record AppProperties(
         @Valid Storage storage,
         @Valid Qr qr,
         @Valid Bootstrap bootstrap,
-        Llm llm,
+        @Valid Llm llm,
+        @Valid ExternalClients externalClients,
         @NotBlank String embeddingUrl,
         @NotBlank String ocrUrl,
         @NotBlank String rerankUrl,
@@ -35,5 +39,16 @@ public record AppProperties(
     }
 
     public record Llm(boolean enabled, String baseUrl, String apiKey, String model) {
+    }
+
+    /** Shared bounded timings for PostgreSQL-adjacent external HTTP and object-storage clients. */
+    public record ExternalClients(
+            @NotNull Duration connectTimeout,
+            @NotNull Duration readTimeout,
+            @NotNull Duration requestTimeout
+    ) {
+        public Duration effectiveResponseTimeout() {
+            return readTimeout.compareTo(requestTimeout) < 0 ? readTimeout : requestTimeout;
+        }
     }
 }

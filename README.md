@@ -121,7 +121,7 @@
 | 类别 | 要求 |
 | --- | --- |
 | JDK | **21**（Maven enforcer 强制 `[21,22)`） |
-| 构建工具 | **Maven 3.9+**（后端）；`npm` / Node.js 18+（前端，依赖中 `react`/`vite` 等标注 `latest`） |
+| 构建工具 | 后端使用仓库内固定 Maven 3.9.11 Wrapper；前端使用 Node.js 20+ 与锁定依赖。 |
 | 数据库 | PostgreSQL 16/18（生产由 `infra` 提供 18.4） |
 | 本地 AI 依赖 | OCR、Embedding/Rerank、Qdrant、MinIO（由 `infra/compose.yaml` 提供；本机未启动时相关功能不可用语 `/actuator/health` 返回 503） |
 | 容器（可选） | Docker Desktop + Docker Compose（用于启动完整基础设施或一键部署） |
@@ -145,7 +145,7 @@
 1. **前端**（Vite，端口 5173）
    ```powershell
    cd repos/frontend
-   npm install --registry https://registry.npmjs.org/   # 若私有源不可用，显式指定公共 registry
+   npm ci
    npm run dev                                            # → http://localhost:5173
    ```
    `vite.config.ts` 已将 `/api` 与 `/public` 代理到后端 `http://localhost:8080`。
@@ -154,17 +154,17 @@
    ```powershell
    cd repos/backend
    $env:JAVA_HOME = 'C:\Program Files\Java\jdk-21.0.11'   # 必须为 JDK 21
-   & 'C:\dev-tools\apache-maven-3.9.16\bin\mvn.cmd' -DskipTests package
+   .\mvnw.cmd clean test package
 
    # 关键环境变量（应用实际读取的变量名见下）
    $env:SPRING_PROFILES_ACTIVE     = 'dev'
-   $env:DATABASE_URL               = 'jdbc:postgresql://localhost:5432/support'   # 注意：应用读取 DATABASE_URL，非 SPRING_DATASOURCE_URL
-   $env:DATABASE_USERNAME          = 'postgres'
-   $env:DATABASE_PASSWORD          = 'postgres'
+   $env:DATABASE_URL               = 'jdbc:postgresql://localhost:5432/hardware_ai_support'
+   $env:DATABASE_USERNAME          = '<local database user>'
+   $env:DATABASE_PASSWORD          = '<local database password>'
    $env:JWT_SECRET                 = '<至少 32 字节的密钥>'
    $env:QR_TOKEN_SECRET            = '<至少 32 字节的密钥>'
-   $env:BOOTSTRAP_ADMIN_EMAIL      = 'admin@hardwareai.com'
-   $env:BOOTSTRAP_ADMIN_PASSWORD   = 'Admin@123456'
+   $env:BOOTSTRAP_ADMIN_EMAIL      = '<administrator email>'
+   $env:BOOTSTRAP_ADMIN_PASSWORD   = '<administrator password>'
    $env:MINIO_ENDPOINT             = 'http://localhost:9000'
    $env:MINIO_ACCESS_KEY           = 'minioadmin'
    $env:MINIO_SECRET_KEY           = 'minioadmin'
@@ -196,7 +196,7 @@ bash scripts/health.sh        # 健康检查
 - 前端（Nginx）：`http://localhost:8088`
 - 管理后台入口：`http://localhost:8088/console`（或 `http://localhost:5173/console` 走本地前端）
 
-数据库迁移由 Flyway 在应用启动时自动执行（仅在 `prod` 侧使用 `latest` 镜像仅用于首次验证，生产应固定镜像摘要）。
+数据库迁移由 Flyway 在应用启动时自动执行；Compose 中所有第三方镜像均固定为已验证版本，生产部署还应记录并校验镜像摘要。
 
 ---
 

@@ -76,7 +76,7 @@ class ProcessingJob {
 
     void fail(Exception e) {
         status = attempts >= 3 ? Status.FAILED : Status.PENDING;
-        errorMessage = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+        errorMessage = e.getClass().getSimpleName();
     }
 
     enum Type {

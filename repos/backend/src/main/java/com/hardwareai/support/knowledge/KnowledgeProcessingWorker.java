@@ -69,12 +69,8 @@ class KnowledgeProcessingWorker {
             } catch (Exception e) {
                 job.fail(e);
                 jobs.save(job);
-                log.warn(
-                        "Knowledge job failed jobId={} type={} error={}",
-                        job.id(),
-                        job.jobType(),
-                        e.getMessage()
-                );
+                log.warn("Knowledge job failed jobId={} type={} errorType={}", job.id(), job.jobType(),
+                        e.getClass().getSimpleName());
             }
         });
     }

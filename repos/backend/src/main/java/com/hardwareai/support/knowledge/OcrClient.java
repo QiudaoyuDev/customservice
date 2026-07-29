@@ -1,6 +1,7 @@
 package com.hardwareai.support.knowledge;
 
 import com.hardwareai.support.config.AppProperties;
+import com.hardwareai.support.config.ExternalRestClientFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ByteArrayResource;
@@ -27,9 +28,9 @@ class OcrClient {
     private final RestClient client;
     private final String ocrUrl;
 
-    OcrClient(AppProperties properties) {
+    OcrClient(AppProperties properties, ExternalRestClientFactory clients) {
         this.ocrUrl = properties.ocrUrl();
-        this.client = RestClient.builder().baseUrl(ocrUrl).build();
+        this.client = clients.create(ocrUrl);
     }
 
     String extract(String contentType, InputStream source) {
@@ -63,8 +64,8 @@ class OcrClient {
                     TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
             return text;
         } catch (Exception e) {
-            log.warn("OCR adapter request failed url={} type={} bytes={} in {}ms: {}", ocrUrl, contentType, bytes.length,
-                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), e.getMessage());
+            log.warn("OCR adapter request failed url={} type={} bytes={} in {}ms", ocrUrl, contentType, bytes.length,
+                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
             throw new IllegalStateException("OCR adapter request failed", e);
         }
     }
