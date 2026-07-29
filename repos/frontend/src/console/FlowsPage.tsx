@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { Button, Input, Textarea, Tag, Modal, StatusFlow, EmptyState } from '../components/ui';
+import { Button, Input, Textarea, Tag, Modal, StatusFlow, EmptyState, PageHeader } from '../components/ui';
 import { useTranslation, LANGS, langNames, regionLabel } from '../i18n';
 
 interface FlowNode {
@@ -117,20 +117,21 @@ export default function FlowsPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-ink">{t('flows.title')}</h1>
-          <p className="text-sm text-ink2">{t('flows.subtitle')}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="ai" onClick={simulate} disabled={!detail}>
-            {t('flows.simulate')}
-          </Button>
-          <Button variant="ai" onClick={() => setShowNewFlow(true)}>
-            {t('flows.new')}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title={t('flows.title')}
+        subtitle={t('flows.subtitle')}
+        icon="⤳"
+        actions={
+          <>
+            <Button variant="ai" onClick={simulate} disabled={!detail}>
+              {t('flows.simulate')}
+            </Button>
+            <Button variant="primary" onClick={() => setShowNewFlow(true)}>
+              {t('flows.new')}
+            </Button>
+          </>
+        }
+      />
 
       {loading ? (
         <div className="text-sm text-ink2">{t('common.loading')}</div>
@@ -209,32 +210,49 @@ export default function FlowsPage() {
                   </div>
                 </div>
 
+                <div className="flex flex-wrap gap-3 rounded-xl border border-line bg-white px-4 py-2 text-xs text-ink2">
+                  <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-ai-500 align-middle" /> {t('flows.typeAI')}</span>
+                  <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-human-500 align-middle" /> {t('flows.typeHuman')}</span>
+                  <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-safety align-middle" /> {t('flows.highRisk')}</span>
+                  <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-ink3 align-middle" /> {t('flows.typeEnd')}</span>
+                </div>
+
                 <div className="flex gap-4">
                   <div className="w-1/2 space-y-2">
                     <div className="text-sm font-medium text-ink">{t('flows.node')}</div>
-                    {detail.nodes?.map((n: any) => (
-                      <div
-                        key={n.nodeKey}
-                        onClick={() => setEditing(toEditable(n))}
-                        className={`cursor-pointer rounded-lg border p-3 ${editing?.nodeKey === n.nodeKey ? 'border-ai bg-ai-soft' : 'border-line bg-white'}`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-ink">{n.nodeKey}</span>
-                          <Tag tone={n.risk === 'HIGH' ? 'bad' : 'mute'}>
-                            {n.risk === 'HIGH' ? t('flows.highRisk') : typeLabel(n.nodeType)}
-                          </Tag>
+                    {detail.nodes?.map((n: any) => {
+                      const nodeTone =
+                        n.risk === 'HIGH'
+                          ? 'safety'
+                          : n.nodeType === 'HUMAN_ESCALATION'
+                            ? 'human'
+                            : n.nodeType === 'END'
+                              ? 'mute'
+                              : 'ai';
+                      return (
+                        <div
+                          key={n.nodeKey}
+                          onClick={() => setEditing(toEditable(n))}
+                          className={`cursor-pointer rounded-xl border p-3 transition ${editing?.nodeKey === n.nodeKey ? 'border-brand-500 bg-brand-soft' : 'border-line bg-white hover:border-brand-500/40'}`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-mono text-sm text-ink">{n.nodeKey}</span>
+                            <Tag tone={nodeTone}>
+                              {n.risk === 'HIGH' ? t('flows.highRisk') : typeLabel(n.nodeType)}
+                            </Tag>
+                          </div>
+                          <div className="mt-1 line-clamp-2 text-xs text-ink2">
+                            {n.prompt || t('flows.noPrompt')}
+                          </div>
+                          {n.nodeType === 'HUMAN_ESCALATION' && (
+                            <div className="mt-1 text-[10px] text-human-600">↳ {t('flows.escalated')}</div>
+                          )}
+                          {n.nodeType === 'END' && (
+                            <div className="mt-1 text-[10px] text-ink3">⌒ {t('flows.ended')}</div>
+                          )}
                         </div>
-                        <div className="mt-1 line-clamp-2 text-xs text-ink2">
-                          {n.prompt || t('flows.noPrompt')}
-                        </div>
-                        {n.nodeType === 'HUMAN_ESCALATION' && (
-                          <div className="mt-1 text-[10px] text-ink2">{t('flows.escalated')}</div>
-                        )}
-                        {n.nodeType === 'END' && (
-                          <div className="mt-1 text-[10px] text-ink2">{t('flows.ended')}</div>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                     <Button
                       size="sm"
                       variant="ghost"
@@ -270,7 +288,7 @@ export default function FlowsPage() {
                         <div>
                           <label className="mb-1 block text-xs text-ink2">{t('flows.type')}</label>
                           <select
-                            className="w-full rounded border border-line px-3 py-2 text-sm"
+                            className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-soft"
                             value={editing.nodeType}
                             onChange={(e) => setEditing({ ...editing, nodeType: e.target.value })}
                           >
@@ -295,7 +313,7 @@ export default function FlowsPage() {
                         <div>
                           <label className="mb-1 block text-xs text-ink2">{t('flows.risk')}</label>
                           <select
-                            className="w-full rounded border border-line px-3 py-2 text-sm"
+                            className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-soft"
                             value={editing.risk}
                             onChange={(e) => setEditing({ ...editing, risk: e.target.value })}
                           >
@@ -506,7 +524,7 @@ export default function FlowsPage() {
           <div>
             <label className="mb-1 block text-xs text-ink2">{t('flows.region')}</label>
             <select
-              className="w-full rounded border border-line px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-soft"
               value={newFlow.region}
               onChange={(e) => setNewFlow({ ...newFlow, region: e.target.value })}
             >
@@ -520,7 +538,7 @@ export default function FlowsPage() {
           <div>
             <label className="mb-1 block text-xs text-ink2">{t('flows.language')}</label>
             <select
-              className="w-full rounded border border-line px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-soft"
               value={newFlow.locale}
               onChange={(e) => setNewFlow({ ...newFlow, locale: e.target.value.split('-')[0] })}
             >
@@ -570,7 +588,7 @@ function CoverageNote({ detail, t }: { detail: any; t: (k: string, p?: any) => s
   const { reachable, unreachable } = detail.graph;
   const total = detail.nodes?.length ?? 0;
   return (
-    <div className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+    <div className="rounded-lg bg-warn-bg px-3 py-2 text-xs text-warn">
       {t('flows.coverageReached', { visited: reachable?.length ?? 0, nodes: total })}
       {unreachable?.length ? t('flows.coverageUnreached', { list: unreachable.join(', ') }) : ''}
     </div>

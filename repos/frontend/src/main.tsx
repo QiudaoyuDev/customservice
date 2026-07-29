@@ -1,6 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import '@fontsource-variable/sora';
+import '@fontsource-variable/manrope';
+import '@fontsource-variable/jetbrains-mono';
 import './index.css';
 import './i18n';
 import { AuthProvider } from './lib/auth';

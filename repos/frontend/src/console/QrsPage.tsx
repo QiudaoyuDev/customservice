@@ -1,151 +1,122 @@
 import { useEffect, useState } from 'react';
-import { api } from '../lib/api';
-import { Product, QrBinding } from '../lib/types';
-import { Button, Input, Modal, Tag, EmptyState } from '../components/ui';
-import { useTranslation } from '../i18n';
+import { useTranslation } from 'react-i18next';
+import { Button, Input, Modal, Card, PageHeader, StatCard, Tag, EmptyState } from '../components/ui';
+import { listProducts } from '../lib/api';
+import { listQrs, createQr, revokeQr } from '../lib/api';
+import { regionLabel } from '../i18n';
+import type { Product, Qr } from '../lib/types';
 
 export default function QrsPage() {
   const { t } = useTranslation();
-  const [rows, setRows] = useState<QrBinding[]>([]);
+  const [qrs, setQrs] = useState<Qr[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [variants, setVariants] = useState<
-    Array<{ id: string; hardwareRevision?: string; sku?: string; region: string }>
-  >([]);
   const [loading, setLoading] = useState(true);
-  const [showNew, setShowNew] = useState(false);
-  const [showToken, setShowToken] = useState<any>(null);
+  const [show, setShow] = useState(false);
   const [form, setForm] = useState({
-    productModelId: '',
-    productVariantId: '',
-    initialFirmwareVersion: '',
-    batch: '',
-    serialNumber: '',
+    productId: '',
+    region: 'EU',
+    label: '',
+    count: 1,
+    expiresInDays: 365,
   });
-  const [copied, setCopied] = useState<string | null>(null);
-  const [revokeId, setRevokeId] = useState<string | null>(null);
-  const [revokeReason, setRevokeReason] = useState('');
 
   const load = async () => {
     setLoading(true);
     try {
-      const [list, productList] = await Promise.all([api('/qr-bindings'), api('/products')]);
-      setRows(list ?? []);
-      setProducts(productList ?? []);
+      const [q, p] = await Promise.all([listQrs(), listProducts()]);
+      setQrs(q);
+      setProducts(p);
     } finally {
       setLoading(false);
     }
   };
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
   const create = async () => {
-    const item = await api('/qr-bindings', { method: 'POST', body: JSON.stringify(form) });
-    setShowNew(false);
-    setForm({
-      productModelId: '',
-      productVariantId: '',
-      initialFirmwareVersion: '',
-      batch: '',
-      serialNumber: '',
+    if (!form.productId) return;
+    await createQr({
+      productId: form.productId,
+      region: form.region,
+      label: form.label || undefined,
+      count: form.count,
+      expiresInDays: form.expiresInDays,
     });
-    setShowToken(item);
-    load();
+    setShow(false);
+    void load();
+  };
+  const revoke = async (id: string) => {
+    await revokeQr(id);
+    void load();
   };
 
-  const doRevoke = async () => {
-    if (!revokeId) return;
-    await api(`/qr-bindings/${revokeId}/revoke`, {
-      method: 'POST',
-      body: JSON.stringify({ reason: revokeReason }),
-    });
-    setRevokeId(null);
-    setRevokeReason('');
-    load();
-  };
+  if (loading) return <div className="p-6 text-sm text-ink2">{t('common.loading')}</div>;
 
-  const selectProduct = async (productModelId: string) => {
-    setForm({ ...form, productModelId, productVariantId: '', initialFirmwareVersion: '' });
-    setVariants(productModelId ? await api(`/products/${productModelId}/variants`) : []);
-  };
-
-  const copy = (token: string, id: string) => {
-    navigator.clipboard?.writeText(token);
-    setCopied(id);
-    setTimeout(() => setCopied((c) => (c === id ? null : c)), 1500);
-  };
+  const active = qrs.filter((q) => q.status === 'ACTIVE').length;
+  const revoked = qrs.filter((q) => q.status === 'REVOKED').length;
 
   return (
-    <div>
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-ink">{t('qrs.title')}</h1>
-          <p className="text-sm text-ink2">{t('qrs.subtitle')}</p>
-        </div>
-        <Button variant="ai" onClick={() => setShowNew(true)}>
-          {t('qrs.new')}
-        </Button>
+    <div className="enter">
+      <PageHeader
+        title={t('qrs.title')}
+        subtitle={t('qrs.subtitle')}
+        icon="▣"
+        actions={<Button variant="primary" onClick={() => setShow(true)}>{t('qrs.generate')}</Button>}
+      />
+
+      <div className="mb-5 grid grid-cols-3 gap-3">
+        <StatCard label={t('qrs.title')} value={qrs.length} tone="brand" />
+        <StatCard label={t('qrs.active')} value={active} tone="ok" />
+        <StatCard label={t('qrs.revoked')} value={revoked} tone="safety" />
       </div>
 
-      {loading ? (
-        <div className="text-sm text-ink2">{t('common.loading')}</div>
-      ) : rows.length === 0 ? (
-        <EmptyState title={t('qrs.emptyTitle')} hint={t('qrs.emptyHint')} />
+      {qrs.length === 0 ? (
+        <Card>
+          <EmptyState title={t('qrs.empty')} hint={t('qrs.emptyHint')} action={<Button variant="primary" onClick={() => setShow(true)}>{t('qrs.generate')}</Button>} />
+        </Card>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-line bg-white">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-ink2">
-              <tr>
-                <th className="px-4 py-2 text-left">{t('qrs.thModelId')}</th>
-                <th className="px-4 py-2 text-left">{t('qrs.thBatch')}</th>
-                <th className="px-4 py-2 text-left">{t('qrs.thSerial')}</th>
-                <th className="px-4 py-2 text-left">{t('qrs.thStatus')}</th>
-                <th className="px-4 py-2 text-left">{t('qrs.thCreated')}</th>
-                <th className="px-4 py-2 text-left">{t('qrs.thActions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((q) => (
-                <tr key={q.id} className="border-t border-line">
-                  <td className="px-4 py-2 font-mono text-xs">{q.productModelId}</td>
-                  <td className="px-4 py-2">{q.batch || t('qrs.noBatch')}</td>
-                  <td className="px-4 py-2">{q.serialNumber || t('qrs.noSerial')}</td>
-                  <td className="px-4 py-2">
-                    <Tag tone={q.status === 'ACTIVE' ? 'ok' : 'warn'}>
-                      {q.status === 'ACTIVE' ? t('qrs.active') : t('qrs.revoked')}
-                    </Tag>
-                  </td>
-                  <td className="px-4 py-2 text-xs text-ink2">
-                    {q.expiresAt ? new Date(q.expiresAt).toLocaleString() : '—'}
-                  </td>
-                  <td className="px-4 py-2">
-                    <button
-                      className="text-ai hover:underline"
-                      onClick={() => {
-                        setRevokeId(q.id);
-                        setRevokeReason('');
-                      }}
-                    >
-                      {t('qrs.revoke')}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {qrs.map((q) => (
+            <Card key={q.id} interactive className="flex flex-col p-4">
+              <div className="flex items-start justify-between">
+                <div className="grid h-16 w-16 place-items-center rounded-xl bg-white text-brand-700 shadow-inner">
+                  <svg width="42" height="42" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm8 0h2v2h-2v-2zm4 0h2v2h-2v-2zm-4 4h2v2h-2v-2zm4 0h2v2h-2v-2zm2-4h2v2h-2v-2zm0 4h2v2h-2v-2z" />
+                  </svg>
+                </div>
+                <Tag tone={q.status === 'ACTIVE' ? 'ok' : q.status === 'REVOKED' ? 'safety' : 'mute'}>
+                  {t(`qrStatus.${q.status}`)}
+                </Tag>
+              </div>
+              <div className="mt-3 font-mono text-xs text-ink2">{q.code}</div>
+              <div className="mt-1 text-sm font-semibold text-ink">{q.label || q.productName || '—'}</div>
+              <div className="mt-1 text-xs text-ink2">
+                {regionLabel(t, q.region)} · {q.link}
+              </div>
+              <div className="mt-1 text-xs text-ink3">
+                {t('qrs.expires')}: {q.expiresAt?.slice(0, 10) ?? '—'}
+              </div>
+              {q.status === 'ACTIVE' && (
+                <Button variant="ghost" size="sm" className="mt-3 self-start text-danger" onClick={() => revoke(q.id)}>
+                  {t('qrs.revoke')}
+                </Button>
+              )}
+            </Card>
+          ))}
         </div>
       )}
 
       <Modal
-        open={showNew}
-        title={t('qrs.newTitle')}
-        onClose={() => setShowNew(false)}
+        open={show}
+        title={t('qrs.generate')}
+        onClose={() => setShow(false)}
         footer={
           <>
-            <Button variant="ghost" onClick={() => setShowNew(false)}>
+            <Button variant="ghost" onClick={() => setShow(false)}>
               {t('common.cancel')}
             </Button>
-            <Button variant="ai" onClick={create}>
+            <Button variant="primary" onClick={create}>
               {t('qrs.create')}
             </Button>
           </>
@@ -153,92 +124,56 @@ export default function QrsPage() {
       >
         <div className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs text-ink2">{t('qrs.productModelId')}</label>
+            <label className="mb-1 block text-xs font-semibold text-ink2">{t('qrs.product')}</label>
             <select
-              className="w-full rounded border border-line px-3 py-2 text-sm"
-              value={form.productModelId}
-              onChange={(e) => void selectProduct(e.target.value)}
+              className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-soft"
+              value={form.productId}
+              onChange={(e) => setForm({ ...form, productId: e.target.value })}
             >
               <option value="">{t('common.select')}</option>
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.displayName} · {p.model}
+                  {p.displayName}
                 </option>
               ))}
             </select>
           </div>
-          <div>
-            <label className="mb-1 block text-xs text-ink2">{t('qrs.hardwareRevision')}</label>
-            <select
-              className="w-full rounded border border-line px-3 py-2 text-sm"
-              value={form.productVariantId}
-              disabled={!form.productModelId}
-              onChange={(e) => setForm({ ...form, productVariantId: e.target.value })}
-            >
-              <option value="">{t('qrs.defaultRevision')}</option>
-              {variants.map((variant) => (
-                <option key={variant.id} value={variant.id}>
-                  {variant.hardwareRevision || t('qrs.unspecified')} · {variant.region}
-                  {variant.sku ? ` · ${variant.sku}` : ''}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-ink2">{t('common.region')}</label>
+              <select
+                className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-soft"
+                value={form.region}
+                onChange={(e) => setForm({ ...form, region: e.target.value })}
+              >
+                {['EU', 'NA', 'APAC', 'LATAM', 'MEA'].map((r) => (
+                  <option key={r} value={r}>
+                    {regionLabel(t, r)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-ink2">{t('qrs.count')}</label>
+              <Input
+                type="number"
+                min={1}
+                value={form.count}
+                onChange={(e) => setForm({ ...form, count: Math.max(1, Number(e.target.value) || 1) })}
+              />
+            </div>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-ink2">{t('qrs.initialFirmware')}</label>
+            <label className="mb-1 block text-xs font-semibold text-ink2">{t('qrs.label')}</label>
+            <Input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder={t('qrs.labelPh')} />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-ink2">{t('qrs.expiresInDays')}</label>
             <Input
-              value={form.initialFirmwareVersion}
-              onChange={(e) => setForm({ ...form, initialFirmwareVersion: e.target.value })}
+              type="number"
+              value={form.expiresInDays}
+              onChange={(e) => setForm({ ...form, expiresInDays: Number(e.target.value) || 0 })}
             />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-ink2">{t('qrs.batch')}</label>
-            <Input
-              value={form.batch}
-              onChange={(e) => setForm({ ...form, batch: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-ink2">{t('qrs.serial')}</label>
-            <Input
-              value={form.serialNumber}
-              onChange={(e) => setForm({ ...form, serialNumber: e.target.value })}
-            />
-          </div>
-        </div>
-      </Modal>
-
-      <Modal open={!!showToken} title={t('qrs.tokenTitle')} onClose={() => setShowToken(null)}>
-        <div className="space-y-3">
-          <p className="text-sm text-ink2">{t('qrs.tokenHint')}</p>
-          <div className="break-all rounded-lg border border-line bg-slate-50 p-3 font-mono text-xs">
-            {showToken?.token}
-          </div>
-          <Button variant="ai" onClick={() => showToken && copy(showToken.token, showToken.id)}>
-            {copied === showToken?.id ? t('qrs.copied') : t('qrs.copyToken')}
-          </Button>
-        </div>
-      </Modal>
-
-      <Modal
-        open={!!revokeId}
-        title={t('qrs.revokeReason')}
-        onClose={() => setRevokeId(null)}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setRevokeId(null)}>
-              {t('common.cancel')}
-            </Button>
-            <Button variant="danger" onClick={doRevoke}>
-              {t('qrs.revoke')}
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-3">
-          <div>
-            <label className="mb-1 block text-xs text-ink2">{t('qrs.revokeReason')}</label>
-            <Input value={revokeReason} onChange={(e) => setRevokeReason(e.target.value)} />
           </div>
         </div>
       </Modal>

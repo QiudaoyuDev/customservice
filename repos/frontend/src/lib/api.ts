@@ -180,3 +180,72 @@ export const deleteNode = (id: string, key: string) =>
 export const flowAction = (id: string, action: string) =>
   api(`/flows/${id}/${action}`, { method: 'POST' });
 export const simulateFlow = (id: string) => api(`/flows/${id}/simulate`, { method: 'POST' });
+
+/* ---------- 产品 / 型号 / 变体 / 固件 ---------- */
+export const listProducts = () => api('/products');
+export const createProduct = (body: any) =>
+  api('/products', { method: 'POST', body: JSON.stringify(body) });
+export const listProductModels = (productId?: string) =>
+  api(productId ? `/products/${productId}/models` : '/product-models');
+export const createProductModel = (body: any) =>
+  api('/product-models', { method: 'POST', body: JSON.stringify(body) });
+export const listProductVariants = () => api('/product-variants');
+export const createProductVariant = (body: any) =>
+  api('/product-variants', { method: 'POST', body: JSON.stringify(body) });
+export const listFirmware = () => api('/firmware');
+export const createFirmware = (body: any) =>
+  api('/firmware', { method: 'POST', body: JSON.stringify(body) });
+
+/* ---------- 二维码 ---------- */
+export const listQrs = () => api('/qrs');
+export const createQr = (body: any) =>
+  api('/qrs', { method: 'POST', body: JSON.stringify(body) });
+export const revokeQr = (id: string) => api(`/qrs/${id}/revoke`, { method: 'POST' });
+
+/* ---------- 知识文档 ---------- */
+export const listDocuments = () => api('/documents');
+export const uploadDocument = (input: {
+  file: File;
+  title?: string;
+  language?: string;
+  region?: string;
+  productModelId?: string;
+}) => {
+  const form = new FormData();
+  form.append('file', input.file);
+  if (input.title) form.append('title', input.title);
+  if (input.language) form.append('language', input.language);
+  if (input.region) form.append('region', input.region);
+  if (input.productModelId) form.append('productModelId', input.productModelId);
+  return apiUpload('/documents', form);
+};
+export const getDocumentContent = (id: string) => api(`/documents/${id}/content`);
+export const previewDocumentUrl = (id: string) => `/api/documents/${id}/preview`;
+
+/* ---------- 人工转接 ---------- */
+export const listHandoffs = () => api('/handoffs');
+export const claimHandoff = (id: string) =>
+  api(`/handoffs/${id}/claim`, { method: 'POST' });
+export const closeHandoff = (id: string, resolution: string, note?: string) =>
+  api(`/handoffs/${id}/close`, {
+    method: 'POST',
+    body: JSON.stringify({ resolution, note }),
+  });
+export const addHandoffNote = (id: string, body: string) =>
+  api(`/handoffs/${id}/notes`, { method: 'POST', body: JSON.stringify({ body }) });
+
+/* ---------- 模型供应商 ---------- */
+export const listModelProviders = () => api('/model-providers');
+export const createModelProvider = (body: any) =>
+  api('/model-providers', { method: 'POST', body: JSON.stringify(body) });
+export const updateModelProvider = (id: string, body: any) =>
+  api(`/model-providers/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+export const testModelProvider = (body: any) =>
+  api('/model-providers/test', { method: 'POST', body: JSON.stringify(body) });
+export const defaultModelProvider = (id: string) =>
+  api(`/model-providers/${id}/default`, { method: 'POST' });
+
+/* ---------- 检索 / 分析 ---------- */
+export const searchV2 = (body: any) =>
+  api('/search', { method: 'POST', body: JSON.stringify(body) });
+export const loadAnalytics = () => api('/analytics');

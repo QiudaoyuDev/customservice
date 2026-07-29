@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import clsx from 'clsx';
 import { useAuth } from '../lib/auth';
 import { postAnswer, pub, pubUpload, streamAnswer } from '../lib/api';
-import { Button, Input, Modal, Textarea } from '../components/ui';
+import { Button, Input, Modal, Textarea, Tag, Banner, DiagnosisRail } from '../components/ui';
 import { langNames, LANGS, regionLabel, useTranslation } from '../i18n';
 
 function StepCard({
@@ -30,29 +31,35 @@ function StepCard({
   ];
   const toneClass = (tone: string) =>
     tone === 'ok'
-      ? 'border-green-400 bg-green-50 text-green-700'
+      ? 'border-ok/40 bg-ok-bg text-ok hover:bg-ok/20'
       : tone === 'bad'
-        ? 'border-red-300 bg-red-50 text-red-600'
+        ? 'border-danger/40 bg-danger-bg text-danger hover:bg-danger/20'
         : tone === 'warn'
-          ? 'border-amber-300 bg-amber-50 text-amber-700'
-          : 'border-slate-300 bg-slate-50 text-slate-600';
+          ? 'border-warn/40 bg-warn-bg text-warn hover:bg-warn/20'
+          : 'border-line bg-slate-50 text-ink2 hover:bg-brand-soft';
   return (
     <div
-      className={`rounded-2xl border p-4 ${risk === 'high' ? 'border-red-300 bg-red-50/60' : 'border-line bg-white'}`}
+      className={clsx(
+        'rounded-2xl border p-4',
+        risk === 'high' ? 'border-safety bg-safety-bg/60' : 'border-ai-100 bg-gradient-to-b from-ai-soft to-white',
+      )}
     >
       {risk === 'high' && (
-        <div className="mb-2 inline-block rounded-md bg-red-100 px-2 py-0.5 text-xs font-bold text-red-600">
-          {t('support.highRiskStep')}
+        <div className="mb-2 inline-flex items-center gap-1 rounded-md bg-safety px-2 py-0.5 text-xs font-bold text-white">
+          ⚠ {t('support.highRiskStep')}
         </div>
       )}
-      <div className="mb-1 text-sm font-bold text-ink">{t('support.stepLabel')}</div>
+      <div className="mb-1 flex items-center gap-1.5 text-sm font-bold text-ink">
+        <span className="text-ai-600">✦</span>
+        {t('support.stepLabel')}
+      </div>
       <div className="whitespace-pre-wrap text-[15px] leading-relaxed text-ink">{m.content}</div>
       {sources.length > 0 && (
         <div className="mt-2 text-xs text-ink2">
           {t('support.sources')}
           {sources.map((s, i) => (
-            <span key={i} className="mr-2">
-              <span className="text-ai">{s}</span>
+            <span key={i} className="ml-2 inline-flex rounded bg-ai-soft px-2 py-0.5 font-mono text-ai-600">
+              {s}
             </span>
           ))}
         </div>
@@ -63,7 +70,7 @@ function StepCard({
             <button
               key={r.value}
               onClick={() => onReply(r.value)}
-              className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${toneClass(r.tone)}`}
+              className={clsx('rounded-xl border px-3 py-1.5 text-sm font-semibold', toneClass(r.tone))}
             >
               {r.label}
             </button>
@@ -76,7 +83,7 @@ function StepCard({
             <button
               key={r.value}
               onClick={() => onReply(r.value)}
-              className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${toneClass(r.tone)}`}
+              className={clsx('rounded-xl border px-3 py-1.5 text-sm font-semibold', toneClass(r.tone))}
             >
               {r.label}
             </button>
@@ -89,7 +96,7 @@ function StepCard({
             <button
               key={r.value}
               onClick={() => onReply(r.value)}
-              className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${toneClass(r.tone)}`}
+              className={clsx('rounded-xl border px-3 py-1.5 text-sm font-semibold', toneClass(r.tone))}
             >
               {r.label}
             </button>
@@ -371,7 +378,8 @@ export default function SupportPage() {
   const renderMsg = (m: any) => {
     if (m.loading)
       return (
-        <div className="rounded-2xl border border-line bg-white p-4 text-sm text-ink2">
+        <div className="flex items-center gap-2 rounded-2xl border border-line bg-white p-4 text-sm text-ink2">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-ai-100 border-t-ai-500" />
           {t('support.analyzing')}
         </div>
       );
@@ -379,15 +387,23 @@ export default function SupportPage() {
     const c = m.content ?? '';
     if (intent === 'SAFETY_STOP')
       return (
-        <div className="rounded-2xl border border-red-300 bg-red-50 p-4">
-          <div className="font-bold text-red-600">{t('support.safetyTitle')}</div>
-          <div className="mt-1 whitespace-pre-wrap text-[15px] text-ink">{c}</div>
+        <div className="flex gap-3 rounded-2xl border border-safety bg-safety-bg p-4">
+          <div className="grid h-8 w-8 flex-none place-items-center rounded-xl bg-safety text-white shadow-[0_0_0_4px] shadow-safety-bg">
+            ⚠
+          </div>
+          <div>
+            <div className="font-bold text-safety">{t('support.safetyTitle')}</div>
+            <div className="mt-1 whitespace-pre-wrap text-[15px] text-ink">{c}</div>
+          </div>
         </div>
       );
     if (intent === 'HUMAN_REQUEST')
       return (
-        <div className="rounded-2xl border border-ai/40 bg-ai-soft p-4">
-          <div className="font-bold text-ai">{t('support.humanTitle')}</div>
+        <div className="rounded-2xl border border-human-500 bg-human-soft p-4">
+          <div className="flex items-center gap-1.5 font-bold text-human-600">
+            <span>🧑</span>
+            {t('support.humanTitle')}
+          </div>
           <div className="mt-1 whitespace-pre-wrap text-[15px] text-ink">{c}</div>
         </div>
       );
@@ -395,7 +411,10 @@ export default function SupportPage() {
       if (m.flowControl) return <StepCard m={m} onReply={reply} t={t} />;
       return (
         <div className="rounded-2xl border border-line bg-white p-4">
-          <div className="mb-1 text-sm font-bold text-ink">{t('support.stepLabel')}</div>
+          <div className="mb-1 flex items-center gap-1.5 text-sm font-bold text-ink">
+            <span className="text-ai-600">✦</span>
+            {t('support.stepLabel')}
+          </div>
           <div className="whitespace-pre-wrap text-[15px] text-ink">{c}</div>
         </div>
       );
@@ -408,13 +427,27 @@ export default function SupportPage() {
         </div>
       );
     return (
-      <div className="rounded-2xl border border-line bg-white p-4 whitespace-pre-wrap text-[15px] text-ink">
-        {c}
+      <div className="rounded-2xl border border-line bg-white p-4">
+        <div className="mb-1 flex items-center gap-1.5 text-xs font-bold text-ai-600">
+          <span>✦</span> AI
+        </div>
+        <div className="whitespace-pre-wrap text-[15px] text-ink">{c}</div>
       </div>
     );
   };
 
-  const flowStep = messages.filter((m) => m.intent === 'TROUBLESHOOTING' && m.flowControl).length;
+  const flowMsgs = messages.filter((m) => m.intent === 'TROUBLESHOOTING' && m.flowControl);
+  const railSteps = flowMsgs.map((m, k) => {
+    const risk = m.risk?.toLowerCase() === 'high';
+    const state: 'done' | 'current' | 'risk' =
+      k < flowMsgs.length - 1 ? 'done' : risk ? 'risk' : 'current';
+    return {
+      key: m.flowControl?.nodeKey ?? `STEP ${k + 1}`,
+      label: (m.content ?? '').slice(0, 32),
+      state,
+    };
+  });
+  const flowStep = flowMsgs.length;
   const totalStep =
     [...messages].reverse().find((m: any) => m.flowControl)?.flowControl?.totalSteps ?? null;
 
@@ -424,23 +457,24 @@ export default function SupportPage() {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-slate-50">
-      <header className="flex items-center justify-between border-b border-line bg-white px-4 py-2">
+    <div className="flex h-screen flex-col">
+      <header className="glass sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-line bg-white px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-ink">HARDWARE AI</span>
-          <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-ink2">
-            {t('support.chatTitle', { id: convId.slice(0, 8) })}
-          </span>
-          <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-ink2">
+          <div className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-brand-700 to-ai-500 font-display text-xs font-extrabold text-white">
+            H
+          </div>
+          <span className="font-display text-sm font-bold text-ink">HARDWARE AI</span>
+          <Tag tone="ai">{t('support.chatTitle', { id: convId.slice(0, 8) })}</Tag>
+          <Tag tone="mute">
             {regionLabel(t, region)} · {langNames[language] ?? language}
-          </span>
+          </Tag>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-ink2">{t('support.region')}</span>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
           <select
-            className="rounded border border-line px-2 py-1 text-sm"
+            className="h-8 rounded-lg border border-line bg-white px-2 text-sm text-ink"
             value={region}
             onChange={(e) => setRegion(e.target.value)}
+            aria-label={t('support.region')}
           >
             {['EU', 'NA', 'APAC', 'LATAM', 'MEA'].map((r) => (
               <option key={r} value={r}>
@@ -448,11 +482,11 @@ export default function SupportPage() {
               </option>
             ))}
           </select>
-          <span className="text-xs text-ink2">{t('support.language')}</span>
           <select
-            className="rounded border border-line px-2 py-1 text-sm"
+            className="h-8 rounded-lg border border-line bg-white px-2 text-sm text-ink"
             value={language}
             onChange={(e) => onLangChange(e.target.value)}
+            aria-label={t('support.language')}
           >
             {LANGS.map((l) => (
               <option key={l} value={l}>
@@ -461,7 +495,7 @@ export default function SupportPage() {
             ))}
           </select>
           <button
-            className="rounded border border-line px-2 py-1 text-xs text-ink2 hover:bg-slate-50"
+            className="h-8 rounded-lg border border-line px-2.5 text-xs font-semibold text-ink2 transition hover:bg-brand-soft hover:text-brand-700"
             onClick={() => void openProductSelection()}
           >
             {t('support.changeProduct')}
@@ -469,13 +503,13 @@ export default function SupportPage() {
           {isAuthenticated ? (
             <>
               <button
-                className="rounded border border-line px-2 py-1 text-xs text-ink2 hover:bg-slate-50"
+                className="h-8 rounded-lg border border-line px-2.5 text-xs font-semibold text-ink2 transition hover:bg-brand-soft hover:text-brand-700"
                 onClick={() => navigate('/console')}
               >
                 {t('support.console')}
               </button>
               <button
-                className="rounded border border-line px-2 py-1 text-xs text-ink2 hover:bg-slate-50"
+                className="h-8 rounded-lg border border-line px-2.5 text-xs font-semibold text-ink2 transition hover:bg-brand-soft hover:text-brand-700"
                 onClick={() => {
                   logout();
                   navigate('/');
@@ -486,88 +520,100 @@ export default function SupportPage() {
             </>
           ) : (
             <button
-              className="rounded border border-line px-2 py-1 text-xs text-ink2 hover:bg-slate-50"
+              className="h-8 rounded-lg border border-line px-2.5 text-xs font-semibold text-ink2 transition hover:bg-brand-soft hover:text-brand-700"
               onClick={() => navigate('/login')}
             >
               {t('login.submit')}
             </button>
           )}
           <button
-            className="rounded border border-line px-2 py-1 text-xs text-ink2 hover:bg-slate-50"
+            className="grid h-8 w-8 place-items-center rounded-lg border border-line text-ink2 transition hover:bg-brand-soft hover:text-brand-700"
             onClick={() => setShowInfo(true)}
+            aria-label={t('support.infoTitle')}
           >
-            {t('support.infoTitle')}
+            ⓘ
           </button>
         </div>
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
-        <div className="mx-auto flex max-w-2xl flex-col gap-3">
-          {notice && (
-            <div className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">{notice}</div>
-          )}
-          {notices.map((n, i) => (
-            <div key={i} className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
-              {n}
-            </div>
-          ))}
+      <div className="flex min-h-0 flex-1">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
+          <div className="mx-auto flex max-w-2xl flex-col gap-3">
+            {notice && <Banner tone="info">{notice}</Banner>}
+            {notices.map((n, i) => (
+              <Banner key={i} tone="info">
+                {n}
+              </Banner>
+            ))}
 
-          {messages.map((m, i) => (
-            <div
-              key={m.id ?? i}
-              className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}
-            >
-              <div className={m.role === 'user' ? 'max-w-[80%]' : 'w-full max-w-full'}>
-                {m.role === 'user' ? (
-                  <div className="rounded-2xl bg-ai px-4 py-2 text-[15px] text-white">
-                    {m.content}
-                  </div>
-                ) : (
-                  renderMsg(m)
-                )}
+            {messages.map((m, i) => (
+              <div
+                key={m.id ?? i}
+                className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}
+              >
+                <div className={m.role === 'user' ? 'max-w-[80%]' : 'w-full'}>
+                  {m.role === 'user' ? (
+                    <div className="rounded-2xl rounded-br-md bg-brand-700 px-4 py-2.5 text-[15px] text-white">
+                      {m.content}
+                    </div>
+                  ) : (
+                    renderMsg(m)
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
 
-          {flowStep > 0 && (
-            <div className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
-              {t('support.progressTitle')}{' '}
-              {totalStep
-                ? t('support.progressStep', {
-                    cur: flowStep,
-                    total: totalStep,
-                  })
-                : t('support.progressStepNoTotal', { cur: flowStep })}
-            </div>
-          )}
+            {flowStep > 0 && (
+              <div className="rounded-xl bg-warn-bg px-3 py-2 text-sm font-medium text-warn lg:hidden">
+                {t('support.progressTitle')}{' '}
+                {totalStep
+                  ? t('support.progressStep', { cur: flowStep, total: totalStep })
+                  : t('support.progressStepNoTotal', { cur: flowStep })}
+              </div>
+            )}
 
-          <div className="rounded-xl border border-line bg-white p-3 text-xs text-ink2">
-            {t('support.noticeFlow')}
+            <div className="rounded-xl border border-line bg-white px-3 py-2 text-xs text-ink2">
+              {t('support.noticeFlow')}
+            </div>
           </div>
         </div>
+
+        {railSteps.length > 0 && (
+          <aside className="hidden w-72 flex-none overflow-y-auto border-l border-line bg-white/60 p-4 lg:block">
+            <div className="sticky top-0">
+              <div className="mb-3 rounded-xl bg-brand-soft p-3">
+                <div className="flex items-center gap-2 font-display text-sm font-bold text-brand-700">
+                  <span className="h-2 w-2 animate-pulse-ring rounded-full bg-ai-500" />
+                  {t('support.progressTitle')}
+                </div>
+              </div>
+              <DiagnosisRail steps={railSteps} note={t('support.noticeFlow')} />
+            </div>
+          </aside>
+        )}
       </div>
 
       <footer className="border-t border-line bg-white px-4 py-3">
         <div className="mx-auto flex max-w-2xl flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-ink2">
-            <span>{t('support.quick')}</span>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="font-semibold text-ink2">{t('support.quick')}</span>
             <button
-              className="rounded-full border border-line px-3 py-1 hover:bg-slate-50"
+              className="rounded-full border border-line px-3 py-1 font-medium text-ink2 transition hover:border-brand-500 hover:text-brand-700"
               onClick={() => setInput(t('support.errorCode') + ' E102')}
             >
               ⌨ {t('support.errorCode')}
             </button>
             <button
-              className="rounded-full border border-line px-3 py-1 hover:bg-slate-50"
+              className="rounded-full border border-line px-3 py-1 font-medium text-ink2 transition hover:border-brand-500 hover:text-brand-700"
               onClick={() => fileInputRef.current?.click()}
             >
               📷 {t('support.image')}
             </button>
             <button
-              className="rounded-full border border-ai/40 px-3 py-1 text-ai hover:bg-ai-soft"
+              className="ml-auto rounded-full border border-human-500 bg-human-soft px-3 py-1 font-semibold text-human-600 transition hover:bg-human-100"
               onClick={() => setShowHandoff(true)}
             >
-              {t('support.toHuman')}
+              🧑 {t('support.toHuman')}
             </button>
           </div>
           <div className="flex items-end gap-2">
@@ -598,7 +644,7 @@ export default function SupportPage() {
               {busy ? t('support.sending') : t('support.send')}
             </Button>
           </div>
-          <div className="text-[11px] text-ink2/70">{t('support.privacy')}</div>
+          <div className="text-[11px] text-ink2">{t('support.privacy')}</div>
         </div>
       </footer>
 
@@ -659,9 +705,7 @@ export default function SupportPage() {
       >
         <div className="space-y-3 text-sm">
           {handoffId ? (
-            <div className="rounded-lg bg-green-50 px-3 py-2 text-green-700">
-              {t('support.handoffCreated', { id: handoffId })}
-            </div>
+            <div className="rounded-lg bg-ok-bg px-3 py-2 text-ok">{t('support.handoffCreated', { id: handoffId })}</div>
           ) : (
             <>
               <p className="text-ink2">{t('support.handoffDesc')}</p>
@@ -674,9 +718,7 @@ export default function SupportPage() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-ink2">
-                  {t('support.handoffContact')}
-                </label>
+                <label className="mb-1 block text-xs text-ink2">{t('support.handoffContact')}</label>
                 <Input
                   value={handoffContact}
                   onChange={(e) => setHandoffContact(e.target.value)}
@@ -721,11 +763,9 @@ export default function SupportPage() {
         <div className="space-y-3 text-sm">
           <p className="text-ink2">{t('support.changeProductDesc')}</p>
           <div>
-            <label className="mb-1 block text-xs text-ink2">
-              {t('support.changeProductPlaceholder')}
-            </label>
+            <label className="mb-1 block text-xs text-ink2">{t('support.changeProductPlaceholder')}</label>
             <select
-              className="w-full rounded border border-line px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-soft"
               value={changeProductId}
               onChange={(e) => setChangeProductId(e.target.value)}
             >

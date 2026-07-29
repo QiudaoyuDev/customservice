@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>多语言 AI 售后诊断与客服平台 · 高保真原型 (Precision Instrument Console)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  /* brand / teal */
+  --brand-900:#07323C; --brand-800:#0B3F4C; --brand-700:#0F4C5C; --brand-600:#14647A; --brand-500:#1B7E97;
+  --brand-100:#D6E7EC; --brand-50:#EAF2F4; --brand-soft:#E6F0F2;
+  /* AI signal */
+  --ai-600:#0E9D8F; --ai-500:#1FB6A6; --ai-100:#D7F5F1;
+  /* human signal */
+  --human-600:#C96A1F; --human-500:#E8833A; --human-100:#FDEBDD;
+  /* neutrals */
+  --ink:#0F172A; --ink2:#475569; --ink3:#94A3B8; --line:#E2E8F0; --panel:#FFFFFF; --canvas:#F5F8F9;
+  /* semantic */
+  --ok:#16A34A; --warn:#D97706; --danger:#DC2626; --info:#2563EB; --safety:#E11D48;
+  --ok-bg:#DCFCE7; --warn-bg:#FEF3C7; --danger-bg:#FEE2E2; --info-bg:#DBEAFE; --human-bg:#FDEBDD; --safety-bg:#FFE4E6;
+  /* radii / shadow */
+  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:20px;
+  --sh-xs:0 1px 2px rgba(15,23,42,.04);
+  --sh-card:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.06);
+  --sh-pop:0 12px 32px rgba(15,23,42,.12);
+  --dot:#D8E2E8;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:'Manrope',system-ui,-apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+  color:var(--ink); background:var(--canvas); font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(var(--dot) 1px, transparent 1px); background-size:22px 22px;
+}
+.display{font-family:'Sora',sans-serif;letter-spacing:-.01em}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:var(--info);text-decoration:none}
+h1,h2,h3{margin:0;font-family:'Sora',sans-serif;font-weight:700;letter-spacing:-.01em;line-height:1.2}
+.muted{color:var(--ink2)} .faint{color:var(--ink3)}
+
+/* ---------- prototype switcher ---------- */
+.psw{position:sticky;top:0;z-index:80;display:flex;align-items:center;gap:14px;height:54px;padding:0 18px;
+  background:rgba(255,255,255,.72);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.psw .logo{display:flex;align-items:center;gap:9px;font-family:'Sora',sans-serif;font-weight:800;color:var(--brand-700)}
+.psw .logo .mark{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,var(--brand-700),var(--ai-500));
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;box-shadow:var(--sh-card)}
+.psw nav{display:flex;gap:4px;margin-left:6px}
+.psw nav button{padding:7px 13px;border-radius:9px;font-weight:600;font-size:13px;color:var(--ink2)}
+.psw nav button:hover{background:var(--brand-soft);color:var(--brand-700)}
+.psw nav button.on{background:var(--brand-700);color:#fff}
+.psw .tag{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink3);
+  border:1px solid var(--line);padding:4px 9px;border-radius:999px}
+
+.view{display:none;padding:30px;max-width:1240px;margin:0 auto;animation:fade .35s ease}
+.view.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.stagger>*{animation:slide-up .5s cubic-bezier(.2,.7,.3,1) backwards}
+.stagger>*:nth-child(1){animation-delay:.02s}.stagger>*:nth-child(2){animation-delay:.08s}
+.stagger>*:nth-child(3){animation-delay:.14s}.stagger>*:nth-child(4){animation-delay:.2s}
+.stagger>*:nth-child(5){animation-delay:.26s}.stagger>*:nth-child(6){animation-delay:.32s}
+@keyframes slide-up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ---------- primitives ---------- */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-card)}
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.tag .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.tag.ai{background:var(--ai-100);color:var(--ai-600)} .tag.human{background:var(--human-bg);color:var(--human-600)}
+.tag.safety{background:var(--safety-bg);color:var(--safety)} .tag.ok{background:var(--ok-bg);color:var(--ok)}
+.tag.warn{background:var(--warn-bg);color:var(--warn)} .tag.info{background:var(--info-bg);color:var(--info)}
+.tag.mute{background:#EEF2F5;color:var(--ink2)}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:var(--r-sm);font-weight:700;font-size:13px;
+  border:1px solid var(--line);background:#fff;color:var(--ink);transition:.16s;box-shadow:var(--sh-xs)}
+.btn:hover{border-color:#cbd5e1;transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn.primary{background:var(--brand-700);border-color:var(--brand-700);color:#fff}
+.btn.primary:hover{background:var(--brand-600)}
+.btn.ai{background:var(--ai-500);border-color:var(--ai-500);color:#fff}
+.btn.ai:hover{background:var(--ai-600)}
+.btn.human{background:var(--human-500);border-color:var(--human-500);color:#fff}
+.btn.human:hover{background:var(--human-600)}
+.btn.danger{background:var(--safety);border-color:var(--safety);color:#fff}
+.btn.danger:hover{filter:brightness(.94)}
+.btn.ghost{background:transparent;box-shadow:none}
+.btn.lg{padding:13px 22px;font-size:14px;border-radius:var(--r-md)}
+.btn.sm{padding:6px 12px;font-size:12px}
+.btn[disabled]{opacity:.55;cursor:not-allowed;transform:none}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{font-size:12px;font-weight:700;color:var(--ink2);letter-spacing:.02em}
+.field input,.field select{height:44px;border:1px solid var(--line);border-radius:var(--r-sm);padding:0 13px;font-family:inherit;font-size:14px;background:#fff;color:var(--ink);transition:.16s}
+.field input:focus,.field select:focus{outline:none;border-color:var(--brand-500);box-shadow:0 0 0 3px var(--brand-soft)}
+
+/* ---------- STYLE view ---------- */
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin:10px 0 26px}
+.sw{height:74px;border-radius:var(--r-md);border:1px solid var(--line);position:relative;overflow:hidden}
+.sw small{position:absolute;left:9px;bottom:7px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#fff;mix-blend-mode:difference}
+.grp-title{font-family:'Sora',sans-serif;font-weight:700;font-size:15px;margin:26px 0 4px;display:flex;align-items:center;gap:9px}
+.grp-title:before{content:"";width:4px;height:16px;border-radius:3px;background:var(--ai-500)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.type-sample{margin:8px 0;border-bottom:1px dashed var(--line);padding-bottom:10px}
+.type-sample .lab{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink3)}
+
+/* ---------- LOGIN view ---------- */
+.login{display:grid;grid-template-columns:1.05fr .95fr;min-height:calc(100vh - 114px);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh-pop);border:1px solid var(--line)}
+.login .hero{position:relative;padding:46px;color:#fff;overflow:hidden;
+  background:radial-gradient(120% 120% at 0% 0%,#0B3F4C 0%,#0F4C5C 40%,#0E9D8F 130%)}
+.login .hero:after{content:"";position:absolute;inset:0;background:
+  radial-gradient(circle at 80% 20%,rgba(31,182,166,.35),transparent 45%),
+  radial-gradient(circle at 15% 85%,rgba(232,131,58,.22),transparent 40%);
+  animation:mesh 12s ease-in-out infinite alternate}
+@keyframes mesh{from{transform:translate3d(-2%,1%,0) scale(1)}to{transform:translate3d(3%,-2%,0) scale(1.05)}}
+.login .hero>*{position:relative;z-index:2}
+.hero .badge{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22)}
+.hero h1{font-size:34px;line-height:1.15;margin:22px 0 12px}
+.hero p{color:#CDE7E4;max-width:380px}
+.steps3{display:flex;gap:0;margin-top:34px;align-items:stretch}
+.steps3 .s{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:var(--r-md);padding:14px;backdrop-filter:blur(4px)}
+.steps3 .s+.s{margin-left:12px}
+.steps3 .s .n{width:26px;height:26px;border-radius:8px;background:var(--ai-500);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+.steps3 .s:nth-child(3) .n{background:var(--human-500)}
+.steps3 .s h4{margin:11px 0 4px;font-family:'Sora',sans-serif;font-size:14px}
+.steps3 .s span{font-size:12px;color:#BFE0DD}
+.hero .foot{position:absolute;bottom:30px;left:46px;right:46px;z-index:2;display:flex;justify-content:space-between;font-size:12px;color:#9FC4C0}
+.login .form{background:#fff;padding:46px;display:flex;flex-direction:column;justify-content:center}
+.login .form .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}
+.login h2{font-size:24px;margin-bottom:6px}
+.oauth{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 18px}
+.oauth .btn{justify-content:center;background:#fff}
+.divider{display:flex;align-items:center;gap:12px;color:var(--ink3);font-size:12px;margin:14px 0}
+.divider:before,.divider:after{content:"";flex:1;height:1px;background:var(--line)}
+.login .form .sub{margin-top:20px;font-size:13px;text-align:center}
+.langpick{display:flex;gap:6px}
+.langpick button{font-size:12px;font-weight:600;padding:5px 10px;border-radius:999px;border:1px solid var(--line);color:var(--ink2)}
+.langpick button.on{background:var(--brand-700);color:#fff;border-color:var(--brand-700)}
+
+/* ---------- SUPPORT view ---------- */
+.support{display:grid;grid-template-columns:1fr 312px;gap:18px;max-width:1120px;margin:0 auto;align-items:start}
+.devicebar{display:flex;align-items:center;gap:14px;padding:14px 16px;margin-bottom:14px}
+.devicebar .pic{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,var(--brand-700),var(--ai-500));
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;box-shadow:var(--sh-card)}
+.devicebar b{font-family:'Sora',sans-serif;font-size:15px}
+.devicebar .meta{font-size:12px;color:var(--ink2)}
+.chat{display:flex;flex-direction:column;height:600px;overflow:hidden;border-radius:var(--r-lg);background:#fff;border:1px solid var(--line);box-shadow:var(--sh-card)}
+.chat .head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line);
+  background:rgba(255,255,255,.7);backdrop-filter:blur(8px)}
+.chat .body{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:14px;
+  background-image:radial-gradient(var(--dot) 1px,transparent 1px);background-size:20px 20px;background-color:#FBFCFD}
+.bubble{max-width:84%;padding:12px 15px;border-radius:16px;font-size:14px;animation:slide-up .35s ease backwards}
+.bubble.user{align-self:flex-end;background:var(--brand-700);color:#fff;border-bottom-right-radius:5px}
+.bubble.ai{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:5px}
+.bubble.ai .who{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:800;color:var(--ai-600);margin-bottom:5px;letter-spacing:.02em}
+.bubble.ai .who .spark{width:16px;height:16px;border-radius:5px;background:var(--ai-100);display:flex;align-items:center;justify-content:center}
+.cite{margin-top:9px;border-top:1px dashed var(--line);padding-top:8px;font-size:12px;color:var(--ink2);display:flex;gap:7px;flex-wrap:wrap}
+.cite a{background:var(--ai-100);color:var(--ai-600);padding:2px 8px;border-radius:6px;font-weight:700;font-size:11px}
+.step{margin-top:10px;border:1px solid #CDEEE9;background:linear-gradient(180deg,#F2FBFA,#fff);border-radius:12px;padding:12px}
+.step .n{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;color:var(--ai-600);letter-spacing:.03em}
+.step .act{font-weight:700;margin:7px 0}
+.step .exp{font-size:12.5px;color:var(--ink2)}
+.seg{display:flex;gap:8px;margin-top:11px}
+.seg button{flex:1;padding:9px;border-radius:9px;border:1px solid #B9E2DC;background:#fff;font-weight:700;font-size:12.5px;color:var(--brand-700);transition:.15s}
+.seg button:hover{background:var(--ai-100);border-color:var(--ai-500)}
+.seg button.sel{background:var(--ai-500);border-color:var(--ai-500);color:#fff}
+.thinking{display:flex;align-items:center;gap:9px;align-self:flex-start;background:#fff;border:1px solid var(--line);
+  border-radius:16px;padding:12px 15px;color:var(--ink2);font-size:13px}
+.thinking .ring{width:16px;height:16px;border-radius:50%;border:2px solid var(--ai-100);border-top-color:var(--ai-500);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.stream{display:inline-block}
+.stream:after{content:"▋";color:var(--ai-500);margin-left:1px;animation:caret 1s steps(1) infinite}
+@keyframes caret{50%{opacity:0}}
+.safety{display:flex;gap:11px;align-self:flex-start;max-width:88%;background:var(--safety-bg);border:1px solid #F3B4C0;border-radius:14px;padding:14px;animation:slide-up .35s ease backwards}
+.safety .shield{width:30px;height:30px;border-radius:9px;background:var(--safety);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;flex:none;box-shadow:0 0 0 4px rgba(225,29,72,.14)}
+.safety b{display:block;color:var(--safety);margin-bottom:3px}
+.safety p{margin:0;font-size:13px;color:#7F1D2C}
+.human-msg{align-self:flex-start;max-width:88%;background:var(--human-bg);border:1px solid #FCD2A8;border-radius:14px;padding:13px 15px;font-size:13.5px;color:#7C3D10}
+.human-msg .who{display:flex;align-items:center;gap:7px;font-weight:800;color:var(--human-600);margin-bottom:4px;font-size:12px}
+.composer{padding:12px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px;background:#fff}
+.composer .quick{display:flex;gap:7px;flex-wrap:wrap}
+.composer .quick button{font-size:12px;font-weight:600;color:var(--ink2);border:1px solid var(--line);border-radius:999px;padding:6px 11px;background:#fff;transition:.15s}
+.composer .quick button:hover{border-color:var(--brand-500);color:var(--brand-700)}
+.composer .quick .ho:hover{color:var(--human-600);border-color:var(--human-500)}
+.composer .bar{display:flex;gap:9px;align-items:flex-end}
+.composer textarea{flex:1;resize:none;height:46px;border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-family:inherit;font-size:14px}
+.composer textarea:focus{outline:none;border-color:var(--brand-500);box-shadow:0 0 0 3px var(--brand-soft)}
+.privacy{font-size:11px;color:var(--ink3);display:flex;align-items:center;gap:5px}
+/* rail */
+.rail{position:sticky;top:84px;padding:16px;align-self:start}
+.rail .ph{padding:14px;margin:-16px -16px 14px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--brand-soft),transparent)}
+.rail h3{font-size:14px;display:flex;align-items:center;gap:8px}
+.rail h3 .pulse{width:9px;height:9px;border-radius:50%;background:var(--ai-500);box-shadow:0 0 0 0 var(--ai-500);animation:pulsering 1.8s ease-out infinite}
+@keyframes pulsering{0%{box-shadow:0 0 0 0 rgba(31,182,166,.5)}70%{box-shadow:0 0 0 9px rgba(31,182,166,0)}100%{box-shadow:0 0 0 0 rgba(31,182,166,0)}}
+.node{display:flex;gap:11px;padding:11px 0;position:relative}
+.node:not(:last-child):after{content:"";position:absolute;left:7px;top:30px;bottom:-2px;width:2px;background:var(--line)}
+.node .led{width:16px;height:16px;border-radius:50%;margin-top:3px;flex:none;background:#fff;border:2px solid var(--line);z-index:2}
+.node.done .led{background:var(--ok);border-color:var(--ok)}
+.node.cur .led{background:var(--ai-500);border-color:var(--ai-500);box-shadow:0 0 0 4px var(--ai-100)}
+.node.risk .led{background:var(--safety);border-color:var(--safety);box-shadow:0 0 0 4px var(--safety-bg)}
+.node .t{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.node .s{font-size:11.5px;color:var(--ink2)}
+.rail .note{margin-top:14px;font-size:11.5px;color:var(--ink2);background:var(--brand-soft);border-radius:10px;padding:10px 12px}
+
+/* ---------- CONSOLE view ---------- */
+.shell{display:grid;grid-template-columns:244px 1fr;min-height:calc(100vh - 114px);border:1px solid var(--line);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh-pop);background:#fff}
+.side{background:linear-gradient(180deg,#0B3F4C,#0F4C5C);color:#fff;display:flex;flex-direction:column;padding:16px 12px}
+.side .brand{display:flex;align-items:center;gap:10px;padding:6px 8px 16px}
+.side .brand .mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--ai-500),#fff);display:flex;align-items:center;justify-content:center;color:var(--brand-700);font-weight:800;font-family:'Sora',sans-serif}
+.side .brand b{font-family:'Sora',sans-serif;font-size:14px;line-height:1.15}
+.side .brand span{font-size:10.5px;color:#9FC4C0;font-family:'JetBrains Mono',monospace}
+.nav-g{font-size:10.5px;font-weight:700;letter-spacing:.08em;color:#7FA6A2;padding:14px 10px 6px;text-transform:uppercase}
+.nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;color:#C7DBD9;font-weight:600;font-size:13px;position:relative;transition:.15s}
+.nav a:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav a.on{background:rgba(31,182,166,.16);color:#fff}
+.nav a.on:before{content:"";position:absolute;left:-12px;top:8px;bottom:8px;width:3px;border-radius:3px;background:var(--ai-500)}
+.nav a .ic{width:18px;text-align:center}
+.side .foot{margin-top:auto;border-top:1px solid rgba(255,255,255,.12);padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.side .foot .u{display:flex;align-items:center;gap:9px}
+.side .foot .av{width:30px;height:30px;border-radius:9px;background:var(--human-500);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:12px}
+.side .foot .u small{display:block;color:#9FC4C0;font-size:11px}
+.main{display:flex;flex-direction:column;min-width:0}
+.topbar{display:flex;align-items:center;gap:14px;height:58px;padding:0 22px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.7);backdrop-filter:blur(8px)}
+.crumb{font-size:13px;color:var(--ink2);display:flex;align-items:center;gap:7px}
+.crumb b{color:var(--ink)}
+.health{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ok)}
+.health .d{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px var(--ok-bg)}
+.content{padding:22px;overflow:auto;background-image:radial-gradient(var(--dot) 1px,transparent 1px);background-size:22px 22px;background-color:var(--canvas)}
+.page-h{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:18px}
+.page-h h1{font-size:23px}
+.page-h p{margin:4px 0 0;font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.kpi{padding:16px;border-radius:var(--r-lg);background:#fff;border:1px solid var(--line);box-shadow:var(--sh-card);position:relative;overflow:hidden}
+.kpi .l{font-size:12px;color:var(--ink2);font-weight:600;display:flex;align-items:center;gap:6px}
+.kpi .v{font-family:'Sora',sans-serif;font-size:27px;font-weight:800;margin-top:7px;letter-spacing:-.02em}
+.kpi .d{font-size:11.5px;margin-top:3px;font-weight:600}
+.kpi .spark{position:absolute;right:12px;bottom:10px;opacity:.9}
+.up{color:var(--ok)} .down{color:var(--safety)}
+.grid2{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-bottom:16px}
+.panel{padding:18px;border-radius:var(--r-lg);background:#fff;border:1px solid var(--line);box-shadow:var(--sh-card)}
+.panel .pt{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.bar-row{display:flex;align-items:center;gap:11px;padding:9px 0;font-size:13px}
+.bar-row .x{flex:1;min-width:0}
+.bar-track{height:7px;background:#EEF2F5;border-radius:999px;overflow:hidden;margin-top:5px}
+.bar-fill{height:100%;border-radius:999px;background:var(--brand-600)}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--ink2);margin-top:12px;flex-wrap:wrap}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:middle}
+/* flows graph */
+.flows{display:grid;grid-template-columns:200px 1fr;gap:0;border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-card);background:#fff;height:380px}
+.flows .list{border-right:1px solid var(--line);padding:12px;overflow:auto;background:#FBFCFD}
+.flows .list .fi{padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:#fff;margin-bottom:9px;cursor:pointer}
+.flows .list .fi.on{border-color:var(--brand-500);box-shadow:0 0 0 3px var(--brand-soft)}
+.flows .list .fi b{font-size:13px;font-family:'Sora',sans-serif}
+.flows .list .fi span{font-size:11px;color:var(--ink2);display:block;margin-top:2px}
+.canvas{position:relative;overflow:auto;background:radial-gradient(circle,var(--dot) 1px,transparent 1px) 0 0/22px 22px}
+.canvas svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.fnode{position:absolute;width:170px;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:9px 11px;box-shadow:var(--sh-card);font-size:12px}
+.fnode .nt{font-weight:800;font-size:11px;display:flex;align-items:center;gap:6px;font-family:'Sora',sans-serif}
+.fnode .nk{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink2);margin-top:2px}
+.fnode.risk{border-color:var(--safety)} .fnode.risk .nt{color:var(--safety)}
+.fnode.human{border-color:var(--human-500)} .fnode.human .nt{color:var(--human-600)}
+.fnode.end{border-style:dashed}
+</style>
+</head>
+<body>
+
+<div class="psw">
+  <div class="logo"><span class="mark">H</span> HARDWARE AI</div>
+  <nav id="tabs">
+    <button data-s="style">设计令牌</button>
+    <button data-s="login">登录</button>
+    <button data-s="support" class="on">终端对话</button>
+    <button data-s="console">管理后台</button>
+  </nav>
+  <span class="tag">Prototype · Precision Instrument Console</span>
+</div>
+
+<!-- ===================== STYLE ===================== -->
+<section class="view" id="style">
+  <h1 style="font-size:26px;margin-bottom:6px">设计系统 · Design Tokens</h1>
+  <p class="muted" style="margin-top:0">风格定位：<b>Precision Instrument Console（精密仪表控制台）</b> — 沉稳信任、诊断可视化、AI(teal) ↔ Human(orange) ↔ Safety(red) 三元视觉语言。</p>
+
+  <div class="grp-title">色彩 · Brand / AI / Human</div>
+  <div class="swatches">
+    <div class="sw" style="background:#0F4C5C"><small>brand-700</small></div>
+    <div class="sw" style="background:#1B7E97"><small>brand-500</small></div>
+    <div class="sw" style="background:#1FB6A6"><small>ai-500</small></div>
+    <div class="sw" style="background:#E8833A"><small>human-500</small></div>
+    <div class="sw" style="background:#E11D48"><small>safety</small></div>
+    <div class="sw" style="background:#16A34A"><small>ok</small></div>
+    <div class="sw" style="background:#D97706"><small>warn</small></div>
+    <div class="sw" style="background:#DC2626"><small>danger</small></div>
+  </div>
+
+  <div class="grp-title">字体 · Type</div>
+  <div class="type-sample"><div class="lab">Display / 标题 — Sora</div><div class="display" style="font-size:30px;font-weight:800">诊断进度 · Diagnosis Flow</div></div>
+  <div class="type-sample"><div class="lab">Body / 正文 — Manrope</div><div style="font-size:15px">设备能搜索到其它 Wi‑Fi 网络吗？请一步步来，我们将为您安全排查。</div></div>
+  <div class="type-sample"><div class="lab">Mono / 数据 — JetBrains Mono</div><div class="mono" style="font-size:13px">flow:wifi-check-02 · session #a1f3 · firmware 2.1.0</div></div>
+
+  <div class="grp-title">组件 · Components</div>
+  <div class="row">
+    <button class="btn primary">主操作</button>
+    <button class="btn ai">AI 发送</button>
+    <button class="btn human">转人工</button>
+    <button class="btn danger">安全停机</button>
+    <button class="btn">次操作</button>
+    <button class="btn ghost">取消</button>
+  </div>
+  <div class="row">
+    <span class="tag ai"><span class="dot"></span>AI 诊断</span>
+    <span class="tag human"><span class="dot"></span>人工接管</span>
+    <span class="tag safety"><span class="dot"></span>安全停止</span>
+    <span class="tag ok"><span class="dot"></span>已解决</span>
+    <span class="tag warn"><span class="dot"></span>待审核</span>
+    <span class="tag info"><span class="dot"></span>处理中</span>
+    <span class="tag mute"><span class="dot"></span>DRAFT</span>
+  </div>
+
+  <div class="grp-title">卡片 · StatCard & Banner</div>
+  <div class="row" style="align-items:stretch">
+    <div class="kpi" style="width:200px"><div class="l">自主解决率</div><div class="v">71%</div><div class="d up">▲ 3.4%</div></div>
+    <div class="kpi" style="width:200px"><div class="l">风险拦截</div><div class="v">17</div><div class="d up">▲ 1.1%</div></div>
+    <div style="flex:1;min-width:240px;background:var(--safety-bg);border:1px solid #F3B4C0;border-radius:var(--r-lg);padding:14px 16px;color:#7F1D2C">
+      <b style="color:var(--safety);display:block;margin-bottom:3px">⚠ 安全停止 · SAFETY_STOP</b>
+      AI 不能跳过安全节点或自行改步骤；触发风险时强制转人工。
+    </div>
+  </div>
+
+  <div class="grp-title">诊断进度轨 · Diagnosis Rail</div>
+  <div class="card" style="max-width:340px;padding:16px">
+    <div class="node done"><div class="led"></div><div><div class="t">wifi-check-01</div><div class="s">已搜索到网络 · 完成</div></div></div>
+    <div class="node cur"><div class="led"></div><div><div class="t">wifi-check-02</div><div class="s">重启路由器 · 进行中</div></div></div>
+    <div class="node risk"><div class="led"></div><div><div class="t">safety-stop</div><div class="s">发热/烧焦 → 停机</div></div></div>
+    <div class="node"><div class="led"></div><div><div class="t">END</div><div class="s">确认恢复</div></div></div>
+  </div>
+</section>
+
+<!-- ===================== LOGIN ===================== -->
+<section class="view" id="login">
+  <div class="login">
+    <div class="hero">
+      <span class="badge">● 多语言 · AI 售后诊断平台</span>
+      <h1 class="display">扫码即懂，<br/>安全排查每一步。</h1>
+      <p>面向出海硬件厂商的智能售后：用户扫码进入，AI 按专家审核的诊断流程逐步排查，遇安全风险自动停机并转人工。</p>
+      <div class="steps3">
+        <div class="s"><div class="n">1</div><h4>扫码接入</h4><span>设备二维码 | 自动识别型号地区</span></div>
+        <div class="s"><div class="n">2</div><h4>AI 诊断</h4><span>确定性流程 | 分支决策</span></div>
+        <div class="s"><div class="n">3</div><h4>人工兜底</h4><span>安全停止 | 交接包</span></div>
+      </div>
+      <div class="foot"><span>© Hardware AI</span><span>EN · 简体中文 · Deutsch · Español · Français</span></div>
+    </div>
+    <div class="form">
+      <div class="top">
+        <div>
+          <h2 class="display">登录控制台</h2>
+          <span class="muted" style="font-size:13px">管理产品、知识与人工转接</span>
+        </div>
+        <div class="langpick">
+          <button class="on">中</button><button>EN</button><button>DE</button><button>ES</button>
+        </div>
+      </div>
+      <div class="oauth">
+        <button class="btn">⎘ Google</button>
+        <button class="btn">⌘ Microsoft</button>
+      </div>
+      <div class="divider">或使用邮箱</div>
+      <div class="field"><label>邮箱</label><input placeholder="you@vendor.com" /></div>
+      <div class="field"><label>密码</label><input type="password" placeholder="••••••••" /></div>
+      <label style="font-size:13px;color:var(--ink2);display:flex;gap:8px;align-items:center;margin-bottom:16px"><input type="checkbox" style="width:16px;height:16px" checked/> 记住我 · 30 天</label>
+      <button class="btn primary lg" style="justify-content:center;width:100%">登录</button>
+      <div class="sub muted">忘记密码？<a href="#">重置</a> · 厂商入驻<a href="#">申请</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SUPPORT ===================== -->
+<section class="view on" id="support">
+  <div class="support">
+    <div>
+      <div class="devicebar card">
+        <div class="pic">▣</div>
+        <div>
+          <b>X100 Android TV Box</b>
+          <div class="meta">地区 EU · 固件 2.1.0 · 硬件 rev.B · <span class="mono">#a1f3</span></div>
+        </div>
+        <div style="margin-left:auto" class="langpick">
+          <button class="on">EN</button><button>中</button><button>DE</button>
+        </div>
+      </div>
+
+      <div class="chat">
+        <div class="head"><span class="tag ai"><span class="dot"></span>AI 诊断</span> 设备支持 · 会话 <span class="mono">#a1f3</span>
+          <span style="margin-left:auto" class="tag mute">流式 · Live</span></div>
+        <div class="body">
+          <div class="bubble user">Wi‑Fi 连不上，搜得到别的网络但点连接没反应。</div>
+
+          <div class="bubble ai">
+            <div class="who"><span class="spark">✦</span> AI 诊断</div>
+            我先确认一个关键问题，请一步步来。
+            <div class="step">
+              <div class="n">STEP 1 / 4 · DECISION</div>
+              <div class="act">设备能搜索到其它 Wi‑Fi 网络吗？</div>
+              <div class="exp">预期：能看到邻居网络列表（如邻居 SSID）。</div>
+              <div class="seg">
+                <button class="sel">是</button><button>否</button><button>不清楚</button>
+              </div>
+            </div>
+            <div class="cite"><span class="mono">来源</span><a>MANUAL-X100 §3.2</a><a>KB-102</a></div>
+          </div>
+
+          <div class="bubble user">能搜到，但点连接没反应。</div>
+
+          <div class="bubble ai">
+            <div class="who"><span class="spark">✦</span> AI 诊断</div>
+            <div class="step">
+              <div class="n">STEP 2 / 4 · OPERATION</div>
+              <div class="act">请重启路由器与机顶盒，等待 30 秒再试。</div>
+              <div class="exp">预期：指示灯由红转绿，可正常获取 IP。</div>
+              <div class="seg"><button class="sel">已解决</button><button>未解决</button></div>
+            </div>
+            <div class="cite"><span class="mono">来源</span><a>KB-102 网络排查</a></div>
+          </div>
+
+          <div class="thinking"><span class="ring"></span> AI 正在分析您的反馈…<span class="stream"></span></div>
+
+          <div class="safety">
+            <div class="shield">⚠</div>
+            <div><b>安全停止 · 请立即停止操作</b>
+            <p>您提到设备有烧焦气味 / 电源接口损坏。请勿自行拆机或通电，系统已自动创建交接包并转人工。</p>
+            <div style="margin-top:10px"><button class="btn human sm" onclick="alert('已转人工：请求编号 HAND-a1f3-8821')">查看交接包 / 联系人工</button></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="composer">
+          <div class="quick">
+            <span class="muted" style="font-weight:600">快捷：</span>
+            <button>⌨ 输入错误码</button>
+            <button>📷 上传图片</button>
+            <button>🛠 更换产品</button>
+            <button class="ho">🧑 转人工</button>
+          </div>
+          <div class="bar">
+            <textarea placeholder="描述问题，或粘贴错误码（如 E102）…"></textarea>
+            <button class="btn ai">发送</button>
+          </div>
+          <div class="privacy">🔒 图片仅用于识别错误码 / 接口 / 标签，请勿上传身份证、银行卡等无关信息。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rail card">
+      <div class="ph"><h3><span class="pulse"></span> 诊断进度</h3></div>
+      <div class="node done"><div class="led"></div><div><div class="t">wifi-check-01</div><div class="s">能搜到网络？· 已完成</div></div></div>
+      <div class="node cur"><div class="led"></div><div><div class="t">wifi-check-02</div><div class="s">重启路由器 · 进行中</div></div></div>
+      <div class="node"><div class="led"></div><div><div class="t">network-reset-01</div><div class="s">重置网络设置</div></div></div>
+      <div class="node risk"><div class="led"></div><div><div class="t">safety-stop</div><div class="s">发热/烧焦 → 停机</div></div></div>
+      <div class="node"><div class="led"></div><div><div class="t">END</div><div class="s">确认恢复</div></div></div>
+      <div class="note">流程由售后专家审核发布。AI 不能跳过安全节点或自行改步骤。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CONSOLE ===================== -->
+<section class="view" id="console">
+  <div class="shell">
+    <aside class="side">
+      <div class="brand"><span class="mark">H</span><div><b class="display">HARDWARE AI</b><span>售后诊断控制台</span></div></div>
+      <div class="nav-g">运营</div>
+      <nav class="nav">
+        <a><span class="ic">▦</span> 总览</a>
+        <a class="on"><span class="ic">◷</span> 运营分析</a>
+        <a><span class="ic">▤</span> 产品</a>
+        <a><span class="ic">▣</span> 二维码</a>
+        <a><span class="ic">❏</span> 文档</a>
+        <a><span class="ic">⌕</span> 检索</a>
+      </nav>
+      <div class="nav-g">诊断</div>
+      <nav class="nav">
+        <a><span class="ic">⤳</span> 诊断流程</a>
+        <a><span class="ic">🧑</span> 人工转接</a>
+        <a><span class="ic">⚙</span> 模型</a>
+      </nav>
+      <div class="foot">
+        <div class="u"><div class="av">AC</div><div><b>Acme Box EU</b><small>厂商管理员</small></div></div>
+        <div class="langpick" style="border-top:1px solid rgba(255,255,255,.12);padding-top:10px">
+          <button class="on" style="border-color:rgba(255,255,255,.25);color:#fff">EN</button>
+          <button style="border-color:rgba(255,255,255,.25);color:#C7DBD9">中</button>
+          <button style="border-color:rgba(255,255,255,.25);color:#C7DBD9">DE</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <div class="crumb">运营 <span>›</span> <b>运营分析</b></div>
+        <div style="margin-left:auto;display:flex;gap:14px;align-items:center">
+          <span class="health"><span class="d"></span> 系统正常</span>
+          <button class="btn sm">导出</button>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="page-h">
+          <div><h1 class="display">运营分析</h1><p>近 30 天 · 租户 Acme Box EU · 全部地区</p></div>
+          <div style="display:flex;gap:8px"><button class="btn sm">7天</button><button class="btn sm primary">30天</button><button class="btn sm">90天</button></div>
+        </div>
+
+        <div class="kpis stagger">
+          <div class="kpi"><div class="l">今日扫码</div><div class="v">1,284</div><div class="d up">▲ 8.2%</div></div>
+          <div class="kpi"><div class="l">自主解决率</div><div class="v">71%</div><div class="d up">▲ 3.4%</div></div>
+          <div class="kpi"><div class="l">转人工</div><div class="v">128</div><div class="d down">▲ 2.0%</div></div>
+          <div class="kpi"><div class="l">风险拦截</div><div class="v">17</div><div class="d up">▲ 1.1%</div></div>
+        </div>
+
+        <div class="grid2">
+          <div class="panel">
+            <div class="pt">会话趋势 · 近 14 天 <span class="tag mute">自主 vs 人工</span></div>
+            <svg viewBox="0 0 600 170" width="100%" height="170" preserveAspectRatio="none">
+              <defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1FB6A6" stop-opacity=".25"/><stop offset="1" stop-color="#1FB6A6" stop-opacity="0"/></linearGradient></defs>
+              <polygon fill="url(#g1)" points="0,120 50,110 100,118 150,90 200,96 250,70 300,80 350,60 400,66 450,48 500,54 550,38 600,44 600,170 0,170"/>
+              <polyline fill="none" stroke="#1FB6A6" stroke-width="2.5" points="0,120 50,110 100,118 150,90 200,96 250,70 300,80 350,60 400,66 450,48 500,54 550,38 600,44"/>
+              <polyline fill="none" stroke="#E8833A" stroke-width="2.5" stroke-dasharray="5 4" points="0,140 50,138 100,132 150,128 200,122 250,118 300,112 350,108 400,104 450,98 500,94 550,90 600,86"/>
+            </svg>
+            <div class="legend"><span><i style="background:#1FB6A6"></i>自主解决</span><span><i style="background:#E8833A"></i>转人工</span></div>
+          </div>
+          <div class="panel">
+            <div class="pt">意图分布</div>
+            <div class="bar-row"><div class="x">故障排查 <div class="bar-track"><div class="bar-fill" style="width:42%"></div></div></div><span class="mono">42%</span></div>
+            <div class="bar-row"><div class="x">产品咨询 <div class="bar-track"><div class="bar-fill" style="width:24%"></div></div></div><span class="mono">24%</span></div>
+            <div class="bar-row"><div class="x">错误码 <div class="bar-track"><div class="bar-fill" style="width:16%"></div></div></div><span class="mono">16%</span></div>
+            <div class="bar-row"><div class="x">保修/退换 <div class="bar-track"><div class="bar-fill" style="width:11%;background:var(--warn)"></div></div></div><span class="mono">11%</span></div>
+            <div class="bar-row"><div class="x">其它 <div class="bar-track"><div class="bar-fill" style="width:7%;background:var(--ink3)"></div></div></div><span class="mono">7%</span></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="pt">诊断流程 · 可视化（差异化亮点）<span class="tag ai"><span class="dot"></span>状态机</span></div>
+          <div class="flows">
+            <div class="list">
+              <div class="fi on"><b>Wi‑Fi 无法连接</b><span>X100 · EU · 8 节点</span></div>
+              <div class="fi"><b>无信号 (HDMI)</b><span>X100 · Global · 6 节点</span></div>
+              <div class="fi"><b>遥控器失灵</b><span>X100 · EU · 5 节点</span></div>
+              <div class="fi"><b>错误码 E102</b><span>全系列 · 4 节点</span></div>
+            </div>
+            <div class="canvas" id="canvas">
+              <svg id="edges"></svg>
+              <div class="fnode" style="left:24px;top:30px"><div class="nt">❓ 决策</div><div class="nk">wifi-check-01</div></div>
+              <div class="fnode" style="left:250px;top:30px"><div class="nt">🛠 操作</div><div class="nk">wifi-check-02</div></div>
+              <div class="fnode" style="left:250px;top:190px"><div class="nt">🛠 操作</div><div class="nk">network-reset-01</div></div>
+              <div class="fnode human" style="left:476px;top:190px"><div class="nt">🧑 人工</div><div class="nk">image-request-01</div></div>
+              <div class="fnode risk" style="left:476px;top:30px"><div class="nt">⚠ 安全</div><div class="nk">safety-stop</div></div>
+              <div class="fnode end" style="left:250px;top:330px"><div class="nt">✓ 结束</div><div class="nk">END</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+const tabs=document.getElementById('tabs');
+tabs.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  tabs.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  document.querySelectorAll('.view').forEach(s=>s.classList.remove('on'));
+  document.getElementById(b.dataset.s).classList.add('on');
+  if(b.dataset.s==='console') requestAnimationFrame(drawEdges);
+});
+function drawEdges(){
+  const svg=document.getElementById('edges'); if(!svg)return;
+  const pos={};
+  document.querySelectorAll('.fnode').forEach(n=>{pos[n.querySelector('.nk').textContent]={x:n.offsetLeft+85,y:n.offsetTop+26};});
+  const E=[['wifi-check-01','wifi-check-02','#16A34A'],['wifi-check-01','network-reset-01','#DC2626'],
+    ['wifi-check-01','safety-stop','#E11D48'],['wifi-check-02','END'],['network-reset-01','END'],
+    ['safety-stop','image-request-01','#D97706'],['image-request-01','END']];
+  svg.innerHTML=E.map(([a,b,c])=>{if(!pos[a]||!pos[b])return'';
+    return `<line x1="${pos[a].x}" y1="${pos[a].y}" x2="${pos[b].x}" y2="${pos[b].y}" stroke="${c||'#94A3B8'}" stroke-width="2" ${c?'':'stroke-dasharray="5 4"'}/>`;}).join('');
+}
+window.addEventListener('load',drawEdges); window.addEventListener('resize',drawEdges);
+</script>
+</body>
+</html>

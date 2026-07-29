@@ -1,331 +1,312 @@
 import { useEffect, useState } from 'react';
-import { api } from '../lib/api';
-import { Button, Input, Textarea, Tag, Modal, StatusFlow, EmptyState } from '../components/ui';
-import { useTranslation, statusLabel, regionLabel } from '../i18n';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import {
+  Button,
+  Input,
+  Modal,
+  Textarea,
+  Tag,
+  StatusFlow,
+  EmptyState,
+  PageHeader,
+  Table,
+  Card,
+  StatCard,
+} from '../components/ui';
+import {
+  listProducts,
+  createProduct,
+  listProductModels,
+  createProductModel,
+  listProductVariants,
+  createProductVariant,
+  listFirmware,
+  createFirmware,
+} from '../lib/api';
+import type { Product, ProductModel, ProductVariant, Firmware } from '../lib/types';
 
 export default function ProductsPage() {
   const { t } = useTranslation();
-  const [rows, setRows] = useState<any[]>([]);
+  const navigate = useNavigate();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [models, setModels] = useState<ProductModel[]>([]);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [firmware, setFirmware] = useState<Firmware[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showNew, setShowNew] = useState(false);
-  const [showVariants, setShowVariants] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [variants, setVariants] = useState<any[]>([]);
-  const [selectedVariant, setSelectedVariant] = useState<any>(null);
-  const [firmware, setFirmware] = useState<any[]>([]);
-  const [variantForm, setVariantForm] = useState({ region: 'EU', hardwareRevision: '', sku: '' });
-  const [firmwareForm, setFirmwareForm] = useState({
-    version: '',
-    releaseDate: '',
-    checksum: '',
-    notes: '',
-  });
-  const [form, setForm] = useState({
-    family: '',
-    model: '',
-    displayName: '',
-    region: 'EU',
-    hardwareVersion: '',
-    firmwareMin: '',
-    firmwareMax: '',
-  });
+  const [showProduct, setShowProduct] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newModel, setNewModel] = useState('');
+  const [newModelName, setNewModelName] = useState('');
+  const [showVariant, setShowVariant] = useState(false);
+  const [variantProductId, setVariantProductId] = useState('');
+  const [variantModelId, setVariantModelId] = useState('');
+  const [variantName, setVariantName] = useState('');
+  const [variantSku, setVariantSku] = useState('');
+  const [showFirmware, setShowFirmware] = useState(false);
+  const [fwProductModelId, setFwProductModelId] = useState('');
+  const [fwVersion, setFwVersion] = useState('');
+  const [fwNotes, setFwNotes] = useState('');
 
   const load = async () => {
     setLoading(true);
     try {
-      const list = await api('/products');
-      setRows(list ?? []);
+      const [p, m, v, f] = await Promise.all([
+        listProducts(),
+        listProductModels(),
+        listProductVariants(),
+        listFirmware(),
+      ]);
+      setProducts(p);
+      setModels(m);
+      setVariants(v);
+      setFirmware(f);
     } finally {
       setLoading(false);
     }
   };
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
-  const create = async () => {
-    await api('/products', { method: 'POST', body: JSON.stringify(form) });
-    setShowNew(false);
-    setForm({
-      family: '',
-      model: '',
-      displayName: '',
+  const createP = async () => {
+    if (!newName.trim()) return;
+    await createProduct({
+      family: newName.trim(),
+      model: newModel.trim(),
+      displayName: newModelName.trim(),
       region: 'EU',
-      hardwareVersion: '',
-      firmwareMin: '',
-      firmwareMax: '',
+      status: 'draft',
     });
-    load();
+    setNewName('');
+    setShowProduct(false);
+    void load();
   };
-
-  const archive = async (id: string) => {
-    await api(`/products/${id}/archive`, { method: 'POST' });
-    load();
+  const createM = async () => {
+    if (!newModel.trim() || !newModelName.trim()) return;
+    await createProductModel({ model: newModel.trim(), name: newModelName.trim() });
+    setNewModel('');
+    setNewModelName('');
+    void load();
   };
-
-  const openVariants = async (product: any) => {
-    setSelectedProduct(product);
-    setSelectedVariant(null);
-    setFirmware([]);
-    setVariants(await api(`/products/${product.id}/variants`));
-    setShowVariants(true);
-  };
-
-  const createVariant = async () => {
-    if (!selectedProduct) return;
-    const item = await api(`/products/${selectedProduct.id}/variants`, {
-      method: 'POST',
-      body: JSON.stringify(variantForm),
+  const createV = async () => {
+    if (!variantProductId || !variantModelId || !variantName.trim() || !variantSku.trim()) return;
+    await createProductVariant({
+      productId: variantProductId,
+      productModelId: variantModelId,
+      name: variantName.trim(),
+      sku: variantSku.trim(),
     });
-    setVariantForm({ region: selectedProduct.region, hardwareRevision: '', sku: '' });
-    setVariants((items) => [item, ...items]);
+    setShowVariant(false);
+    setVariantName('');
+    setVariantSku('');
+    void load();
+  };
+  const createF = async () => {
+    if (!fwProductModelId || !fwVersion.trim()) return;
+    await createFirmware({ productModelId: fwProductModelId, version: fwVersion.trim(), notes: fwNotes });
+    setShowFirmware(false);
+    setFwVersion('');
+    setFwNotes('');
+    void load();
   };
 
-  const chooseVariant = async (variant: any) => {
-    if (!selectedProduct) return;
-    setSelectedVariant(variant);
-    setFirmware(await api(`/products/${selectedProduct.id}/variants/${variant.id}/firmware`));
-  };
-
-  const createFirmware = async () => {
-    if (!selectedProduct || !selectedVariant) return;
-    const item = await api(
-      `/products/${selectedProduct.id}/variants/${selectedVariant.id}/firmware`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ ...firmwareForm, releaseDate: firmwareForm.releaseDate || null }),
-      },
-    );
-    setFirmware((items) => [item, ...items]);
-    setFirmwareForm({ version: '', releaseDate: '', checksum: '', notes: '' });
-  };
+  if (loading) {
+    return <div className="p-6 text-sm text-ink2">{t('common.loading')}</div>;
+  }
 
   return (
-    <div>
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-ink">{t('products.title')}</h1>
-          <p className="text-sm text-ink2">{t('products.subtitle')}</p>
-        </div>
-        <Button variant="ai" onClick={() => setShowNew(true)}>
-          {t('products.new')}
-        </Button>
+    <div className="enter">
+      <PageHeader
+        title={t('products.title')}
+        subtitle={t('products.subtitle')}
+        icon="▦"
+        actions={
+          <>
+            <Button variant="ai" onClick={() => setShowVariant(true)}>
+              {t('products.addVariant')}
+            </Button>
+            <Button variant="ai" onClick={() => setShowFirmware(true)}>
+              {t('products.addFirmware')}
+            </Button>
+            <Button variant="primary" onClick={() => setShowProduct(true)}>
+              {t('products.add')}
+            </Button>
+          </>
+        }
+      />
+
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label={t('products.title')} value={products.length} tone="brand" />
+        <StatCard label={t('products.models')} value={models.length} tone="ai" />
+        <StatCard label={t('products.variants')} value={variants.length} tone="human" />
+        <StatCard label={t('products.firmware')} value={firmware.length} tone="ok" />
       </div>
 
-      {loading ? (
-        <div className="text-sm text-ink2">{t('common.loading')}</div>
-      ) : rows.length === 0 ? (
-        <EmptyState title={t('products.emptyTitle')} hint={t('products.emptyHint')} />
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-line bg-white">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-ink2">
-              <tr>
-                <th className="px-4 py-2 text-left">{t('products.family')}</th>
-                <th className="px-4 py-2 text-left">{t('products.model')}</th>
-                <th className="px-4 py-2 text-left">{t('products.displayName')}</th>
-                <th className="px-4 py-2 text-left">{t('products.region')}</th>
-                <th className="px-4 py-2 text-left">{t('products.hardwareVersion')}</th>
-                <th className="px-4 py-2 text-left">{t('products.firmwareRange')}</th>
-                <th className="px-4 py-2 text-left">{t('products.actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((p) => (
-                <tr key={p.id} className="border-t border-line">
-                  <td className="px-4 py-2">{p.family}</td>
-                  <td className="px-4 py-2">{p.model}</td>
-                  <td className="px-4 py-2">{p.displayName}</td>
-                  <td className="px-4 py-2">{p.region}</td>
-                  <td className="px-4 py-2">{p.hardwareVersion || t('products.allHardware')}</td>
-                  <td className="px-4 py-2">
-                    {p.firmwareMin || t('products.anyFirmware')} ~{' '}
-                    {p.firmwareMax || t('products.anyFirmware')}
-                  </td>
-                  <td className="px-4 py-2">
-                    <button
-                      className="mr-3 text-xs text-ai hover:underline"
-                      onClick={() => void openVariants(p)}
-                    >
-                      {t('products.variantsTitle')}
-                    </button>
-                    {p.status === 'ACTIVE' && (
-                      <button
-                        className="text-xs text-red-600 hover:underline"
-                        onClick={() => archive(p.id)}
-                      >
-                        {t('products.archive')}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <Card className="overflow-hidden">
+        <div className="px-4 pt-4">
+          <h2 className="font-display text-base font-bold text-ink">{t('products.title')}</h2>
         </div>
-      )}
+        {products.length === 0 ? (
+          <EmptyState title={t('products.empty')} hint={t('products.emptyHint')} />
+        ) : (
+          <Table
+            header={[
+              t('products.name'),
+              t('products.model'),
+              t('products.region'),
+              t('products.firmware'),
+              t('products.status'),
+              t('products.actions'),
+            ]}
+          >
+            {products.map((p) => (
+              <tr key={p.id} className="border-t border-line transition hover:bg-brand-soft/40">
+                <td className="px-4 py-3 font-medium text-ink">{p.displayName}</td>
+                <td className="px-4 py-3 text-ink2">{p.model ?? '—'}</td>
+                <td className="px-4 py-3 text-ink2">{p.region ?? '—'}</td>
+                <td className="px-4 py-3 text-ink2">{p.firmwareMax ?? '—'}</td>
+                <td className="px-4 py-3">
+                  <StatusFlow status={p.status ?? 'draft'} />
+                </td>
+                <td className="px-4 py-3">
+                  <Button variant="ghost" size="sm" onClick={() => navigate(`/console/documents?product=${p.id}`)}>
+                    {t('products.actions')}
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </Table>
+        )}
+      </Card>
 
       <Modal
-        open={showNew}
-        title={t('products.newTitle')}
-        onClose={() => setShowNew(false)}
+        open={showProduct}
+        title={t('products.add')}
+        onClose={() => setShowProduct(false)}
         footer={
           <>
-            <Button variant="ghost" onClick={() => setShowNew(false)}>
+            <Button variant="ghost" onClick={() => setShowProduct(false)}>
               {t('common.cancel')}
             </Button>
-            <Button variant="ai" onClick={create}>
-              {t('products.create')}
+            <Button variant="primary" onClick={createP}>
+              {t('common.create')}
             </Button>
           </>
         }
       >
         <div className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs text-ink2">{t('products.family')}</label>
-            <Input
-              value={form.family}
-              onChange={(e) => setForm({ ...form, family: e.target.value })}
-            />
+            <label className="mb-1 block text-xs font-semibold text-ink2">{t('products.name')}</label>
+            <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={t('products.name')} />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-ink2">{t('products.model')}</label>
-            <Input
-              value={form.model}
-              onChange={(e) => setForm({ ...form, model: e.target.value })}
-            />
+            <label className="mb-1 block text-xs font-semibold text-ink2">{t('products.model')}</label>
+            <Input value={newModel} onChange={(e) => setNewModel(e.target.value)} placeholder="X100" />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-ink2">{t('products.displayName')}</label>
-            <Input
-              value={form.displayName}
-              onChange={(e) => setForm({ ...form, displayName: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-ink2">{t('products.region')}</label>
-            <select
-              className="w-full rounded border border-line px-3 py-2 text-sm"
-              value={form.region}
-              onChange={(e) => setForm({ ...form, region: e.target.value })}
-            >
-              {['EU', 'NA', 'APAC', 'LATAM', 'MEA'].map((r) => (
-                <option key={r} value={r}>
-                  {regionLabel(t, r)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-ink2">{t('products.hardwareVersion')}</label>
-            <Input
-              value={form.hardwareVersion}
-              onChange={(e) => setForm({ ...form, hardwareVersion: e.target.value })}
-            />
-          </div>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <label className="mb-1 block text-xs text-ink2">{t('products.firmwareMin')}</label>
-              <Input
-                value={form.firmwareMin}
-                onChange={(e) => setForm({ ...form, firmwareMin: e.target.value })}
-              />
-            </div>
-            <div className="flex-1">
-              <label className="mb-1 block text-xs text-ink2">{t('products.firmwareMax')}</label>
-              <Input
-                value={form.firmwareMax}
-                onChange={(e) => setForm({ ...form, firmwareMax: e.target.value })}
-              />
-            </div>
+            <label className="mb-1 block text-xs font-semibold text-ink2">{t('products.modelName')}</label>
+            <Input value={newModelName} onChange={(e) => setNewModelName(e.target.value)} placeholder={t('products.modelName')} />
           </div>
         </div>
       </Modal>
 
       <Modal
-        open={showVariants}
-        title={`${selectedProduct?.displayName ?? ''} · ${t('products.variantsTitle')}`}
-        onClose={() => setShowVariants(false)}
-      >
-        <div className="space-y-4">
-          <div className="rounded border border-line p-3">
-            <div className="mb-2 text-sm font-medium text-ink">{t('products.addHardwareRevision')}</div>
-            <div className="grid grid-cols-3 gap-2">
-              <Input
-                placeholder={t('products.region')}
-                value={variantForm.region}
-                onChange={(e) => setVariantForm({ ...variantForm, region: e.target.value })}
-              />
-              <Input
-                placeholder={t('products.hardwareRevision')}
-                value={variantForm.hardwareRevision}
-                onChange={(e) =>
-                  setVariantForm({ ...variantForm, hardwareRevision: e.target.value })
-                }
-              />
-              <Input
-                placeholder={t('products.sku')}
-                value={variantForm.sku}
-                onChange={(e) => setVariantForm({ ...variantForm, sku: e.target.value })}
-              />
-            </div>
-            <Button className="mt-2" variant="ai" onClick={() => void createVariant()}>
-              {t('products.addVariant')}
+        open={showVariant}
+        title={t('products.addVariant')}
+        onClose={() => setShowVariant(false)}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setShowVariant(false)}>
+              {t('common.cancel')}
             </Button>
+            <Button variant="ai" onClick={createV}>
+              {t('common.create')}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-ink2">{t('products.product')}</label>
+            <select
+              className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-soft"
+              value={variantProductId}
+              onChange={(e) => setVariantProductId(e.target.value)}
+            >
+              <option value="">{t('common.select')}</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.displayName}
+                </option>
+              ))}
+            </select>
           </div>
-          <div className="space-y-2">
-            {variants.map((variant) => (
-              <button
-                key={variant.id}
-                onClick={() => void chooseVariant(variant)}
-                className={`block w-full rounded border p-2 text-left text-sm ${selectedVariant?.id === variant.id ? 'border-ai bg-ai-soft' : 'border-line'}`}
-              >
-                {variant.hardwareRevision || t('products.unspecifiedRevision')} · {variant.region}
-                {variant.sku ? ` · ${variant.sku}` : ''}
-              </button>
-            ))}
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-ink2">{t('products.model')}</label>
+            <select
+              className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-soft"
+              value={variantModelId}
+              onChange={(e) => setVariantModelId(e.target.value)}
+            >
+              <option value="">{t('common.select')}</option>
+              {models.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.model} · {m.name}
+                </option>
+              ))}
+            </select>
           </div>
-          {selectedVariant && (
-            <div className="rounded border border-line p-3">
-              <div className="mb-2 text-sm font-medium text-ink">
-                {t('products.firmwareFor')} {selectedVariant.hardwareRevision || selectedVariant.id})
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  placeholder={t('products.version')}
-                  value={firmwareForm.version}
-                  onChange={(e) => setFirmwareForm({ ...firmwareForm, version: e.target.value })}
-                />
-                <Input
-                  type="date"
-                  value={firmwareForm.releaseDate}
-                  onChange={(e) =>
-                    setFirmwareForm({ ...firmwareForm, releaseDate: e.target.value })
-                  }
-                />
-                <Input
-                  placeholder={t('products.checksum')}
-                  value={firmwareForm.checksum}
-                  onChange={(e) => setFirmwareForm({ ...firmwareForm, checksum: e.target.value })}
-                />
-                <Input
-                  placeholder={t('products.notes')}
-                  value={firmwareForm.notes}
-                  onChange={(e) => setFirmwareForm({ ...firmwareForm, notes: e.target.value })}
-                />
-              </div>
-              <Button className="mt-2" variant="ai" onClick={() => void createFirmware()}>
-                {t('products.addFirmware')}
-              </Button>
-              <div className="mt-3 space-y-1 text-sm text-ink2">
-                {firmware.map((item) => (
-                  <div key={item.id}>
-                    {item.version} · {statusLabel(t, item.status)}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-ink2">{t('products.variantName')}</label>
+            <Input value={variantName} onChange={(e) => setVariantName(e.target.value)} />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-ink2">SKU</label>
+            <Input value={variantSku} onChange={(e) => setVariantSku(e.target.value)} />
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={showFirmware}
+        title={t('products.addFirmware')}
+        onClose={() => setShowFirmware(false)}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setShowFirmware(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button variant="ai" onClick={createF}>
+              {t('common.create')}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-ink2">{t('products.model')}</label>
+            <select
+              className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-soft"
+              value={fwProductModelId}
+              onChange={(e) => setFwProductModelId(e.target.value)}
+            >
+              <option value="">{t('common.select')}</option>
+              {models.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.model} · {m.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-ink2">{t('products.firmwareVersion')}</label>
+            <Input value={fwVersion} onChange={(e) => setFwVersion(e.target.value)} placeholder="2.1.0" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-ink2">{t('products.notes')}</label>
+            <Textarea value={fwNotes} onChange={(e) => setFwNotes(e.target.value)} />
+          </div>
         </div>
       </Modal>
     </div>

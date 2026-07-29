@@ -1,157 +1,140 @@
 import { useEffect, useState } from 'react';
-import { api } from '../lib/api';
-import { Button, Input, Tag } from '../components/ui';
-import { useTranslation, LANGS, langNames, regionLabel } from '../i18n';
-import { Product } from '../lib/types';
+import { useTranslation } from 'react-i18next';
+import { Button, Input, Card, PageHeader, Tag, EmptyState } from '../components/ui';
+import { listProducts, searchV2 } from '../lib/api';
+import type { Product } from '../lib/types';
+
+const MODE_LABEL: Record<string, string> = { vector: 'vector', keyword: 'keyword', hybrid: 'hybrid' };
 
 export default function SearchPage() {
   const { t } = useTranslation();
-  const [productModelId, setProductModelId] = useState('');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [region, setRegion] = useState('EU');
-  const [language, setLanguage] = useState('en-US');
   const [query, setQuery] = useState('');
-  const [limit, setLimit] = useState(8);
-  const [result, setResult] = useState<any>(null);
-  const [busy, setBusy] = useState(false);
+  const [productId, setProductId] = useState('');
+  const [region, setRegion] = useState('EU');
+  const [language, setLanguage] = useState('en');
+  const [limit, setLimit] = useState(5);
+  const [results, setResults] = useState<any[]>([]);
+  const [searched, setSearched] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    api('/products')
-      .then((items) => setProducts(items ?? []))
-      .catch(() => setProducts([]));
+    void listProducts().then(setProducts).catch(() => {});
   }, []);
 
-  const run = async () => {
-    if (!query.trim()) return;
-    setBusy(true);
+  const handleSearch = async () => {
+    setSearching(true);
     try {
-      const r = await api('/search', {
-        method: 'POST',
-        body: JSON.stringify({
-          productModelId,
-          region,
-          locale: language.split('-')[0],
-          query,
-          limit: Math.min(limit, 10),
-        }),
-      });
-      setResult(r);
+      const r = await searchV2({ query, productModelId: productId || undefined, region, language, limit });
+      setResults(r ?? []);
+      setSearched(true);
     } finally {
-      setBusy(false);
+      setSearching(false);
     }
   };
 
   return (
-    <div>
-      <div className="mb-4">
-        <h1 className="text-xl font-bold text-ink">{t('search.title')}</h1>
-        <p className="text-sm text-ink2">{t('search.subtitle')}</p>
-      </div>
+    <div className="enter">
+      <PageHeader title={t('search.title')} subtitle={t('search.subtitle')} icon="⌕" />
 
-      <div className="space-y-3 rounded-xl border border-line bg-white p-4">
-        <div>
-          <label className="mb-1 block text-xs text-ink2">{t('search.query')}</label>
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t('search.placeholderQuery')}
-          />
-        </div>
-        <div className="grid grid-cols-3 gap-3">
+      <Card className="mb-4 p-4">
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-xs font-semibold text-ink2">{t('search.query')}</label>
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t('search.placeholderQuery')}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            />
+          </div>
           <div>
-            <label className="mb-1 block text-xs text-ink2">{t('search.productId')}</label>
+            <label className="mb-1 block text-xs font-semibold text-ink2">{t('search.productId')}</label>
             <select
-              className="w-full rounded border border-line px-3 py-2 text-sm"
-              value={productModelId}
-              onChange={(e) => setProductModelId(e.target.value)}
+              className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-soft"
+              value={productId}
+              onChange={(e) => setProductId(e.target.value)}
             >
-              <option value="">{t('common.select')}</option>
-              {products.map((product) => (
-                <option key={product.id} value={product.id}>
-                  {product.displayName} · {product.model}
+              <option value="">{t('search.productPlaceholder')}</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.displayName}
                 </option>
               ))}
             </select>
           </div>
-          <div>
-            <label className="mb-1 block text-xs text-ink2">{t('search.region')}</label>
-            <select
-              className="w-full rounded border border-line px-3 py-2 text-sm"
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
-            >
-              {['EU', 'NA', 'APAC', 'LATAM', 'MEA'].map((r) => (
-                <option key={r} value={r}>
-                  {regionLabel(t, r)}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-ink2">{t('search.region')}</label>
+              <select
+                className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-soft"
+                value={region}
+                onChange={(e) => setRegion(e.target.value)}
+              >
+                {['EU', 'NA', 'APAC', 'LATAM', 'MEA'].map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-ink2">{t('search.language')}</label>
+              <select
+                className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-soft"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+              >
+                <option value="zh-CN">简体中文</option>
+                <option value="en">English</option>
+                <option value="de-DE">Deutsch</option>
+                <option value="fr-FR">Français</option>
+                <option value="es-ES">Español</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <label className="mb-1 block text-xs text-ink2">{t('search.language')}</label>
-            <select
-              className="w-full rounded border border-line px-3 py-2 text-sm"
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-            >
-              {LANGS.map((l) => (
-                <option key={l} value={l}>
-                  {langNames[l] ?? l}
-                </option>
-              ))}
-            </select>
+          <div className="flex items-end justify-between gap-3">
+            <div className="w-32">
+              <label className="mb-1 block text-xs font-semibold text-ink2">{t('search.limit')}</label>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                value={limit}
+                onChange={(e) => setLimit(Math.max(1, Number(e.target.value) || 1))}
+              />
+            </div>
+            <Button variant="primary" onClick={handleSearch} disabled={searching || !query.trim()}>
+              {searching ? t('search.searching') : t('search.run')}
+            </Button>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <label className="text-xs text-ink2">{t('search.limit')}</label>
-          <input
-            type="number"
-            min={1}
-            max={50}
-            value={limit}
-            onChange={(e) => setLimit(Number(e.target.value))}
-            className="w-20 rounded border border-line px-2 py-1 text-sm"
-          />
-          <Button variant="ai" onClick={run} disabled={busy || !query.trim() || !productModelId}>
-            {busy ? t('search.searching') : t('search.run')}
-          </Button>
-        </div>
-      </div>
+      </Card>
 
-      <div className="mt-4">
-        {!result ? (
-          <div className="rounded-xl border border-dashed border-line bg-white/60 p-8 text-center text-sm text-ink2">
-            {t('search.empty')}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {result.results?.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-line bg-white/60 p-8 text-center text-sm text-ink2">
-                {t('search.noMatch')}
+      {!searched ? (
+        <Card>
+          <EmptyState title={t('search.empty')} />
+        </Card>
+      ) : results.length === 0 ? (
+        <Card>
+          <EmptyState title={t('search.noMatch')} />
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {results.map((r, i) => (
+            <Card key={i} className="p-4">
+              <div className="mb-2 flex items-center gap-2">
+                <Tag tone="ai">{MODE_LABEL[r.mode] ?? r.mode}</Tag>
+                <Tag tone="mute">{t('search.score')}: {(r.score ?? 0).toFixed(2)}</Tag>
+                <span className="text-xs text-ink3">
+                  {t('search.sources')} {r.sourceRefs?.length ? r.sourceRefs.join(', ') : t('search.noSource')}
+                </span>
               </div>
-            ) : (
-              result.results?.map((c: any, i: number) => (
-                <div key={i} className="rounded-xl border border-line bg-white p-3">
-                  <div className="mb-1 flex items-center gap-2 text-xs">
-                    <Tag tone="ai">{t('search.hybrid')}</Tag>
-                    <span className="text-ink2">
-                      {t('search.score')} {c.score?.toFixed?.(3)}
-                    </span>
-                    <span className="text-ink2">· {c.source}</span>
-                  </div>
-                  <div className="whitespace-pre-wrap text-sm text-ink">{c.text}</div>
-                  <div className="mt-1 text-xs text-ink2">
-                    {t('search.sources')}
-                    {c.revisionId
-                      ? `${c.revisionId}${c.page ? ` · p.${c.page}` : ''}${c.titlePath ? ` · ${c.titlePath}` : ''}`
-                      : t('search.noSource')}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
+              <div className="whitespace-pre-wrap text-sm text-ink">{r.text}</div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
