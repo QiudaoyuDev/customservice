@@ -13,6 +13,7 @@ public record AppProperties(
         @Valid Storage storage,
         @Valid Qr qr,
         @Valid Bootstrap bootstrap,
+        Llm llm,
         @NotBlank String embeddingUrl,
         @NotBlank String ocrUrl,
         @NotBlank String rerankUrl,
@@ -31,5 +32,8 @@ public record AppProperties(
     }
 
     public record Bootstrap(@NotBlank String adminEmail, @NotBlank String adminPassword, @NotBlank String tenantName) {
+    }
+
+    public record Llm(boolean enabled, String baseUrl, String apiKey, String model) {
     }
 }

@@ -87,6 +87,23 @@ public class ProductController {
         }
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public View update(@PathVariable UUID id, @Valid @RequestBody Create request) {
+        var product = products.findByIdAndTenantId(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Product not found"));
+        product.update(request.family(), request.model(), request.displayName(), request.region(), request.hardwareVersion(), request.firmwareMin(), request.firmwareMax());
+        return View.of(products.save(product));
+    }
+
+    @PostMapping("/{id}/archive")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void archive(@PathVariable UUID id) {
+        var product = products.findByIdAndTenantId(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Product not found"));
+        product.archive();
+        products.save(product);
+        log.info("Product archived id={} tenant={}", id, current.tenantId());
+    }
+
     @PostMapping("/{id}/aliases")
     @PreAuthorize("hasRole('ADMIN')")
     public void addAlias(@PathVariable UUID id, @Valid @RequestBody Alias request) {

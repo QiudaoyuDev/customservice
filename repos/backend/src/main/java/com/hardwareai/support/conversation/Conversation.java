@@ -30,16 +30,19 @@ class Conversation {
     private String currentNodeKey;
     @Column(name = "flow_failures")
     private int flowFailures;
+    @Column(name = "public_access_token_hash")
+    private String publicAccessTokenHash;
 
     protected Conversation() {
     }
 
-    Conversation(UUID tenant, UUID qr, String language, String region) {
+    Conversation(UUID tenant, UUID qr, String language, String region, String publicAccessTokenHash) {
         id = UUID.randomUUID();
         tenantId = tenant;
         qrBindingId = qr;
         this.language = language;
         this.region = region;
+        this.publicAccessTokenHash = publicAccessTokenHash;
         status = Status.OPEN;
     }
 
@@ -73,6 +76,10 @@ class Conversation {
 
     int flowFailures() {
         return flowFailures;
+    }
+
+    boolean authorizes(String tokenHash) {
+        return publicAccessTokenHash != null && publicAccessTokenHash.equals(tokenHash);
     }
 
     void startFlow(UUID flowId) {

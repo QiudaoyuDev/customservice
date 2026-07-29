@@ -32,26 +32,26 @@ class HandoffController {
     }
 
     @PostMapping("/public/handoffs")
-    View create(@Valid @RequestBody Create input) {
-        UUID tenant = conversations.tenantId(input.conversationId());
+    View create(@RequestHeader("X-Conversation-Token") String accessToken, @Valid @RequestBody Create input) {
+        UUID tenant = conversations.authorize(input.conversationId(), accessToken);
         var existing = requests.findByTenantIdAndIdempotencyKey(tenant, input.idempotencyKey());
         if (existing.isPresent()) {
             log.info("Handoff deduplicated conversation={} id={}", input.conversationId(), existing.get().id());
             return View.of(existing.get());
         }
-        var item = requests.save(new HandoffRequest(tenant, input.conversationId(), input.idempotencyKey(), input.reason(), input.summary(), input.contactAuthorized()));
+        var item = requests.save(new HandoffRequest(tenant, input.conversationId(), input.idempotencyKey(), input.reason(), input.summary(), input.contact(), input.contactAuthorized(), input.summary()));
         log.info("Handoff created id={} tenant={} conversation={}", item.id(), tenant, input.conversationId());
         return View.of(item);
     }
 
     @GetMapping("/api/handoffs")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPPORT_AGENT')")
     List<View> list() {
         return requests.findAllByTenantIdOrderByCreatedAtDesc(current.tenantId()).stream().map(View::of).toList();
     }
 
     @PostMapping("/api/handoffs/{id}/claim")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPPORT_AGENT')")
     void claim(@PathVariable UUID id) {
         var item = owned(id);
         item.claim(current.userId());
@@ -60,7 +60,7 @@ class HandoffController {
     }
 
     @PostMapping("/api/handoffs/{id}/close")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPPORT_AGENT')")
     void close(@PathVariable UUID id, @Valid @RequestBody Close input) {
         var item = owned(id);
         item.close(input.resolution());
@@ -75,16 +75,20 @@ class HandoffController {
     }
 
     record Create(@NotNull UUID conversationId, @NotBlank @Size(max = 160) String idempotencyKey,
-                  @NotBlank @Size(max = 300) String reason, @NotBlank @Size(max = 8000) String summary,
+                  @NotBlank @Size(max = 300) String reason, @NotBlank @Size(max = 8000) String summary, @Size(max = 300) String contact,
                   boolean contactAuthorized) {
     }
 
     record Close(@NotNull HandoffRequest.Resolution resolution) {
     }
 
-    record View(UUID id) {
+    record View(UUID id, UUID conversationId, String status, String reason, String summary, String contact,
+                boolean contactAuthorized, UUID assignedTo, String resolution, java.time.Instant createdAt,
+                java.time.Instant closedAt, String packageSnapshot) {
         static View of(HandoffRequest request) {
-            return new View(request.id());
+            return new View(request.id(), request.conversationId(), request.status().name(), request.reason(), request.summary(),
+                    request.contact(), request.contactAuthorized(), request.assignedTo(), request.resolution() == null ? null : request.resolution().name(),
+                    request.createdAt(), request.closedAt(), request.packageSnapshot());
         }
     }
 }

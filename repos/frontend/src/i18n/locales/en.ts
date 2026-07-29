@@ -69,6 +69,8 @@ const en = {
     emptyTitle: 'No products yet',
     emptyHint: 'Create the first model to bind QR codes and scoped knowledge.',
     create: 'Create',
+    actions: 'Actions',
+    archive: 'Archive',
   },
     flows: {
         title: 'Troubleshooting Flows',

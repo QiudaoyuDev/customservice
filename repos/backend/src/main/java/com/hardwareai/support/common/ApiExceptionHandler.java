@@ -7,6 +7,9 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.time.Instant;
 import java.util.Map;
@@ -35,6 +38,20 @@ public class ApiExceptionHandler {
     Map<String, Object> denied(AccessDeniedException e) {
         log.warn("Access denied: {}", e.getMessage());
         return body("FORBIDDEN", "You are not allowed to perform this action");
+    }
+
+    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentNotValidException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    Map<String, Object> malformed(Exception e) {
+        log.warn("Rejected malformed request: {}", e.getMessage());
+        return body("INVALID_REQUEST", "The request format or fields are invalid");
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    @ResponseStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+    Map<String, Object> media(HttpMediaTypeNotSupportedException e) {
+        log.warn("Rejected unsupported media type: {}", e.getContentType());
+        return body("UNSUPPORTED_MEDIA_TYPE", "The uploaded content type is not supported");
     }
 
     @ExceptionHandler(Exception.class)

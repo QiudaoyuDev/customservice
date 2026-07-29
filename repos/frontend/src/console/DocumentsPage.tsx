@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { api } from '../lib/api';
+import { api, apiUpload } from '../lib/api';
+import { Product } from '../lib/types';
 import { Button, Input, Textarea, Tag, Modal, StatusFlow, EmptyState } from '../components/ui';
 import { useTranslation, LANGS } from '../i18n';
 
@@ -8,7 +9,8 @@ export default function DocumentsPage() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
-  const [form, setForm] = useState({ title: '', language: 'en-US', region: 'EU', productModelId: '' });
+  const [form, setForm] = useState({ title: '', locale: 'en', region: 'EU', productModelId: '' });
+  const [products, setProducts] = useState<Product[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [preview, setPreview] = useState<any>(null);
@@ -16,8 +18,9 @@ export default function DocumentsPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const list = await api('/knowledge');
+      const [list, productList] = await Promise.all([api('/documents'), api('/products')]);
       setRows(list ?? []);
+      setProducts(productList ?? []);
     } finally {
       setLoading(false);
     }
@@ -30,18 +33,21 @@ export default function DocumentsPage() {
     if (!file) return;
     const data = new FormData();
     data.append('file', file);
-    data.append('meta', JSON.stringify(form));
-    const item = await api('/knowledge', { method: 'POST', body: data });
+    data.append('title', form.title);
+    data.append('locale', form.locale);
+    data.append('region', form.region);
+    data.append('productModelId', form.productModelId);
+    const item = await apiUpload('/documents', data);
     setShowUpload(false);
     setFile(null);
-    setForm({ title: '', language: 'en-US', region: 'EU', productModelId: '' });
+    setForm({ title: '', locale: 'en', region: 'EU', productModelId: '' });
     setPreviewId(item.id);
     setPreview(item);
     load();
   };
 
   const openPreview = async (id: string) => {
-    const item = await api(`/knowledge/${id}`);
+    const item = await api(`/documents/${id}/preview`);
     setPreviewId(id);
     setPreview(item);
   };
@@ -79,7 +85,7 @@ export default function DocumentsPage() {
               {rows.map((d) => (
                 <tr key={d.id} className="border-t border-line">
                   <td className="px-4 py-2">{d.title}</td>
-                  <td className="px-4 py-2">{d.language}</td>
+                  <td className="px-4 py-2">{d.locale}</td>
                   <td className="px-4 py-2">{d.region}</td>
                   <td className="px-4 py-2 font-mono text-xs">{d.productModelId || '—'}</td>
                   <td className="px-4 py-2">
@@ -121,8 +127,8 @@ export default function DocumentsPage() {
             <label className="mb-1 block text-xs text-ink2">{t('documents.language')}</label>
             <select
               className="w-full rounded border border-line px-3 py-2 text-sm"
-              value={form.language}
-              onChange={(e) => setForm({ ...form, language: e.target.value })}
+              value={form.locale}
+              onChange={(e) => setForm({ ...form, locale: e.target.value.split('-')[0] })}
             >
               {LANGS.map((l) => (
                 <option key={l} value={l}>
@@ -147,7 +153,10 @@ export default function DocumentsPage() {
           </div>
           <div>
             <label className="mb-1 block text-xs text-ink2">{t('documents.productModelId')}</label>
-            <Input value={form.productModelId} onChange={(e) => setForm({ ...form, productModelId: e.target.value })} placeholder={t('documents.productPlaceholder')} />
+            <select className="w-full rounded border border-line px-3 py-2 text-sm" value={form.productModelId} onChange={(e) => setForm({ ...form, productModelId: e.target.value })}>
+              <option value="">{t('documents.productPlaceholder')}</option>
+              {products.map((p) => <option key={p.id} value={p.id}>{p.displayName} · {p.model}</option>)}
+            </select>
           </div>
           <div>
             <label className="mb-1 block text-xs text-ink2">{t('documents.file')}</label>
@@ -160,11 +169,10 @@ export default function DocumentsPage() {
         <div className="space-y-3 text-sm">
           <div className="flex items-center gap-2 text-xs text-ink2">
             <StatusFlow status={preview?.status} />
-            {preview?.parsing && <span className="rounded bg-amber-100 px-2 py-0.5 text-amber-700">{t('documents.parsing')}</span>}
-            {preview?.chunks != null && <span>{t('documents.chunks', { count: preview.chunks })}</span>}
+            {preview?.chunks != null && <span>{t('documents.chunks', { count: preview.chunks.length })}</span>}
           </div>
           <div className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded border border-line p-3 text-xs text-ink">
-            {preview?.extractedText || t('documents.noContent')}
+            {preview?.text || t('documents.noContent')}
           </div>
         </div>
       </Modal>

@@ -10,7 +10,7 @@ export const clearToken = () => localStorage.removeItem(TOKEN_KEY);
 type Level = 'log' | 'warn' | 'error';
 
 function logApi(level: Level, msg: string, ...args: unknown[]) {
-    // 开发期始终输出；生产环境如不需要可在此加环境判断。
+    if (!import.meta.env.DEV) return;
     // eslint-disable-next-line no-console
     (console[level] ?? console.log).call(console, `[api] ${msg}`, ...args);
 }
@@ -76,13 +76,19 @@ export async function pub(path: string, init: RequestInit = {}): Promise<any> {
     );
 }
 
+/** 匿名端 multipart 请求，浏览器负责补充 boundary。 */
+export async function pubUpload(path: string, form: FormData, conversationToken?: string): Promise<any> {
+    return parse(await tracked('POST', `/public${path}`, {method: 'POST', headers: conversationToken ? {'X-Conversation-Token': conversationToken} : undefined, body: form}));
+}
+
 /** 终端用户流式回答（SSE）。解析后端 answer 事件，逐条回调。 */
 export async function streamAnswer(
     conversationId: string,
     onData: (a: any) => void,
+    conversationToken?: string,
 ): Promise<void> {
     const t0 = performance.now();
-    const res = await tracked('GET', `/public/conversations/${conversationId}/answers/stream`, {});
+    const res = await tracked('GET', `/public/conversations/${conversationId}/answers/stream`, {headers: conversationToken ? {'X-Conversation-Token': conversationToken} : undefined});
     if (!res.ok) {
         const requestId = res.headers.get('X-Request-Id');
         throw new Error(`流式回答失败 (${res.status})${requestId ? ` requestId=${requestId}` : ''}`);
@@ -115,8 +121,8 @@ export async function streamAnswer(
 }
 
 /** 终端用户非流式回答（流式失败时的回退）。 */
-export async function postAnswer(conversationId: string): Promise<any> {
-    return pub(`/conversations/${conversationId}/answers`, {method: 'POST'});
+export async function postAnswer(conversationId: string, conversationToken?: string): Promise<any> {
+    return pub(`/conversations/${conversationId}/answers`, {method: 'POST', headers: conversationToken ? {'X-Conversation-Token': conversationToken} : undefined});
 }
 
 /* ---------- 诊断流程（管理后台） ---------- */

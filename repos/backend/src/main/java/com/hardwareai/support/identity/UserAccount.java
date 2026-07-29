@@ -74,5 +74,6 @@ public class UserAccount {
         ADMIN,
         KNOWLEDGE_REVIEWER,
         ANALYST,
+        SUPPORT_AGENT,
     }
 }

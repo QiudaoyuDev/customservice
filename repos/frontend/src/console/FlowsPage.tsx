@@ -5,11 +5,14 @@ import { useTranslation, LANGS } from '../i18n';
 
 interface FlowNode {
   nodeKey: string;
-  type: string;
+  nodeType: string;
   prompt: string;
   expectedInput?: string;
   risk?: string;
-  branch?: any;
+  branchYes?: string;
+  branchNo?: string;
+  branchUnknown?: string;
+  branchNext?: string;
   sourceRefs?: string;
 }
 
@@ -22,7 +25,7 @@ export default function FlowsPage() {
   const [editing, setEditing] = useState<FlowNode | null>(null);
   const [showNewFlow, setShowNewFlow] = useState(false);
   const [showSim, setShowSim] = useState(false);
-  const [newFlow, setNewFlow] = useState({ title: '', triggerIntent: '', productModelId: '', region: 'EU', language: 'en-US' });
+  const [newFlow, setNewFlow] = useState({ title: '', triggerIntent: 'TROUBLESHOOTING', productModelId: '', region: 'EU', locale: 'en' });
   const [simLog, setSimLog] = useState<any[]>([]);
   const [simBusy, setSimBusy] = useState(false);
 
@@ -40,7 +43,7 @@ export default function FlowsPage() {
   };
   const loadDetail = async (id: string) => {
     const d = await api(`/flows/${id}`);
-    setDetail(d);
+    setDetail({...d.flow, nodes: d.nodes});
     setSelId(id);
     if (d?.nodes?.length) setEditing(d.nodes[0]);
     else setEditing(null);
@@ -55,7 +58,7 @@ export default function FlowsPage() {
 
   const saveNode = async () => {
     if (!detail || !editing) return;
-    const payload = { ...editing };
+    const payload = { ...editing, sourceRefs: editing.sourceRefs ? editing.sourceRefs.split(',').map((v) => v.trim()).filter(Boolean) : [] };
     if (!payload.nodeKey) payload.nodeKey = 'n' + Math.random().toString(36).slice(2, 8);
     await api(`/flows/${detail.id}/nodes`, { method: 'POST', body: JSON.stringify(payload) });
     loadDetail(detail.id);
@@ -71,8 +74,8 @@ export default function FlowsPage() {
     setSimBusy(true);
     setSimLog([]);
     try {
-      const r = await api(`/flows/${detail.id}/simulate`, { method: 'POST', body: JSON.stringify({ query: '设备无法启动' }) });
-      setSimLog(r?.trace ?? []);
+      const r = await api(`/flows/${detail.id}/simulate`, { method: 'POST' });
+      setSimLog(r?.transcript ?? []);
     } finally {
       setSimBusy(false);
     }
@@ -81,7 +84,7 @@ export default function FlowsPage() {
 
   const updateFlowStatus = async (status: string) => {
     if (!detail) return;
-    await api(`/flows/${detail.id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
+    await api(`/flows/${detail.id}/${status.toLowerCase()}`, { method: 'POST' });
     loadDetail(detail.id);
   };
 
@@ -162,18 +165,18 @@ export default function FlowsPage() {
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-ink">{n.nodeKey}</span>
-                          <Tag tone={n.risk === 'high' ? 'bad' : 'mute'}>{n.risk === 'high' ? t('flows.highRisk') : typeLabel(n.type)}</Tag>
+                          <Tag tone={n.risk === 'HIGH' ? 'bad' : 'mute'}>{n.risk === 'HIGH' ? t('flows.highRisk') : typeLabel(n.nodeType)}</Tag>
                         </div>
                         <div className="mt-1 line-clamp-2 text-xs text-ink2">{n.prompt || t('flows.noPrompt')}</div>
-                        {n.type === 'HUMAN' && <div className="mt-1 text-[10px] text-ink2">{t('flows.escalated')}</div>}
-                        {n.type === 'END' && <div className="mt-1 text-[10px] text-ink2">{t('flows.ended')}</div>}
+                        {n.nodeType === 'HUMAN_ESCALATION' && <div className="mt-1 text-[10px] text-ink2">{t('flows.escalated')}</div>}
+                        {n.nodeType === 'END' && <div className="mt-1 text-[10px] text-ink2">{t('flows.ended')}</div>}
                       </div>
                     ))}
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() =>
-                        setEditing({ nodeKey: '', type: 'AI', prompt: '', expectedInput: 'free', risk: 'low', branch: { yes: '', no: '', unknown: '', next: '' }, sourceRefs: '' })
+                        setEditing({ nodeKey: '', nodeType: 'QUESTION', prompt: '', expectedInput: 'yes_no_unknown', risk: 'LOW', branchYes: '', branchNo: '', branchUnknown: '', branchNext: '', sourceRefs: '' })
                       }
                     >
                       {t('flows.newNode')}
@@ -190,11 +193,11 @@ export default function FlowsPage() {
                           <label className="mb-1 block text-xs text-ink2">{t('flows.type')}</label>
                           <select
                             className="w-full rounded border border-line px-3 py-2 text-sm"
-                            value={editing.type}
-                            onChange={(e) => setEditing({ ...editing, type: e.target.value })}
+                            value={editing.nodeType}
+                            onChange={(e) => setEditing({ ...editing, nodeType: e.target.value })}
                           >
-                            <option value="AI">{t('flows.typeAI')}</option>
-                            <option value="HUMAN">{t('flows.typeHuman')}</option>
+                            <option value="QUESTION">{t('flows.typeAI')}</option>
+                            <option value="HUMAN_ESCALATION">{t('flows.typeHuman')}</option>
                             <option value="END">{t('flows.typeEnd')}</option>
                           </select>
                         </div>
@@ -209,41 +212,41 @@ export default function FlowsPage() {
                             value={editing.risk}
                             onChange={(e) => setEditing({ ...editing, risk: e.target.value })}
                           >
-                            <option value="low">{t('flows.riskLow')}</option>
-                            <option value="high">{t('flows.riskHigh')}</option>
+                            <option value="LOW">{t('flows.riskLow')}</option>
+                            <option value="HIGH">{t('flows.riskHigh')}</option>
                           </select>
                         </div>
-                        {editing.type === 'AI' && (
+                        {editing.nodeType !== 'END' && (
                           <div className="space-y-2">
                             <div>
                               <label className="mb-1 block text-xs text-ink2">{t('flows.branchYes')}</label>
                               <Input
-                                value={editing.branch?.yes}
-                                onChange={(e) => setEditing({ ...editing, branch: { ...editing.branch, yes: e.target.value } })}
+                                value={editing.branchYes ?? ''}
+                                onChange={(e) => setEditing({ ...editing, branchYes: e.target.value })}
                                 placeholder={t('flows.nextNodeKey')}
                               />
                             </div>
                             <div>
                               <label className="mb-1 block text-xs text-ink2">{t('flows.branchNo')}</label>
                               <Input
-                                value={editing.branch?.no}
-                                onChange={(e) => setEditing({ ...editing, branch: { ...editing.branch, no: e.target.value } })}
+                                value={editing.branchNo ?? ''}
+                                onChange={(e) => setEditing({ ...editing, branchNo: e.target.value })}
                                 placeholder={t('flows.nextNodeKey')}
                               />
                             </div>
                             <div>
                               <label className="mb-1 block text-xs text-ink2">{t('flows.branchUnknown')}</label>
                               <Input
-                                value={editing.branch?.unknown}
-                                onChange={(e) => setEditing({ ...editing, branch: { ...editing.branch, unknown: e.target.value } })}
+                                value={editing.branchUnknown ?? ''}
+                                onChange={(e) => setEditing({ ...editing, branchUnknown: e.target.value })}
                                 placeholder={t('flows.nextNodeKey')}
                               />
                             </div>
                             <div>
                               <label className="mb-1 block text-xs text-ink2">{t('flows.branchNext')}</label>
                               <Input
-                                value={editing.branch?.next}
-                                onChange={(e) => setEditing({ ...editing, branch: { ...editing.branch, next: e.target.value } })}
+                                value={editing.branchNext ?? ''}
+                                onChange={(e) => setEditing({ ...editing, branchNext: e.target.value })}
                                 placeholder={t('flows.nextNodeKey')}
                               />
                             </div>
@@ -289,7 +292,7 @@ export default function FlowsPage() {
               onClick={async () => {
                 await api('/flows', { method: 'POST', body: JSON.stringify(newFlow) });
                 setShowNewFlow(false);
-                setNewFlow({ title: '', triggerIntent: '', productModelId: '', region: 'EU', language: 'en-US' });
+                setNewFlow({ title: '', triggerIntent: 'TROUBLESHOOTING', productModelId: '', region: 'EU', locale: 'en' });
                 load();
               }}
             >
@@ -329,8 +332,8 @@ export default function FlowsPage() {
             <label className="mb-1 block text-xs text-ink2">{t('flows.language')}</label>
             <select
               className="w-full rounded border border-line px-3 py-2 text-sm"
-              value={newFlow.language}
-              onChange={(e) => setNewFlow({ ...newFlow, language: e.target.value })}
+              value={newFlow.locale}
+              onChange={(e) => setNewFlow({ ...newFlow, locale: e.target.value.split('-')[0] })}
             >
               {LANGS.map((l) => (
                 <option key={l} value={l}>

@@ -1,17 +1,16 @@
 import {useEffect, useRef, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import {useAuth} from '../lib/auth';
-import {pub} from '../lib/api';
+import {postAnswer, pub, pubUpload, streamAnswer} from '../lib/api';
 import {Button, Input, Modal, Textarea} from '../components/ui';
 import {langNames, LANGS, useTranslation} from '../i18n';
 
 function StepCard({m, onReply, t}: { m: any; onReply: (v: string) => void; t: (k: string, p?: any) => string }) {
-    const detail = m.detail ?? {};
-    const replies: string[] = detail.replies ?? [];
-    const sources: any[] = detail.sources ?? [];
-    const expected = detail.expectedInput;
-    const isLast = detail.isLast;
-    const risk = detail.risk;
+    const detail = m.flowControl ?? {};
+    const sources: string[] = m.citations ?? [];
+    const expected = m.expectedInput;
+    const isLast = detail.end;
+    const risk = m.risk?.toLowerCase();
     const yesNo = [
         {label: t('common.yes'), value: 'yes', tone: 'ok' as const},
         {label: t('common.no'), value: 'no', tone: 'bad' as const},
@@ -35,15 +34,13 @@ function StepCard({m, onReply, t}: { m: any; onReply: (v: string) => void; t: (k
             {risk === 'high' && <div
                 className="mb-2 inline-block rounded-md bg-red-100 px-2 py-0.5 text-xs font-bold text-red-600">{t('support.highRiskStep')}</div>}
             <div className="mb-1 text-sm font-bold text-ink">{t('support.stepLabel')}</div>
-            <div className="whitespace-pre-wrap text-[15px] leading-relaxed text-ink">{detail.prompt}</div>
+            <div className="whitespace-pre-wrap text-[15px] leading-relaxed text-ink">{m.content}</div>
             {sources.length > 0 && (
                 <div className="mt-2 text-xs text-ink2">
                     {t('support.sources')}
                     {sources.map((s, i) => (
                         <span key={i} className="mr-2">
-              <a className="text-ai underline" href={s.url} target="_blank" rel="noreferrer">
-                {s.title}
-              </a>
+              <span className="text-ai">{s}</span>
             </span>
                     ))}
                 </div>
@@ -90,6 +87,7 @@ export default function SupportPage() {
     const {t, i18n} = useTranslation();
     const [language, setLanguage] = useState(i18n.language);
     const [convId, setConvId] = useState('');
+    const [conversationToken, setConversationToken] = useState('');
     const [region, setRegion] = useState('');
     const [messages, setMessages] = useState<any[]>([]);
     const [input, setInput] = useState('');
@@ -113,12 +111,14 @@ export default function SupportPage() {
         let cancelled = false;
         (async () => {
             setConvId('');
+            setConversationToken('');
             setMessages([]);
             setNotice(t('support.identifying'));
             try {
                 const item = await pub('/conversations', {method: 'POST', body: JSON.stringify({qrToken, language})});
                 if (cancelled) return;
                 setConvId(item.id);
+                setConversationToken(item.conversationAccessToken);
                 setRegion(item.region ?? '');
                 setNotice(t('support.identified'));
             } catch (e) {
@@ -149,16 +149,25 @@ export default function SupportPage() {
             createdAt: new Date().toISOString()
         }]);
         try {
-            const item = await pub(`/conversations/${convId}/messages`, {
+            await pub(`/conversations/${convId}/messages`, {
                 method: 'POST',
-                body: JSON.stringify({content: text})
+                headers: {'X-Conversation-Token': conversationToken}, body: JSON.stringify({content: text})
             });
-            setMessages((m) => m.filter((x) => x.id !== loadingId).concat(item));
+            await requestAnswer(loadingId);
         } catch (e) {
             setMessages((m) => m.filter((x) => x.id !== loadingId));
             setNotice(t('support.sendFailed', {msg: (e as Error).message}));
         } finally {
             setBusy(false);
+        }
+    };
+
+    const requestAnswer = async (loadingId: number) => {
+        try {
+            await streamAnswer(convId, (answer) => setMessages((m) => m.filter((x) => x.id !== loadingId).concat({...answer, role: 'assistant'})), conversationToken);
+        } catch {
+            const answer = await postAnswer(convId, conversationToken);
+            setMessages((m) => m.filter((x) => x.id !== loadingId).concat({...answer, role: 'assistant'}));
         }
     };
 
@@ -175,8 +184,9 @@ export default function SupportPage() {
         try {
             const data = new FormData();
             data.append('file', file);
-            const item = await pub(`/conversations/${convId}/messages/image`, {method: 'POST', body: data});
-            setMessages((m) => m.filter((x) => x.id !== loadingId).concat(item));
+            data.append('content', input.trim() || t('support.image'));
+            await pubUpload(`/conversations/${convId}/attachments`, data, conversationToken);
+            await requestAnswer(loadingId);
         } catch (e) {
             setMessages((m) => m.filter((x) => x.id !== loadingId));
             setNotice(t('support.imageFailed', {msg: (e as Error).message}));
@@ -197,11 +207,11 @@ export default function SupportPage() {
             createdAt: new Date().toISOString()
         }]);
         try {
-            const item = await pub(`/conversations/${convId}/messages`, {
+            await pub(`/conversations/${convId}/messages`, {
                 method: 'POST',
-                body: JSON.stringify({content: v})
+                headers: {'X-Conversation-Token': conversationToken}, body: JSON.stringify({content: v})
             });
-            setMessages((m) => m.filter((x) => x.id !== loadingId).concat(item));
+            await requestAnswer(loadingId);
         } catch (e) {
             setMessages((m) => m.filter((x) => x.id !== loadingId));
             setNotice(t('support.sendFailed', {msg: (e as Error).message}));
@@ -213,9 +223,9 @@ export default function SupportPage() {
     const submitHandoff = async () => {
         if (!convId || !handoffAgree) return;
         try {
-            const item = await pub(`/conversations/${convId}/handoff`, {
+            const item = await pub('/handoffs', {
                 method: 'POST',
-                body: JSON.stringify({reason: handoffReason, contact: handoffContact})
+                headers: {'X-Conversation-Token': conversationToken}, body: JSON.stringify({conversationId: convId, idempotencyKey: crypto.randomUUID(), reason: handoffReason || 'user-request', summary: handoffReason || 'User requested human support', contact: handoffContact || null, contactAuthorized: handoffAgree})
             });
             setHandoffId(item.id ?? '');
             setNotice(t('support.handoffCreated', {id: item.id ?? ''}));
@@ -227,12 +237,10 @@ export default function SupportPage() {
     const changeProduct = async () => {
         if (!convId || !changeProductId.trim()) return;
         try {
-            const item = await pub(`/conversations/${convId}/context`, {
-                method: 'PUT',
-                body: JSON.stringify({productModelId: changeProductId.trim()})
+            await pub(`/conversations/${convId}/product-context`, {
+                method: 'POST',
+                headers: {'X-Conversation-Token': conversationToken}, body: JSON.stringify({productModelId: changeProductId.trim()})
             });
-            setConvId(item.id);
-            setRegion(item.region ?? '');
             setShowChange(false);
             setChangeProductId('');
             setMessages([]);
@@ -244,7 +252,7 @@ export default function SupportPage() {
 
     const feedback = (positive: boolean) => {
         if (!convId) return;
-        pub(`/conversations/${convId}/feedback`, {method: 'POST', body: JSON.stringify({positive})}).catch(() => {
+        pub(`/conversations/${convId}/feedback`, {method: 'POST', headers: {'X-Conversation-Token': conversationToken}, body: JSON.stringify({resolved: positive, comment: ''})}).catch(() => {
         });
         setNotice(positive ? t('support.feedbackThanks') : t('support.feedbackRecorded'));
     };
@@ -252,7 +260,7 @@ export default function SupportPage() {
     const loadReplays = async () => {
         if (!convId) return;
         try {
-            const list = await pub(`/conversations/${convId}/replays`);
+            const list = await pub(`/conversations/${convId}/messages`, {headers: {'X-Conversation-Token': conversationToken}});
             setReplays(list ?? []);
             setHistoryOpen(true);
         } catch {
@@ -284,8 +292,7 @@ export default function SupportPage() {
                 </div>
             );
         if (intent === 'TROUBLESHOOTING') {
-            const detail = m.detail ?? {};
-            if (detail.prompt) return <StepCard m={m} onReply={reply} t={t}/>;
+            if (m.flowControl) return <StepCard m={m} onReply={reply} t={t}/>;
             return (
                 <div className="rounded-2xl border border-line bg-white p-4">
                     <div className="mb-1 text-sm font-bold text-ink">{t('support.stepLabel')}</div>
@@ -306,9 +313,8 @@ export default function SupportPage() {
         );
     };
 
-    const flowStep = messages.filter((m) => m.intent === 'TROUBLESHOOTING' && m.detail?.prompt).length;
-    const totalStepMsg = messages.find((m) => m.intent === 'INFO' && m.detail?.totalStep);
-    const totalStep = totalStepMsg ? totalStepMsg.detail.totalStep : null;
+    const flowStep = messages.filter((m) => m.intent === 'TROUBLESHOOTING' && m.flowControl).length;
+    const totalStep = [...messages].reverse().find((m: any) => m.flowControl)?.flowControl?.totalSteps ?? null;
 
     const onLangChange = (l: string) => {
         setLanguage(l);

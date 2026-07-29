@@ -63,6 +63,7 @@ public class TroubleshootController {
     @PreAuthorize("hasRole('ADMIN')")
     public void update(@PathVariable UUID id, @Valid @RequestBody UpdateMeta u) {
         var f = flows.findByIdAndTenantId(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Flow not found"));
+        editable(f);
         f.update(u.title(), u.triggerIntent(), u.productModelId(), u.region(), u.locale(), u.firmwareMin(), u.firmwareMax());
         flows.save(f);
     }
@@ -70,7 +71,7 @@ public class TroubleshootController {
     @PostMapping("/{id}/nodes")
     @PreAuthorize("hasRole('ADMIN')")
     public NodeView addNode(@PathVariable UUID id, @Valid @RequestBody NodeCreate c) {
-        flows.findByIdAndTenantId(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Flow not found"));
+        editable(owned(id));
         if (nodes.findByFlowIdAndNodeKey(id, c.nodeKey()).isPresent())
             throw new IllegalStateException("nodeKey already exists in this flow");
         var n = new TroubleshootNode(id, c.nodeKey());
@@ -81,6 +82,7 @@ public class TroubleshootController {
     @PutMapping("/{id}/nodes/{key}")
     @PreAuthorize("hasRole('ADMIN')")
     public void updateNode(@PathVariable UUID id, @PathVariable String key, @Valid @RequestBody NodeUpdate u) {
+        editable(owned(id));
         var n = nodes.findByFlowIdAndNodeKey(id, key).orElseThrow(() -> new IllegalArgumentException("Node not found"));
         n.apply(u.nodeType(), u.prompt(), u.risk(), u.expectedInput(), u.branchYes(), u.branchNo(), u.branchUnknown(), u.branchNext(), u.safetyStop(), u.sourceRefs());
         nodes.save(n);
@@ -89,6 +91,7 @@ public class TroubleshootController {
     @DeleteMapping("/{id}/nodes/{key}")
     @PreAuthorize("hasRole('ADMIN')")
     public void deleteNode(@PathVariable UUID id, @PathVariable String key) {
+        editable(owned(id));
         nodes.deleteByFlowIdAndNodeKey(id, key);
         nodes.findAllByFlowIdOrderByOrderIndexAsc(id).forEach(n -> {
             if (n.branchYes() != null && n.branchYes().equals(key)
@@ -123,6 +126,7 @@ public class TroubleshootController {
     @PreAuthorize("hasAnyRole('ADMIN','KNOWLEDGE_REVIEWER')")
     public void publish(@PathVariable UUID id) {
         var f = owned(id);
+        validateForPublish(f);
         f.publish(current.userId());
         flows.save(f);
         log.info("Flow published id={} by={}", id, current.userId());
@@ -155,6 +159,24 @@ public class TroubleshootController {
 
     private TroubleshootFlow owned(UUID id) {
         return flows.findByIdAndTenantId(id, current.tenantId()).orElseThrow(() -> new IllegalArgumentException("Flow not found"));
+    }
+
+    private void editable(TroubleshootFlow flow) {
+        if (flow.status() != TroubleshootFlow.Status.DRAFT)
+            throw new IllegalStateException("Only draft flows can be edited; create a new draft for published content");
+    }
+
+    private void validateForPublish(TroubleshootFlow flow) {
+        var flowNodes = nodes.findAllByFlowIdOrderByOrderIndexAsc(flow.id());
+        if (flowNodes.isEmpty()) throw new IllegalStateException("A published flow requires at least one node");
+        var keys = flowNodes.stream().map(TroubleshootNode::nodeKey).collect(Collectors.toSet());
+        for (var node : flowNodes) {
+            for (String branch : new String[]{node.branchYes(), node.branchNo(), node.branchUnknown(), node.branchNext()}) {
+                if (branch != null && !keys.contains(branch)) throw new IllegalStateException("Flow branch points to an unknown node: " + branch);
+            }
+        }
+        boolean terminal = flowNodes.stream().anyMatch(n -> n.nodeType() == NodeType.END || n.nodeType() == NodeType.HUMAN_ESCALATION || n.risk() == Risk.HIGH || n.safetyStop());
+        if (!terminal) throw new IllegalStateException("A published flow requires an end or human escalation path");
     }
 
     private SimulateResponse simulate(TroubleshootFlow flow, List<TroubleshootNode> ns) {

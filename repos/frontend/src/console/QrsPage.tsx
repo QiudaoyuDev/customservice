@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { Product, QrBinding } from '../lib/types';
 import { Button, Input, Modal, Tag, EmptyState } from '../components/ui';
 import { useTranslation } from '../i18n';
 
 export default function QrsPage() {
   const { t } = useTranslation();
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState<QrBinding[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [showToken, setShowToken] = useState<any>(null);
-  const [form, setForm] = useState({ productModelId: '', batch: '', serial: '' });
+  const [form, setForm] = useState({ productModelId: '', batch: '', serialNumber: '' });
   const [copied, setCopied] = useState<string | null>(null);
   const [revokeId, setRevokeId] = useState<string | null>(null);
   const [revokeReason, setRevokeReason] = useState('');
@@ -17,8 +19,9 @@ export default function QrsPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const list = await api('/qrs');
+      const [list, productList] = await Promise.all([api('/qr-bindings'), api('/products')]);
       setRows(list ?? []);
+      setProducts(productList ?? []);
     } finally {
       setLoading(false);
     }
@@ -28,16 +31,16 @@ export default function QrsPage() {
   }, []);
 
   const create = async () => {
-    const item = await api('/qrs', { method: 'POST', body: JSON.stringify(form) });
+    const item = await api('/qr-bindings', { method: 'POST', body: JSON.stringify(form) });
     setShowNew(false);
-    setForm({ productModelId: '', batch: '', serial: '' });
+    setForm({ productModelId: '', batch: '', serialNumber: '' });
     setShowToken(item);
     load();
   };
 
   const doRevoke = async () => {
     if (!revokeId) return;
-    await api(`/qrs/${revokeId}/revoke`, { method: 'POST', body: JSON.stringify({ reason: revokeReason }) });
+    await api(`/qr-bindings/${revokeId}/revoke`, { method: 'POST', body: JSON.stringify({ reason: revokeReason }) });
     setRevokeId(null);
     setRevokeReason('');
     load();
@@ -83,11 +86,11 @@ export default function QrsPage() {
                 <tr key={q.id} className="border-t border-line">
                   <td className="px-4 py-2 font-mono text-xs">{q.productModelId}</td>
                   <td className="px-4 py-2">{q.batch || t('qrs.noBatch')}</td>
-                  <td className="px-4 py-2">{q.serial || t('qrs.noSerial')}</td>
+                  <td className="px-4 py-2">{q.serialNumber || t('qrs.noSerial')}</td>
                   <td className="px-4 py-2">
                     <Tag tone={q.status === 'ACTIVE' ? 'ok' : 'warn'}>{q.status === 'ACTIVE' ? t('qrs.active') : t('qrs.revoked')}</Tag>
                   </td>
-                  <td className="px-4 py-2 text-xs text-ink2">{new Date(q.createdAt).toLocaleString()}</td>
+                  <td className="px-4 py-2 text-xs text-ink2">{q.expiresAt ? new Date(q.expiresAt).toLocaleString() : '—'}</td>
                   <td className="px-4 py-2">
                     <button className="text-ai hover:underline" onClick={() => { setRevokeId(q.id); setRevokeReason(''); }}>
                       {t('qrs.revoke')}
@@ -118,7 +121,10 @@ export default function QrsPage() {
         <div className="space-y-3">
           <div>
             <label className="mb-1 block text-xs text-ink2">{t('qrs.productModelId')}</label>
-            <Input value={form.productModelId} onChange={(e) => setForm({ ...form, productModelId: e.target.value })} />
+            <select className="w-full rounded border border-line px-3 py-2 text-sm" value={form.productModelId} onChange={(e) => setForm({ ...form, productModelId: e.target.value })}>
+              <option value="">{t('common.select')}</option>
+              {products.map((p) => <option key={p.id} value={p.id}>{p.displayName} · {p.model}</option>)}
+            </select>
           </div>
           <div>
             <label className="mb-1 block text-xs text-ink2">{t('qrs.batch')}</label>
@@ -126,7 +132,7 @@ export default function QrsPage() {
           </div>
           <div>
             <label className="mb-1 block text-xs text-ink2">{t('qrs.serial')}</label>
-            <Input value={form.serial} onChange={(e) => setForm({ ...form, serial: e.target.value })} />
+            <Input value={form.serialNumber} onChange={(e) => setForm({ ...form, serialNumber: e.target.value })} />
           </div>
         </div>
       </Modal>

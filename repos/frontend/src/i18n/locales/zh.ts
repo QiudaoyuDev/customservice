@@ -69,6 +69,8 @@ const zh = {
     emptyTitle: '尚无产品',
     emptyHint: '创建首个型号后，即可绑定二维码与限定知识适用范围。',
     create: '创建',
+    actions: '操作',
+    archive: '归档',
   },
     flows: {
         title: '诊断流程',

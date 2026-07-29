@@ -30,6 +30,11 @@ export default function ProductsPage() {
     load();
   };
 
+  const archive = async (id: string) => {
+    await api(`/products/${id}/archive`, {method: 'POST'});
+    load();
+  };
+
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
@@ -57,6 +62,7 @@ export default function ProductsPage() {
                 <th className="px-4 py-2 text-left">{t('products.region')}</th>
                 <th className="px-4 py-2 text-left">{t('products.hardwareVersion')}</th>
                 <th className="px-4 py-2 text-left">{t('products.firmwareRange')}</th>
+                <th className="px-4 py-2 text-left">{t('products.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -69,6 +75,9 @@ export default function ProductsPage() {
                   <td className="px-4 py-2">{p.hardwareVersion || t('products.allHardware')}</td>
                   <td className="px-4 py-2">
                     {(p.firmwareMin || t('products.anyFirmware'))} ~ {p.firmwareMax || t('products.anyFirmware')}
+                  </td>
+                  <td className="px-4 py-2">
+                    {p.status === 'ACTIVE' && <button className="text-xs text-red-600 hover:underline" onClick={() => archive(p.id)}>{t('products.archive')}</button>}
                   </td>
                 </tr>
               ))}

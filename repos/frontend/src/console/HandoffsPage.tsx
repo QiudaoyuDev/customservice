@@ -56,15 +56,15 @@ export default function HandoffsPage() {
             <div key={h.id} className="rounded-xl border border-line bg-white p-4">
               <div className="mb-2 flex items-center justify-between">
                 <span className="font-mono text-xs text-ink2">#{h.id.slice(0, 8)}</span>
-                <Tag tone={h.status === 'closed' ? 'mute' : h.status === 'in_progress' ? 'ai' : 'warn'}>{statusLabel(h.status)}</Tag>
+                <Tag tone={h.status === 'CLOSED' ? 'mute' : h.status === 'IN_PROGRESS' ? 'ai' : 'warn'}>{statusLabel(h.status.toLowerCase())}</Tag>
               </div>
-              <div className="text-sm text-ink">{t('handoffs.session', { id: h.id })}</div>
+              <div className="text-sm text-ink">{h.summary || t('handoffs.session', { id: h.conversationId })}</div>
               <div className="mt-1 text-xs text-ink2">
-                {t('handoffs.trigger')}：{h.trigger}
+                {t('handoffs.trigger')}：{h.reason}
               </div>
               <div className="mt-2 flex gap-2">
-                {h.status !== 'closed' && (
-                  <Button size="sm" variant={h.status === 'new' ? 'ai' : 'ghost'} disabled={h.status !== 'new'} onClick={() => claim(h.id)}>
+                {h.status !== 'CLOSED' && (
+                  <Button size="sm" variant={h.status === 'NEW' ? 'ai' : 'ghost'} disabled={h.status !== 'NEW'} onClick={() => claim(h.id)}>
                     {t('handoffs.claim')}
                   </Button>
                 )}
@@ -111,7 +111,7 @@ export default function HandoffsPage() {
           </div>
           <div>
             <span className="text-ink2">{t('handoffs.trigger')}：</span>
-            {sel?.trigger}
+            {sel?.reason}
           </div>
           <div>
             <label className="mb-1 block text-xs text-ink2">{t('handoffs.resolution')}</label>

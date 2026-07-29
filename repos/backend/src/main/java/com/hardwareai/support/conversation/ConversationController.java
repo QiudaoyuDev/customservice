@@ -4,8 +4,10 @@ import com.hardwareai.support.handoff.HandoffRepository;
 import com.hardwareai.support.handoff.HandoffRequest;
 import com.hardwareai.support.knowledge.EvidenceService;
 import com.hardwareai.support.knowledge.ObjectStorage;
+import com.hardwareai.support.config.AppProperties;
 import com.hardwareai.support.llm.Intent;
 import com.hardwareai.support.llm.IntentClassifier;
+import com.hardwareai.support.llm.OpenAiCompatibleProvider;
 import com.hardwareai.support.product.ProductRepository;
 import com.hardwareai.support.qr.QrBinding;
 import com.hardwareai.support.qr.QrBindingRepository;
@@ -49,8 +51,10 @@ class ConversationController {
     private final TroubleshootStateMachine machine;
     private final HandoffRepository handoffs;
     private final MessageSource messageSource;
+    private final AppProperties config;
+    private final OpenAiCompatibleProvider llm;
 
-    ConversationController(QrBindingRepository bindings, ProductRepository products, ConversationRepository conversations, ConversationProductContextRepository contexts, ConversationMessageRepository messages, MessageAttachmentRepository attachments, ConversationFeedbackRepository feedback, ObjectStorage storage, IntentClassifier intents, EvidenceService evidence, TroubleshootFlowRepository flows, TroubleshootNodeRepository nodes, TroubleshootStateMachine machine, HandoffRepository handoffs, MessageSource messageSource) {
+    ConversationController(QrBindingRepository bindings, ProductRepository products, ConversationRepository conversations, ConversationProductContextRepository contexts, ConversationMessageRepository messages, MessageAttachmentRepository attachments, ConversationFeedbackRepository feedback, ObjectStorage storage, IntentClassifier intents, EvidenceService evidence, TroubleshootFlowRepository flows, TroubleshootNodeRepository nodes, TroubleshootStateMachine machine, HandoffRepository handoffs, MessageSource messageSource, AppProperties config, OpenAiCompatibleProvider llm) {
         this.bindings = bindings;
         this.products = products;
         this.conversations = conversations;
@@ -66,6 +70,8 @@ class ConversationController {
         this.machine = machine;
         this.handoffs = handoffs;
         this.messageSource = messageSource;
+        this.config = config;
+        this.llm = llm;
     }
 
     /**
@@ -91,23 +97,26 @@ class ConversationController {
     public View create(@Valid @RequestBody Create request) {
         var binding = bindings.findByTokenHash(hash(request.qrToken())).filter(QrBinding::valid).orElseThrow(() -> new IllegalArgumentException("QR token is invalid, revoked, or expired"));
         var product = products.findById(binding.productModelId()).orElseThrow(() -> new IllegalArgumentException("Product is unavailable"));
-        var conversation = conversations.save(new Conversation(binding.tenantId(), binding.id(), request.language(), product.region()));
+        String accessToken = UUID.randomUUID() + "." + UUID.randomUUID();
+        var conversation = conversations.save(new Conversation(binding.tenantId(), binding.id(), request.language(), product.region(), hash(accessToken)));
         contexts.save(new ConversationProductContext(conversation.id(), binding.productModelId(), request.hardwareVersion(), request.firmwareVersion(), "QR"));
         log.info("Conversation created id={} tenant={} product={} language={} region={}", conversation.id(), binding.tenantId(), binding.productModelId(), request.language(), product.region());
-        return new View(conversation.id(), binding.productModelId(), request.language(), product.region());
+        return new View(conversation.id(), binding.productModelId(), request.language(), product.region(), accessToken);
     }
 
     @PostMapping("/{id}/messages")
-    public MessageView send(@PathVariable UUID id, @Valid @RequestBody Send request) {
+    public MessageView send(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken, @Valid @RequestBody Send request) {
         var conversation = conversations.findById(id).filter(c -> c.status() == Conversation.Status.OPEN).orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
+        authorize(conversation, accessToken);
         var message = messages.save(new ConversationMessage(conversation.id(), request.content(), request.errorCode()));
         log.debug("Message received conversation={} errorCode={} contentLen={}", id, request.errorCode(), request.content().length());
         return MessageView.of(message);
     }
 
     @PostMapping("/{id}/product-context")
-    public void changeProduct(@PathVariable UUID id, @Valid @RequestBody ChangeProduct request) {
+    public void changeProduct(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken, @Valid @RequestBody ChangeProduct request) {
         var conversation = conversations.findById(id).filter(c -> c.status() == Conversation.Status.OPEN).orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
+        authorize(conversation, accessToken);
         products.findByIdAndTenantId(request.productModelId(), conversation.tenantId()).orElseThrow(() -> new IllegalArgumentException("Product is unavailable"));
         contexts.findAllByConversationIdAndActiveTrue(id).forEach(context -> {
             context.close();
@@ -119,10 +128,11 @@ class ConversationController {
     }
 
     @PostMapping(value = "/{id}/attachments", consumes = "multipart/form-data")
-    public AttachmentView uploadAttachment(@PathVariable UUID id, @RequestPart @NotBlank @Size(max = 4000) String content, @RequestPart(required = false) @Size(max = 100) String errorCode, @RequestPart MultipartFile file) {
-        if (file.isEmpty() || file.getSize() > 10 * 1024 * 1024 || !Set.of("image/png", "image/jpeg").contains(file.getContentType()))
+    public AttachmentView uploadAttachment(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken, @RequestPart @NotBlank @Size(max = 4000) String content, @RequestPart(required = false) @Size(max = 100) String errorCode, @RequestPart MultipartFile file) {
+        if (file.isEmpty() || file.getSize() > 10 * 1024 * 1024 || !Set.of("image/png", "image/jpeg").contains(file.getContentType()) || !validImageSignature(file))
             throw new IllegalArgumentException("Only PNG or JPEG up to 10 MiB is supported");
         var conversation = conversations.findById(id).filter(c -> c.status() == Conversation.Status.OPEN).orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
+        authorize(conversation, accessToken);
         var message = messages.save(new ConversationMessage(conversation.id(), content, errorCode));
         String key = conversation.tenantId() + "/conversations/" + id + "/" + UUID.randomUUID();
         storage.put(key, file);
@@ -131,19 +141,23 @@ class ConversationController {
     }
 
     @PostMapping("/{id}/feedback")
-    public void submitFeedback(@PathVariable UUID id, @Valid @RequestBody Feedback request) {
-        conversations.findById(id).orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
+    public void submitFeedback(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken, @Valid @RequestBody Feedback request) {
+        var conversation = conversations.findById(id).orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
+        authorize(conversation, accessToken);
         feedback.save(new ConversationFeedback(id, request.resolved(), request.comment()));
     }
 
     @GetMapping("/{id}/messages")
-    public List<MessageView> history(@PathVariable UUID id) {
+    public List<MessageView> history(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken) {
+        var conversation = conversations.findById(id).orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
+        authorize(conversation, accessToken);
         return messages.findAllByConversationIdOrderByCreatedAtAsc(id).stream().map(MessageView::of).toList();
     }
 
     @PostMapping("/{id}/answers")
-    public Answer answer(@PathVariable UUID id) {
+    public Answer answer(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken) {
         var conversation = conversations.findById(id).filter(c -> c.status() == Conversation.Status.OPEN).orElseThrow(() -> new IllegalArgumentException("Conversation is unavailable"));
+        authorize(conversation, accessToken);
         var history = messages.findAllByConversationIdOrderByCreatedAtAsc(id);
         if (history.isEmpty()) throw new IllegalArgumentException("A user message is required");
         Intent intent = intents.classify(history.getLast().content());
@@ -167,15 +181,16 @@ class ConversationController {
             log.info("No evidence found conversation={} intent={} -> suggesting human/error-code", id, intent);
             return new Answer(intent, msg(conversation.language(), "answer.noKnowledge"), List.of(), null, null, null);
         }
-        log.info("Evidence answer conversation={} intent={} citations={}", id, intent, citations.size());
-        return new Answer(intent, citations.getFirst().text(), citations.stream().map(c -> c.chunkId().toString()).toList(), null, null, null);
+        String content = groundedAnswer(history.getLast().content(), citations);
+        log.info("Evidence answer conversation={} intent={} citations={} llmEnabled={}", id, intent, citations.size(), config.llm().enabled());
+        return new Answer(intent, content, citations.stream().map(c -> c.source() + "#" + c.chunkId()).toList(), null, null, null);
     }
 
     @GetMapping(value = "/{id}/answers/stream", produces = "text/event-stream")
-    public SseEmitter stream(@PathVariable UUID id) {
+    public SseEmitter stream(@PathVariable UUID id, @RequestHeader("X-Conversation-Token") String accessToken) {
         var emitter = new SseEmitter(30_000L);
         try {
-            var answer = answer(id);
+            var answer = answer(id, accessToken);
             emitter.send(SseEmitter.event().name("answer").data(answer));
             emitter.complete();
         } catch (Exception e) {
@@ -207,13 +222,7 @@ class ConversationController {
             var t = machine.next(current.nodeType(), current.risk(), reply, yes, no, current.branchUnknown(), failures);
             log.info("Flow step conversation={} flow={} fromNode={} reply={} failures={} -> nextNode={} escalated={}",
                     conversation.id(), flow.id(), current.nodeKey(), reply, failures, t.nextNodeKey(), t.escalated());
-            if (t.escalated()) {
-                var handoff = handoffs.save(new HandoffRequest(conversation.tenantId(), conversation.id(), "flow-" + UUID.randomUUID(), msg(conversation.language(), "handoff.title", flow.title()), msg(conversation.language(), "handoff.desc"), true));
-                conversation.clearFlow();
-                conversations.save(conversation);
-                log.warn("Flow escalated to human conversation={} flow={} handoff={}", conversation.id(), flow.id(), handoff.id());
-                return new Answer(Intent.HUMAN_REQUEST, msg(conversation.language(), "flow.escalated", handoff.id()), List.of(), null, null, null);
-            }
+            if (t.escalated()) return escalate(conversation, flow);
             node = byKey.get(t.nextNodeKey());
             if (node == null) {
                 conversation.clearFlow();
@@ -224,6 +233,8 @@ class ConversationController {
             conversation.setNode(node.nodeKey(), failures);
             conversations.save(conversation);
         }
+        if (node.nodeType() == TroubleshootTypes.NodeType.HUMAN_ESCALATION || node.safetyStop() || node.risk() == TroubleshootTypes.Risk.HIGH)
+            return escalate(conversation, flow);
         boolean end = node.nodeType() == TroubleshootTypes.NodeType.END;
         var path = pathTo(nodeList, byKey, node.nodeKey());
         var fc = new FlowControl(flow.id(), node.nodeKey(), node.nodeType().name(), node.expectedInput(), node.risk().name(), path, nodeList.size(), end, false);
@@ -267,6 +278,47 @@ class ConversationController {
         return false;
     }
 
+    private String groundedAnswer(String question, List<EvidenceService.Evidence> citations) {
+        if (!config.llm().enabled()) return citations.getFirst().text();
+        if (config.llm().baseUrl() == null || config.llm().apiKey() == null || config.llm().model() == null
+                || config.llm().baseUrl().isBlank() || config.llm().apiKey().isBlank() || config.llm().model().isBlank())
+            return citations.getFirst().text();
+        String evidenceText = citations.stream().map(c -> "[" + c.source() + "] " + c.text()).collect(Collectors.joining("\n\n"));
+        try {
+            return llm.complete(config.llm().baseUrl(), config.llm().apiKey(), config.llm().model(),
+                    "Answer only from the supplied product-support evidence. If it is insufficient, say so and recommend human support.",
+                    "Question: " + question + "\n\nEvidence:\n" + evidenceText);
+        } catch (Exception e) {
+            log.warn("LLM unavailable; returning cited source extract: {}", e.getMessage());
+            return citations.getFirst().text();
+        }
+    }
+
+    private Answer escalate(Conversation conversation, TroubleshootFlow flow) {
+        var handoff = handoffs.save(new HandoffRequest(conversation.tenantId(), conversation.id(), "flow-" + UUID.randomUUID(),
+                msg(conversation.language(), "handoff.title", flow.title()), msg(conversation.language(), "handoff.desc"), true));
+        conversation.clearFlow();
+        conversations.save(conversation);
+        log.warn("Flow escalated to human conversation={} flow={} handoff={}", conversation.id(), flow.id(), handoff.id());
+        return new Answer(Intent.HUMAN_REQUEST, msg(conversation.language(), "flow.escalated", handoff.id()), List.of(), null, null, null);
+    }
+
+    private void authorize(Conversation conversation, String accessToken) {
+        if (accessToken == null || !conversation.authorizes(hash(accessToken)))
+            throw new IllegalArgumentException("Conversation access is invalid");
+    }
+
+    private boolean validImageSignature(MultipartFile file) {
+        try {
+            byte[] bytes = file.getInputStream().readNBytes(12);
+            boolean png = bytes.length >= 8 && bytes[0] == (byte) 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4e && bytes[3] == 0x47;
+            boolean jpeg = bytes.length >= 3 && bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xd8 && bytes[2] == (byte) 0xff;
+            return "image/png".equals(file.getContentType()) ? png : jpeg;
+        } catch (java.io.IOException e) {
+            return false;
+        }
+    }
+
     private String hash(String value) {
         try {
             return java.util.HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
@@ -300,7 +352,7 @@ class ConversationController {
                        List<String> path, int totalSteps, boolean end, boolean escalated) {
     }
 
-    record View(UUID id, UUID productModelId, String language, String region) {
+    record View(UUID id, UUID productModelId, String language, String region, String conversationAccessToken) {
     }
 
     record MessageView(UUID id, String content, String errorCode, Instant createdAt) {

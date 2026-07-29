@@ -94,6 +94,18 @@ public class ProductModel {
         return firmwareMax;
     }
 
+    void update(String family, String model, String displayName, String region, String hardwareVersion, String firmwareMin, String firmwareMax) {
+        this.family = family;
+        this.model = model;
+        this.displayName = displayName;
+        this.region = region;
+        this.hardwareVersion = hardwareVersion;
+        this.firmwareMin = firmwareMin;
+        this.firmwareMax = firmwareMax;
+    }
+
+    void archive() { status = Status.INACTIVE; }
+
     public enum Status {
         ACTIVE,
         INACTIVE,

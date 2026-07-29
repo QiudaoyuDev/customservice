@@ -26,6 +26,9 @@ public class HandoffRequest {
     private String summary;
     @Column(name = "contact_authorized")
     private boolean contactAuthorized;
+    private String contact;
+    @Column(name = "package_snapshot", columnDefinition = "text")
+    private String packageSnapshot;
     @Column(name = "assigned_to")
     private UUID assignedTo;
     @Enumerated(EnumType.STRING)
@@ -39,19 +42,37 @@ public class HandoffRequest {
     }
 
     public HandoffRequest(UUID tenant, UUID conversation, String key, String reason, String summary, boolean contact) {
+        this(tenant, conversation, key, reason, summary, null, contact, summary);
+    }
+
+    public HandoffRequest(UUID tenant, UUID conversation, String key, String reason, String summary, String contact, boolean contactAuthorized, String packageSnapshot) {
         id = UUID.randomUUID();
         tenantId = tenant;
         conversationId = conversation;
         idempotencyKey = key;
         this.reason = reason;
         this.summary = summary;
-        contactAuthorized = contact;
+        this.contact = contact;
+        this.contactAuthorized = contactAuthorized;
+        this.packageSnapshot = packageSnapshot;
         status = Status.NEW;
     }
 
     public UUID id() {
         return id;
     }
+
+    public UUID conversationId() { return conversationId; }
+    public Status status() { return status; }
+    public String reason() { return reason; }
+    public String summary() { return summary; }
+    public String contact() { return contact; }
+    public boolean contactAuthorized() { return contactAuthorized; }
+    public UUID assignedTo() { return assignedTo; }
+    public Resolution resolution() { return resolution; }
+    public Instant createdAt() { return createdAt; }
+    public Instant closedAt() { return closedAt; }
+    public String packageSnapshot() { return packageSnapshot; }
 
     UUID tenantId() {
         return tenantId;
@@ -70,7 +91,7 @@ public class HandoffRequest {
         closedAt = Instant.now();
     }
 
-    enum Status {NEW, IN_PROGRESS, CLOSED}
+    public enum Status {NEW, IN_PROGRESS, CLOSED}
 
-    enum Resolution {RESOLVED, WAITING_PARTS, WARRANTY, ABANDONED, DUPLICATE, PRODUCT_DEFECT}
+    public enum Resolution {RESOLVED, WAITING_PARTS, WARRANTY, ABANDONED, DUPLICATE, PRODUCT_DEFECT}
 }
