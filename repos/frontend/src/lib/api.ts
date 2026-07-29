@@ -15,17 +15,43 @@ function logApi(level: Level, msg: string, ...args: unknown[]) {
   (console[level] ?? console.log).call(console, `[api] ${msg}`, ...args);
 }
 
+/** 未授权 / 无权限时的回调（由 AuthProvider 注入，用于跳转到登录页）。 */
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(fn: (() => void) | null) {
+  unauthorizedHandler = fn;
+}
+
 async function parse(res: Response) {
   const requestId = res.headers.get('X-Request-Id');
   const rid = requestId ? ` (requestId=${requestId})` : '';
   if (!res.ok) {
-    const body = await res.json().catch(() => null);
+    // 401 未认证 / 403 无权限：清理本地状态并跳转到登录页，形成闭环。
+    if (res.status === 401 || res.status === 403) {
+      unauthorizedHandler?.();
+    }
+    const text = await res.text().catch(() => '');
+    let body: any = null;
+    if (text) {
+      try {
+        body = JSON.parse(text);
+      } catch {
+        /* ignore non-JSON error body */
+      }
+    }
     const message = body?.message ?? `请求失败 (${res.status})`;
     logApi('error', `RESP ${res.status}${rid}: ${message}`);
     throw new Error(message);
   }
   logApi('log', `RESP ${res.status}${rid}`);
-  return res.status === 204 ? null : res.json();
+  if (res.status === 204) return null;
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }
 
 /** 包装一次 fetch：记录请求方法/路径/耗时与响应状态。 */
@@ -60,13 +86,16 @@ export async function api(path: string, init: RequestInit = {}): Promise<any> {
   );
 }
 
-/** 管理后台文件上传（multipart，不手动设置 Content-Type）。 */
+/** 管理后台文件上传：使用 FormData，由浏览器自动补充 multipart/form-data 及 boundary。
+ *  关键点：绝不能手动设置 Content-Type，否则会丢失 boundary，导致后端返回 415。 */
 export async function apiUpload(path: string, form: FormData): Promise<any> {
   const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
   return parse(
     await tracked('POST', `/api${path}`, {
       method: 'POST',
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      headers,
       body: form,
     }),
   );
@@ -83,16 +112,18 @@ export async function pub(path: string, init: RequestInit = {}): Promise<any> {
   );
 }
 
-/** 匿名端 multipart 请求，浏览器负责补充 boundary。 */
+/** 匿名端 multipart 请求：浏览器负责补充 boundary，不手动设置 Content-Type，避免 415。 */
 export async function pubUpload(
   path: string,
   form: FormData,
   conversationToken?: string,
 ): Promise<any> {
+  const headers: Record<string, string> = {};
+  if (conversationToken) headers['X-Conversation-Token'] = conversationToken;
   return parse(
     await tracked('POST', `/public${path}`, {
       method: 'POST',
-      headers: conversationToken ? { 'X-Conversation-Token': conversationToken } : undefined,
+      headers,
       body: form,
     }),
   );

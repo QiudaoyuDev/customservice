@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { api, clearToken, getToken, setToken, streamAnswer } from './api';
+import { api, apiUpload, clearToken, getToken, setToken, streamAnswer } from './api';
 
 describe('management API client', () => {
   beforeEach(() => {
@@ -71,5 +71,29 @@ describe('management API client', () => {
       { event: 'delta', data: { answerId: 'a1', content: 'second' } },
       { event: 'done', data: { answerId: 'a1' } },
     ]);
+  });
+
+  it('uploads files as multipart without a manual Content-Type (prevents 415)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ id: 'doc-1' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const form = new FormData();
+    form.append('file', new Blob(['payload']), 'a.txt');
+    await apiUpload('/documents', form);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.method).toBe('POST');
+    expect(init.body).toBe(form);
+    // 绝不能手动设置 Content-Type：浏览器需自行补充 multipart/form-data 与 boundary，
+    // 否则后端会因缺少 boundary 返回 415 Unsupported Media Type。
+    const headers = init.headers as Record<string, string>;
+    expect(headers['Content-Type']).toBeUndefined();
+    expect(headers['content-type']).toBeUndefined();
   });
 });

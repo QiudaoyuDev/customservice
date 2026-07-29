@@ -7,6 +7,7 @@ import '@fontsource-variable/jetbrains-mono';
 import './index.css';
 import './i18n';
 import { AuthProvider } from './lib/auth';
+import { RequireAuth } from './lib/RequireAuth';
 import { Root } from './app/Root';
 import Login from './pages/Login';
 import SupportPage from './pages/SupportPage';
@@ -22,12 +23,19 @@ import AnalyticsPage from './console/AnalyticsPage';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AuthProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
         <Routes>
           <Route path="/support/:qrToken" element={<SupportPage />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/console" element={<ConsoleLayout />}>
+          <Route
+            path="/console"
+            element={
+              <RequireAuth>
+                <ConsoleLayout />
+              </RequireAuth>
+            }
+          >
             <Route index element={<Navigate to="products" replace />} />
             <Route path="products" element={<ProductsPage />} />
             <Route path="qrs" element={<QrsPage />} />
@@ -41,7 +49,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/" element={<Root />} />
           <Route path="*" element={<Root />} />
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </BrowserRouter>
   </StrictMode>,
 );

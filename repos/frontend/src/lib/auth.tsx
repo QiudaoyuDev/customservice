@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
-import { api, clearToken, setToken } from './api';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { api, clearToken, setToken, setUnauthorizedHandler } from './api';
 
 export interface AuthUser {
   email: string;
@@ -26,6 +27,33 @@ function readStored(): AuthUser | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(readStored);
+  const navigate = useNavigate();
+
+  // 注册「未授权/无权限」处理器：清理本地状态并跳回登录页，形成闭环。
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      clearToken();
+      try {
+        localStorage.removeItem('auth');
+      } catch {
+        /* ignore */
+      }
+      setUser(null);
+      navigate('/login', { replace: true });
+    });
+    return () => setUnauthorizedHandler(null);
+  }, [navigate]);
+
+  const finishLogout = () => {
+    clearToken();
+    try {
+      localStorage.removeItem('auth');
+    } catch {
+      /* ignore */
+    }
+    setUser(null);
+    navigate('/login', { replace: true });
+  };
 
   const login = async (email: string, password: string) => {
     const response = await api('/auth/login', {
@@ -43,14 +71,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u);
   };
 
-  const logout = () => {
-    clearToken();
+  const logout = async () => {
+    // 调用登出接口（无状态 JWT，best-effort），随后清理本地状态并跳转登录页。
     try {
-      localStorage.removeItem('auth');
+      await api('/auth/logout', { method: 'POST' });
     } catch {
-      /* ignore */
+      /* 即使接口失败也继续本地清理 */
     }
-    setUser(null);
+    finishLogout();
   };
 
   return (

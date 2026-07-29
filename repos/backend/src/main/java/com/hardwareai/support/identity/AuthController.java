@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -41,6 +42,13 @@ public class AuthController {
         }
         log.info("Login succeeded role={}", u.get().role().name());
         return new Token(jwt.issue(u.get()), u.get().email(), u.get().role().name());
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout() {
+        // 采用无状态 JWT，服务端不维护会话；登出由前端丢弃 token 完成。
+        // 返回 204 以便前端形成完整的「请求-清理-跳转」闭环。
+        return ResponseEntity.noContent().build();
     }
 
     record Login(@Email String email, @Size(min = 8, max = 128) String password) {

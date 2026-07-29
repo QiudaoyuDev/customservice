@@ -510,10 +510,7 @@ export default function SupportPage() {
               </button>
               <button
                 className="h-8 rounded-lg border border-line px-2.5 text-xs font-semibold text-ink2 transition hover:bg-brand-soft hover:text-brand-700"
-                onClick={() => {
-                  logout();
-                  navigate('/');
-                }}
+                onClick={() => logout()}
               >
                 {t('console.logout')}
               </button>
