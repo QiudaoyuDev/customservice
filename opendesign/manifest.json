@@ -1,0 +1,51 @@
+{
+  "generated": "2026-08-17T12:20:17Z",
+  "sections": [
+    {
+      "id": "mockups",
+      "label": "Mockups",
+      "groups": [
+        {
+          "slug": "pilot-service-record",
+          "files": [
+            {
+              "label": "index.html",
+              "path": "mockups/pilot-service-record/index.html"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "design-systems",
+      "label": "Design Systems",
+      "groups": [
+        {
+          "slug": "hardware-support-product",
+          "files": [
+            {
+              "label": "README.md",
+              "path": "design-systems/hardware-support-product/README.md"
+            },
+            {
+              "label": "SKILL.md",
+              "path": "design-systems/hardware-support-product/SKILL.md"
+            },
+            {
+              "label": "style-notes.md",
+              "path": "design-systems/hardware-support-product/brand/style-notes.md"
+            },
+            {
+              "label": "voice-and-tone.md",
+              "path": "design-systems/hardware-support-product/brand/voice-and-tone.md"
+            },
+            {
+              "label": "colors_and_type.css",
+              "path": "design-systems/hardware-support-product/tokens/colors_and_type.css"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

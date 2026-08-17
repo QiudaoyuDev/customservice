@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="海外硬件 AI 售后诊断与客服平台试点验证原型" />
+  <title>Hardware AI · 试点验证原型</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="prototype-shell">
+    <header class="prototype-bar">
+      <a class="brand" href="#" data-action="go" data-view="brief" aria-label="返回原型总览">
+        <span class="brand-mark">H</span>
+        <span><strong>HARDWARE AI</strong><small>PILOT PROTOTYPE</small></span>
+      </a>
+      <nav class="view-switch" aria-label="原型场景">
+        <button data-action="go" data-view="brief">验证目标</button>
+        <button data-action="go" data-view="support">用户诊断</button>
+        <button data-action="go" data-view="handoff">人工接管</button>
+        <button data-action="go" data-view="insights">知识闭环</button>
+      </nav>
+      <div class="prototype-actions">
+        <span class="prototype-tag">交互原型 · 本地假数据</span>
+        <button class="button quiet small" data-action="reset">重置演示</button>
+      </div>
+    </header>
+
+    <div class="journey-bar" aria-label="试点核心闭环">
+      <span class="journey-label">核心闭环</span>
+      <button data-action="go" data-view="support" data-stage="identify"><i>1</i>扫码识别</button>
+      <span class="journey-line"></span>
+      <button data-action="go" data-view="support" data-stage="diagnose"><i>2</i>受控诊断</button>
+      <span class="journey-line"></span>
+      <button data-action="go" data-view="handoff"><i>3</i>安全转人工</button>
+      <span class="journey-line"></span>
+      <button data-action="go" data-view="insights"><i>4</i>知识回流</button>
+    </div>
+
+    <main id="app" tabindex="-1"></main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="./app.js"></script>
+</body>
+</html>

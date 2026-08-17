@@ -1,0 +1,63 @@
+:root {
+  /* Raw neutrals: warm service-paper family, chroma intentionally low. */
+  --raw-paper: #f2f0e8;
+  --raw-paper-raised: #faf9f4;
+  --raw-paper-deep: #e6e3d8;
+  --raw-ink: #17231f;
+  --raw-ink-muted: #5f6863;
+  --raw-rule: #b8bdb5;
+  --raw-rule-soft: #d8d8cf;
+
+  /* Existing product semantics, restrained for operational use. */
+  --raw-brand: #0f4c5c;
+  --raw-brand-deep: #07323c;
+  --raw-ai: #0e9d8f;
+  --raw-human: #c96a1f;
+  --raw-safety: #d21f45;
+  --raw-ok: #24704a;
+
+  --font-editorial: "Iowan Old Style", "Songti SC", "STSong", serif;
+  --font-body: "Avenir Next", "Manrope", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+
+  --weight-regular: 400;
+  --weight-medium: 600;
+  --weight-bold: 750;
+
+  --size-caption: 0.6875rem;
+  --size-label: 0.75rem;
+  --size-body: 0.875rem;
+  --size-body-large: 1rem;
+  --size-h3: 1.125rem;
+  --size-h2: 1.75rem;
+  --size-h1: clamp(2.3rem, 5vw, 4.8rem);
+
+  /* Semantic surface and text tokens. */
+  --surface-canvas: var(--raw-paper);
+  --surface-primary: var(--raw-paper-raised);
+  --surface-secondary: var(--raw-paper-deep);
+  --surface-inverse: var(--raw-ink);
+  --fg-primary: var(--raw-ink);
+  --fg-secondary: var(--raw-ink-muted);
+  --fg-inverse: var(--raw-paper-raised);
+  --border-subtle: var(--raw-rule-soft);
+  --border-strong: var(--raw-rule);
+  --action-primary: var(--raw-brand-deep);
+  --signal-ai: var(--raw-ai);
+  --signal-human: var(--raw-human);
+  --signal-safety: var(--raw-safety);
+  --signal-ok: var(--raw-ok);
+
+  --h1: var(--weight-regular) var(--size-h1) / 0.96 var(--font-editorial);
+  --h2: var(--weight-regular) var(--size-h2) / 1.12 var(--font-editorial);
+  --h3: var(--weight-bold) var(--size-h3) / 1.25 var(--font-body);
+  --body: var(--weight-regular) var(--size-body) / 1.65 var(--font-body);
+  --caption: var(--weight-medium) var(--size-caption) / 1.4 var(--font-mono);
+
+  --radius-control: 4px;
+  --radius-surface: 7px;
+  --shadow-lift: 4px 4px 0 rgba(23, 35, 31, 0.12);
+  --motion-fast: 140ms;
+  --motion-screen: 320ms;
+  --ease-product: cubic-bezier(0.22, 0.72, 0.2, 1);
+}
